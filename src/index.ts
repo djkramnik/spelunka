@@ -10,4 +10,4 @@ if (!context) {
   throw new Error("2D canvas rendering is not available.");
 }
 
-console.log(canvas)
+console.log('!!', canvas)
