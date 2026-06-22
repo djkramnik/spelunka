@@ -25,16 +25,17 @@ export default class Spritesheet {
     // I don't understand this particular line but I suppose it just draws the tile in isolation in its buffer
 
     ctx.drawImage(
-      this.img,
-      this.width * x,
-      this.height * y,
-      this.width,
-      this.height,
-      0,
-      0,
-      this.width,
-      this.height,
+      this.img,          // the whole spritesheet image
+      this.width * x,   // sourceX: left edge of tile inside spritesheet
+      this.height * y,  // sourceY: top edge of tile inside spritesheet
+      this.width,       // sourceWidth: how much to cut out
+      this.height,      // sourceHeight: how much to cut out
+      0,                // destX: where to draw inside the tiny buffer canvas
+      0,                // destY: where to draw inside the tiny buffer canvas
+      this.width,       // destWidth: how wide to draw it
+      this.height,      // destHeight: how tall to draw it
     )
+
     this.tiles.set(name, buffer)
   }
 
