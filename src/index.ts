@@ -30,6 +30,16 @@ loadImage('/assets/tiles.png')
       x: 3,
       y: 23
     })
+    loadLevel('1-1')
+      .then((level) => {
+        level.backgrounds.forEach(bg => {
+          drawBg({
+            bg,
+            context,
+            sprites
+          })
+        })
+      })
   })
 
 function drawBg({

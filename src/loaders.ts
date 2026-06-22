@@ -10,8 +10,9 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
 
 export function loadLevel(name: string): Promise<Level> {
   return fetch(`/assets/levels/${name}.json`)
-    .then(r => {
-      const levelParse = LevelZ.safeParse(r.json())
+    .then(r => r.json())
+    .then(obj => {
+      const levelParse = LevelZ.safeParse(obj)
       if (levelParse.error) {
         throw Error(`failed to parse level ${name}`, levelParse.error)
       }
