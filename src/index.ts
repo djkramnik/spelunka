@@ -1,3 +1,5 @@
+import { loadImage } from "./loaders";
+
 const canvas = document.querySelector<HTMLCanvasElement>("#game");
 
 if (!canvas) {
@@ -11,3 +13,8 @@ if (!context) {
 }
 
 console.log('!!', canvas)
+
+loadImage('/assets/tiles.png')
+  .then(img => {
+    console.log('we have img', img)
+  })
