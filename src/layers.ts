@@ -3,6 +3,19 @@ import Spritesheet from "./spritesheet"
 
 export type Layer = (context: CanvasRenderingContext2D) => void
 
+export function createSpriteLayer(
+  sprite: Spritesheet,
+  pos: { x: number, y: number }
+): Layer {
+  return (ctx: CanvasRenderingContext2D) => {
+    sprite.draw({
+      key: 'idle',
+      ...pos,
+      context: ctx
+    })
+  };
+}
+
 export function createBgLayer(
   backgrounds: Array<Level['backgrounds'][0]>,
   sprites: Spritesheet

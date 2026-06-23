@@ -1,6 +1,6 @@
 import { Level } from './assets/levels/type'
 import Compositor from './compositor'
-import { createBgLayer } from './layers'
+import { createBgLayer, createSpriteLayer } from './layers'
 import { loadImage, loadLevel } from './loaders'
 import { loadBackgroundSprites, loadMarioSprite } from './sprite'
 import Spritesheet from './spritesheet'
@@ -21,8 +21,15 @@ const context = canvas.getContext('2d')
       loadLevel('1-1')
     ])
     console.log('stuff loaded', marioSprite, bgSprites, level)
+
+    const pos = {
+      x: 64,
+      y: 64,
+    }
+
     const comp = new Compositor()
     comp.addLayer(createBgLayer(level.backgrounds, bgSprites))
+    comp.addLayer(createSpriteLayer(marioSprite, pos))
 
     update()
 
@@ -31,41 +38,13 @@ const context = canvas.getContext('2d')
         throw new Error('2D canvas rendering is not available.')
       }
       comp.draw(context)
+      pos.x += 2
+      pos.y += 1
       requestAnimationFrame(update)
     }
   } catch(e) {
     console.log('unhandled error', e)
   }
 
-  // const [marioSprite, bgSprites, level] = await Promise.all([
-  //   loadMarioSprite(),
-  //   loadBackgroundSprites(),
-  //   loadLevel('1-1')
-  // ])
-  // console.log('stuff loaded', marioSprite, bgSprites, level)
 })()
-
-// loadImage('/assets/tiles.png').then((img) => {
-//   console.log('we have img', img)
-//   const sprites = new Spritesheet(img)
-//   sprites.defineTile({
-//     name: 'ground',
-//     x: 0,
-//     y: 0,
-//   })
-//   sprites.defineTile({
-//     name: 'sky',
-//     x: 3,
-//     y: 23,
-//   })
-//   loadLevel('1-1').then((level) => {
-//     level.backgrounds.forEach((bg) => {
-//       drawBg({
-//         bg,
-//         context,
-//         sprites,
-//       })
-//     })
-//   })
-// })
 
