@@ -54,8 +54,8 @@ export default class Spritesheet {
   defineTile({ name, x, y }: { name: string; x: number; y: number }) {
     this.define({
       name,
-      x,
-      y,
+      x: x * this.width,
+      y: y * this.height,
       width: this.width,
       height: this.height,
     })
