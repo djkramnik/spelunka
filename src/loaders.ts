@@ -1,4 +1,4 @@
-import { Level, LevelZ } from "./assets/levels/type"
+import { Level, LevelZ } from './assets/levels/type'
 
 export function loadImage(url: string): Promise<HTMLImageElement> {
   return new Promise((resolve) => {
@@ -10,8 +10,8 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
 
 export function loadLevel(name: string): Promise<Level> {
   return fetch(`/assets/levels/${name}.json`)
-    .then(r => r.json())
-    .then(obj => {
+    .then((r) => r.json())
+    .then((obj) => {
       const levelParse = LevelZ.safeParse(obj)
       if (levelParse.error) {
         throw Error(`failed to parse level ${name}`, levelParse.error)

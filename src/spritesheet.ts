@@ -6,7 +6,7 @@ export default class Spritesheet {
 
   constructor(
     img: HTMLImageElement,
-    options: { width: number, height: number} = { width: 16, height: 16 }
+    options: { width: number; height: number } = { width: 16, height: 16 },
   ) {
     this.img = img
     this.width = options.width
@@ -14,10 +14,22 @@ export default class Spritesheet {
     this.tiles = new Map()
   }
 
-  define({ name, x, y }: { name: string, x: number, y: number }) {
+  define({
+    name,
+    x,
+    y,
+    width,
+    height,
+  }: {
+    name: string
+    x: number
+    y: number
+    width: number
+    height: number
+  }) {
     const buffer = document.createElement('canvas')
-    buffer.height = this.height
-    buffer.width = this.width
+    buffer.height = height
+    buffer.width = width
     const ctx = buffer.getContext('2d')
     if (!ctx) {
       throw Error(`unable to define ${name}.  could not acquire buffer`)
@@ -25,25 +37,35 @@ export default class Spritesheet {
     // I don't understand this particular line but I suppose it just draws the tile in isolation in its buffer
 
     ctx.drawImage(
-      this.img,          // the whole spritesheet image
-      this.width * x,   // sourceX: left edge of tile inside spritesheet
-      this.height * y,  // sourceY: top edge of tile inside spritesheet
-      this.width,       // sourceWidth: how much to cut out
-      this.height,      // sourceHeight: how much to cut out
-      0,                // destX: where to draw inside the tiny buffer canvas
-      0,                // destY: where to draw inside the tiny buffer canvas
-      this.width,       // destWidth: how wide to draw it
-      this.height,      // destHeight: how tall to draw it
+      this.img, // the whole spritesheet image
+      x,
+      y,
+      width,
+      height,
+      0, // destX: where to draw inside the tiny buffer canvas
+      0, // destY: where to draw inside the tiny buffer canvas
+      width,
+      height,
     )
 
     this.tiles.set(name, buffer)
+  }
+
+  defineTile({ name, x, y }: { name: string; x: number; y: number }) {
+    this.define({
+      name,
+      x,
+      y,
+      width: this.width,
+      height: this.height,
+    })
   }
 
   draw({
     x,
     y,
     context,
-    key
+    key,
   }: {
     x: number
     y: number
@@ -64,6 +86,10 @@ export default class Spritesheet {
     context: CanvasRenderingContext2D
     key: string
   }) {
-    this.draw({...drawOpts, x: drawOpts.x * this.width, y: drawOpts.y * this.height })
+    this.draw({
+      ...drawOpts,
+      x: drawOpts.x * this.width,
+      y: drawOpts.y * this.height,
+    })
   }
 }
