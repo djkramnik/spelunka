@@ -12,11 +12,13 @@ export function loadMarioSprite(): Promise<Spritesheet> {
       height: 16,
     })
     return mario
+  }).catch((e) => {
+    throw Error(e)
   })
 }
 
 export function loadBackgroundSprites(): Promise<Spritesheet> {
-  return loadImage('/tiles.png').then((img) => {
+  return loadImage('/assets/tiles.png').then((img) => {
     const bgSprites = new Spritesheet(img)
     bgSprites.defineTile({
       name: 'ground',
@@ -29,5 +31,8 @@ export function loadBackgroundSprites(): Promise<Spritesheet> {
       y: 23,
     })
     return bgSprites
+  })
+  .catch((e) => {
+    throw Error(e)
   })
 }
