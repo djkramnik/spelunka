@@ -1,4 +1,6 @@
 import { Level } from './assets/levels/type'
+import Compositor from './compositor'
+import { createBgLayer } from './layers'
 import { loadImage, loadLevel } from './loaders'
 import { loadBackgroundSprites, loadMarioSprite } from './sprite'
 import Spritesheet from './spritesheet'
@@ -11,10 +13,6 @@ if (!canvas) {
 
 const context = canvas.getContext('2d')
 
-if (!context) {
-  throw new Error('2D canvas rendering is not available.')
-}
-
 ;(async () => {
   try {
     const [marioSprite, bgSprites, level] = await Promise.all([
@@ -23,6 +21,18 @@ if (!context) {
       loadLevel('1-1')
     ])
     console.log('stuff loaded', marioSprite, bgSprites, level)
+    const comp = new Compositor()
+    comp.addLayer(createBgLayer(level.backgrounds, bgSprites))
+
+    update()
+
+    function update() {
+      if (!context) {
+        throw new Error('2D canvas rendering is not available.')
+      }
+      comp.draw(context)
+      requestAnimationFrame(update)
+    }
   } catch(e) {
     console.log('unhandled error', e)
   }
@@ -59,25 +69,3 @@ if (!context) {
 //   })
 // })
 
-function drawBg({
-  bg,
-  context,
-  sprites,
-}: {
-  bg: Level['backgrounds'][0]
-  context: CanvasRenderingContext2D
-  sprites: Spritesheet
-}) {
-  bg.ranges.forEach(([x1, x2, y1, y2]) => {
-    for (let x = x1; x < x2; x += 1) {
-      for (let y = y1; y < y2; y += 1) {
-        sprites.drawTile({
-          x,
-          y,
-          context,
-          key: bg.tile,
-        })
-      }
-    }
-  })
-}
