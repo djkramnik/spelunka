@@ -1,0 +1,1 @@
+export type Layer = (context: CanvasRenderingContext2D) => void

@@ -1,4 +1,4 @@
-import Spritesheet from './spritesheet'
+import Spritesheet from './models/spritesheet'
 import { loadImage } from './loaders'
 
 export function loadMarioSprite(): Promise<Spritesheet> {

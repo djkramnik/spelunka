@@ -1,7 +1,6 @@
 import { Level } from "./assets/levels/type"
-import Spritesheet from "./spritesheet"
-
-export type Layer = (context: CanvasRenderingContext2D) => void
+import { Layer } from "./models/layer";
+import Spritesheet from "./models/spritesheet"
 
 export function createSpriteLayer(
   sprite: Spritesheet,

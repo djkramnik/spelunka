@@ -1,4 +1,4 @@
-import { Layer } from "./layers"
+import { Layer } from "./layer"
 
 export default class Compositor {
   layers: Array<Layer>

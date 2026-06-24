@@ -1,9 +1,9 @@
 import { Level } from './assets/levels/type'
-import Compositor from './compositor'
+import Compositor from './models/compositor'
 import { createBgLayer, createSpriteLayer } from './layers'
 import { loadImage, loadLevel } from './loaders'
 import { loadBackgroundSprites, loadMarioSprite } from './sprite'
-import Spritesheet from './spritesheet'
+import Spritesheet from './models/spritesheet'
 
 const canvas = document.querySelector<HTMLCanvasElement>('#game')
 
