@@ -1,17 +1,14 @@
 import { Level } from "./assets/levels/type"
+import Entity from "./models/entity";
 import { Layer } from "./models/layer";
 import Spritesheet from "./models/spritesheet"
 
-export function createSpriteLayer(
-  sprite: Spritesheet,
-  pos: { x: number, y: number }
-): Layer {
+export function createSpriteLayer(entity: Entity): Layer {
   return (ctx: CanvasRenderingContext2D) => {
-    sprite.draw({
-      key: 'idle',
-      ...pos,
-      context: ctx
-    })
+    if (!entity.draw) {
+      throw Error('no draw method on entity')
+    }
+    entity.draw(ctx)
   };
 }
 

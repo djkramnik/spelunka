@@ -14,8 +14,8 @@ export async function createMario(): Promise<Entity> {
   }
   mario.update = (deltaTime: number) => {
     mario.pos.set(
-      mario.vel.x * deltaTime,
-      mario.vel.y * deltaTime
+      mario.pos.x + (mario.vel.x * deltaTime),
+      mario.pos.y + (mario.vel.y * deltaTime)
     )
   }
   return mario
