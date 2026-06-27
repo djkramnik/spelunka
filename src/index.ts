@@ -29,9 +29,9 @@ if (!context) {
     const comp = new Compositor()
     comp.addLayer(createBgLayer(level.backgrounds, bgSprites))
 
-    const gravity = 30
+    const gravity = 2000
     mario.pos.set(64,180)
-    mario.vel.set(200, -600)
+    // mario.vel.set(200, -600)
 
     comp.addLayer(createSpriteLayer(mario))
 

@@ -3,6 +3,7 @@ export default class Timer {
   lastTime: number
   deltaTime: number
   updateFn?: (delta: number) => void
+  private _updateProxy = this.updateProxy.bind(this)
 
   constructor(deltaTime: number = 1/60) {
     this.accumulatedTime = 0
@@ -29,6 +30,6 @@ export default class Timer {
     this.updateFn?.(delta)
   }
 
-  enqueue() { requestAnimationFrame(this.updateProxy.bind(this)) }
+  enqueue() { requestAnimationFrame(this._updateProxy) }
   start() { this.enqueue() }
 }
