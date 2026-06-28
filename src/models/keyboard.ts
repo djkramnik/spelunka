@@ -5,7 +5,7 @@ enum KeydownState {
 
 type KeyPressHandler = (keyDownState: KeydownState) => void
 
-export default class KeyboardState {
+export default class InputHandlers {
   keyMap: Map<number, KeyPressHandler>
   keyStates: Map<number, KeydownState>
 

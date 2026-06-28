@@ -1,4 +1,6 @@
 import Entity from './models/entity'
+import Jump from './models/traits/jump'
+import Velocity from './models/traits/velocity'
 import { loadMarioSprite } from './sprite'
 
 export async function createMario(): Promise<Entity> {
@@ -12,11 +14,7 @@ export async function createMario(): Promise<Entity> {
       y: mario.pos.y
     })
   }
-  mario.update = (deltaTime: number) => {
-    mario.pos.set(
-      mario.pos.x + (mario.vel.x * deltaTime),
-      mario.pos.y + (mario.vel.y * deltaTime)
-    )
-  }
+  mario.addTrait(new Velocity())
+  mario.addTrait(new Jump())
   return mario
 }
