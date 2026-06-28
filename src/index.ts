@@ -29,7 +29,7 @@ if (!context) {
     const comp = new Compositor()
     comp.addLayer(createBgLayer(level.backgrounds, bgSprites))
 
-    const gravity = 2000
+    const gravity = 30
     mario.pos.set(64,180)
     // mario.vel.set(200, -600)
 
@@ -37,9 +37,9 @@ if (!context) {
 
     const timer = new Timer(1/60)
     timer.updateFn = (deltaTime: number) => {
-      comp.draw(context!)
       mario.update?.(deltaTime)
-      mario.vel.y += gravity
+      comp.draw(context!)
+      mario.vel.y += (gravity * deltaTime)
     }
     timer.start()
   } catch(e) {
