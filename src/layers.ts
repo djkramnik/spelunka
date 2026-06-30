@@ -12,6 +12,12 @@ export function createSpriteLayer(entity: Entity): Layer {
   };
 }
 
+export function createCollisionLayer(level: Level) {
+
+}
+
+
+
 export function createBgLayer(
   backgrounds: Array<Level['backgrounds'][0]>,
   sprites: Spritesheet
