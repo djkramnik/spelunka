@@ -2,16 +2,11 @@ import Trait from "./trait";
 import Vec2 from "./vec";
 
 export default class Entity {
-  pos: Vec2
-  vel: Vec2
+  pos: Vec2 = new Vec2(0, 0)
+  vel: Vec2 = new Vec2(0, 0)
+  size: Vec2 = new Vec2(0, 0)
   draw?: (ctx: CanvasRenderingContext2D) => void
-  traits: Map<string, Trait>
-
-  constructor() {
-    this.pos = new Vec2(0, 0)
-    this.vel = new Vec2(0, 0)
-    this.traits = new Map<string, Trait>()
-  }
+  traits: Map<string, Trait> = new Map<string, Trait>()
 
   addTrait(trait: Trait) {
     this.traits.set(trait.NAME, trait)
