@@ -1,25 +1,20 @@
 {
-  "name": "spelunka",
+  "name": "super-mario",
   "version": "1.0.0",
-  "type": "module",
-  "main": "dist/index.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "vite build",
+    "start": "vite --host 127.0.0.1",
     "dev": "vite --host 127.0.0.1",
-    "format": "prettier --write",
-    "format:all": "prettier --write \"**/*.ts\""
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1"
   },
-  "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
-  "devDependencies": {
-    "prettier": "^3.6.2",
-    "typescript": "^5.8.3",
-    "vite": "^6.3.5"
-  },
   "dependencies": {
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vite": "^8.2.0"
   }
 }
