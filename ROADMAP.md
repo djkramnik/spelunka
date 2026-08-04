@@ -2,8 +2,15 @@
 
 - Evaluate that the game runs.
 - Convert the JavaScript to TypeScript piecemeal.
-  - [ ] Establish the TypeScript baseline: add TypeScript, create a permissive
+  - [x] Replace the legacy `serve` setup with Vite for development and
+        production builds.
+  - [x] Separate application modules into `src/` and keep runtime assets in
+        `public/` so Vite can build the project correctly.
+  - [x] Install Zod in preparation for validating external game data.
+  - [x] Establish the TypeScript baseline: add TypeScript, create a permissive
         `tsconfig.json`, and confirm the untouched JavaScript still builds.
+  - [ ] Create a visible progress indicator during game startup so loading
+        progress is clear while the conversion proceeds.
   - [ ] Convert small, dependency-light foundations first: math, animation,
         events, bounding boxes, the timer, and keyboard/input state.
   - [ ] Convert rendering and world primitives: sprite sheets, compositors,
