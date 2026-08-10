@@ -4,11 +4,14 @@ import {loadKoopa} from './entities/Koopa.js';
 import {loadBullet} from './entities/Bullet.js';
 import {loadCannon} from './entities/Cannon.js';
 
-export function loadEntities(audioContext) {
+export function loadEntities(audioContext, onProgress = () => {}) {
     const entityFactories = {};
 
     function addAs(name) {
-        return factory => entityFactories[name] = factory;
+        return factory => {
+            entityFactories[name] = factory;
+            onProgress();
+        };
     }
 
     return Promise.all([

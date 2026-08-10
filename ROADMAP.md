@@ -9,7 +9,7 @@
   - [x] Install Zod in preparation for validating external game data.
   - [x] Establish the TypeScript baseline: add TypeScript, create a permissive
         `tsconfig.json`, and confirm the untouched JavaScript still builds.
-  - [ ] Create a visible progress indicator during game startup so loading
+  - [x] Create a visible progress indicator during game startup so loading
         progress is clear while the conversion proceeds.
   - [ ] Convert small, dependency-light foundations first: math, animation,
         events, bounding boxes, the timer, and keyboard/input state.

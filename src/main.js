@@ -13,15 +13,28 @@ import { createPlayerProgressLayer } from './layers/player-progress.js';
 import SceneRunner from './SceneRunner.js';
 import Scene from './Scene.js';
 import TimedScene from './TimedScene.js';
+import LoadingProgress from './loading-progress.ts';
 
-async function main(canvas) {
+const INITIAL_LOAD_TASKS = 9;
+const LEVEL_LOAD_TASKS = 4;
+
+async function main(canvas, font) {
     const videoContext = canvas.getContext('2d');
     const audioContext = new AudioContext();
+    const loadingProgress = new LoadingProgress();
 
-    const [entityFactory, font] = await Promise.all([
-        loadEntities(audioContext),
-        loadFont(),
-    ]);
+    loadingProgress.reset(INITIAL_LOAD_TASKS, 'Loading game');
+    loadingProgress.draw(videoContext);
+
+    const advanceLoadingProgress = () => {
+        loadingProgress.advance();
+        loadingProgress.draw(videoContext);
+    };
+
+    const entityFactory = await loadEntities(
+        audioContext,
+        advanceLoadingProgress,
+    );
 
 
     const loadLevel = await createLevelLoader(entityFactory);
@@ -35,14 +48,20 @@ async function main(canvas) {
     const inputRouter = setupKeyboard(window);
     inputRouter.addReceiver(mario);
 
-    async function runLevel(name) {
+    async function runLevel(name, continueStartupProgress = false) {
+        if (!continueStartupProgress) {
+            loadingProgress.reset(LEVEL_LOAD_TASKS, `Loading ${name}`);
+        } else {
+            loadingProgress.setLabel(`Loading ${name}`);
+        }
+
         const loadScreen = new Scene();
         loadScreen.comp.layers.push(createColorLayer('#000'));
-        loadScreen.comp.layers.push(createTextLayer(font, `Loading ${name}...`));
+        loadScreen.comp.layers.push(context => loadingProgress.draw(context));
         sceneRunner.addScene(loadScreen);
         sceneRunner.runNext();
 
-        const level = await loadLevel(name);
+        const level = await loadLevel(name, () => loadingProgress.advance());
 
         level.events.listen(Level.EVENT_TRIGGER, (spec, trigger, touches) => {
             if (spec.type === "goto") {
@@ -91,14 +110,20 @@ async function main(canvas) {
 
     timer.start();
 
-    runLevel('1-1');
+    runLevel('1-1', true);
 }
 
 const canvas = document.getElementById('screen');
+const videoContext = canvas.getContext('2d');
 
-const start = () => {
-    window.removeEventListener('click', start);
-    main(canvas);
-};
+loadFont().then(font => {
+    createColorLayer('#000')(videoContext);
+    createTextLayer(font, 'CLICK TO START')(videoContext);
 
-window.addEventListener('click', start);
+    const start = () => {
+        window.removeEventListener('click', start);
+        main(canvas, font);
+    };
+
+    window.addEventListener('click', start);
+});

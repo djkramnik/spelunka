@@ -73,14 +73,23 @@ function setupTriggers(levelSpec, level) {
 }
 
 export function createLevelLoader(entityFactory) {
-    return function loadLevel(name) {
+    return function loadLevel(name, onProgress = () => {}) {
         return loadJSON(`/levels/${name}.json`)
-        .then(levelSpec => Promise.all([
-            levelSpec,
-            loadSpriteSheet(levelSpec.spriteSheet),
-            loadMusicSheet(levelSpec.musicSheet),
-            loadPattern(levelSpec.patternSheet),
-        ]))
+        .then(levelSpec => {
+            onProgress();
+
+            const track = promise => promise.then(result => {
+                onProgress();
+                return result;
+            });
+
+            return Promise.all([
+                levelSpec,
+                track(loadSpriteSheet(levelSpec.spriteSheet)),
+                track(loadMusicSheet(levelSpec.musicSheet)),
+                track(loadPattern(levelSpec.patternSheet)),
+            ]);
+        })
         .then(([levelSpec, backgroundSprites, musicPlayer, patterns]) => {
             const level = new Level();
             level.name = name;
