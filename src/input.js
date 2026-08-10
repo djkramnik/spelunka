@@ -9,7 +9,7 @@ export function setupKeyboard(window) {
 
     input.listenTo(window);
 
-    input.addMapping('KeyP', keyState => {
+    input.addMapping('KeyX', keyState => {
         if (keyState) {
             router.route(entity => entity.traits.get(Jump).start());
         } else {
@@ -17,15 +17,15 @@ export function setupKeyboard(window) {
         }
     });
 
-    input.addMapping('KeyO', keyState => {
+    input.addMapping('KeyZ', keyState => {
         router.route(entity => entity.turbo(keyState));
     });
 
-    input.addMapping('KeyD', keyState => {
+    input.addMapping('ArrowRight', keyState => {
         router.route(entity => entity.traits.get(Go).dir += keyState ? 1 : -1);
     });
 
-    input.addMapping('KeyA', keyState => {
+    input.addMapping('ArrowLeft', keyState => {
         router.route(entity => entity.traits.get(Go).dir += keyState ? -1 : 1);
     });
 
