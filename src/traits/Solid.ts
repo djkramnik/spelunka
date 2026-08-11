@@ -7,7 +7,7 @@ import type {TileMatch} from '../TileResolver.js';
 export default class Solid extends Trait {
     obstructs = true;
 
-    obstruct(
+    override obstruct(
         entity: Entity,
         side: symbol,
         match: TileMatch<CollisionTile>,

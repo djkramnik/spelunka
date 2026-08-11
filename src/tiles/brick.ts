@@ -27,7 +27,7 @@ const handleY: TileHandler = ({
         if (entity.traits.has(Player)) {
             resolver.matrix.delete(match.indexX, match.indexY);
 
-            const goomba = gameContext.entityFactory.goomba();
+            const goomba = gameContext.entityFactory['goomba']();
             goomba.vel.set(50, -400);
             goomba.pos.set(entity.pos.x, match.y1);
             level.entities.add(goomba);

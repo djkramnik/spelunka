@@ -10,11 +10,13 @@ import LevelTimer from '../traits/LevelTimer.js';
 import Trigger from '../traits/Trigger.js';
 import {loadMusicSheet} from './music.js';
 import {
-    LevelSpec,
     LevelSpecSchema,
+    PatternSheetSchema,
+} from './schemas.js';
+import type {
+    LevelSpec,
     NamedTileSpec,
     PatternSheet,
-    PatternSheetSchema,
     TileRange,
     TileSpec,
 } from './schemas.js';

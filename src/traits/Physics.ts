@@ -4,7 +4,7 @@ import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 
 export default class Physics extends Trait {
-    update(entity: Entity, gameContext: GameContext, level: Level): void {
+    override update(entity: Entity, gameContext: GameContext, level: Level): void {
         const {deltaTime} = gameContext;
 
         entity.pos.x += entity.vel.x * deltaTime;

@@ -4,7 +4,8 @@ import type Level from '../Level.js';
 import {loadAudioBoard} from '../loaders/audio.js';
 import {findPlayers} from '../player.js';
 import type {GameContext} from '../Scene.js';
-import Emitter, {EntityEmitter} from '../traits/Emitter.js';
+import Emitter from '../traits/Emitter.js';
+import type {EntityEmitter} from '../traits/Emitter.js';
 
 const HOLD_FIRE_THRESHOLD = 30;
 
@@ -36,7 +37,7 @@ function createCannonFactory(audio: AudioBoard): CannonFactory {
             }
         }
 
-        const bullet = gameContext.entityFactory.bullet();
+        const bullet = gameContext.entityFactory['bullet']();
         bullet.pos.copy(cannon.pos);
         bullet.vel.set(80 * direction, 0);
 

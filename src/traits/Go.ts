@@ -17,7 +17,11 @@ export default class Go extends Trait {
     distance = 0;
     heading = 1;
 
-    update(entity: MovingEntity, {deltaTime}: GameContext, _level: Level): void {
+    override update(
+        entity: MovingEntity,
+        {deltaTime}: GameContext,
+        _level: Level,
+    ): void {
         const absoluteVelocity = Math.abs(entity.vel.x);
 
         if (this.dir !== 0) {

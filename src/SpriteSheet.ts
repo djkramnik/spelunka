@@ -1,4 +1,4 @@
-import {Animation} from './anim.js';
+import type {Animation} from './anim.js';
 
 type SpriteBuffers = [HTMLCanvasElement, HTMLCanvasElement];
 

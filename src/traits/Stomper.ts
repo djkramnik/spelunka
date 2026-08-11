@@ -14,7 +14,7 @@ export default class Stomper extends Trait {
         us.vel.y = -this.bounceSpeed;
     }
 
-    collides(us: Entity, them: Entity): void {
+    override collides(us: Entity, them: Entity): void {
         const killable = them.traits.get(Killable);
         if (!killable || killable.dead) {
             return;

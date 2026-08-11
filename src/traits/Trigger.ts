@@ -14,11 +14,11 @@ export default class Trigger extends Trait {
     private readonly touches = new Set<Entity>();
     readonly conditions: TriggerCondition[] = [];
 
-    collides(_us: Entity, them: Entity): void {
+    override collides(_us: Entity, them: Entity): void {
         this.touches.add(them);
     }
 
-    update(entity: Entity, gameContext: GameContext, level: Level): void {
+    override update(entity: Entity, gameContext: GameContext, level: Level): void {
         if (this.touches.size > 0) {
             for (const condition of this.conditions) {
                 condition(entity, this.touches, gameContext, level);

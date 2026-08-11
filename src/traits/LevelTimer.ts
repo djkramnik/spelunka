@@ -15,7 +15,11 @@ export default class LevelTimer extends Trait {
     hurryTime = 100;
     hurryEmitted: boolean | null = null;
 
-    update(_entity: Entity, {deltaTime}: GameContext, level: Level): void {
+    override update(
+        _entity: Entity,
+        {deltaTime}: GameContext,
+        level: Level,
+    ): void {
         this.currentTime -= deltaTime * 2;
 
         if (this.hurryEmitted !== true && this.currentTime < this.hurryTime) {

@@ -2,7 +2,8 @@ import Camera from './Camera.js';
 import type Entity from './Entity.js';
 import EntityCollider from './EntityCollider.js';
 import MusicController from './MusicController.js';
-import Scene, {GameContext} from './Scene.js';
+import Scene from './Scene.js';
+import type {GameContext} from './Scene.js';
 import TileCollider from './TileCollider.js';
 import {findPlayers} from './player.js';
 
@@ -25,11 +26,11 @@ export default class Level extends Scene<Camera> {
     readonly entityCollider = new EntityCollider(this.entities);
     readonly tileCollider = new TileCollider();
 
-    draw(gameContext: GameContext): void {
+    override draw(gameContext: GameContext): void {
         this.comp.draw(gameContext.videoContext, this.camera);
     }
 
-    update(gameContext: GameContext): void {
+    override update(gameContext: GameContext): void {
         this.entities.forEach(entity => {
             entity.update(gameContext, this);
         });
@@ -46,7 +47,7 @@ export default class Level extends Scene<Camera> {
         this.totalTime += gameContext.deltaTime;
     }
 
-    pause(): void {
+    override pause(): void {
         this.music.pause();
     }
 }

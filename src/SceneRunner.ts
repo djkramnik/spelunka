@@ -1,4 +1,5 @@
-import Scene, {GameContext} from './Scene.js';
+import Scene from './Scene.js';
+import type {GameContext} from './Scene.js';
 
 export default class SceneRunner {
     private sceneIndex = -1;

@@ -1,9 +1,14 @@
 import type Entity from './Entity.js';
-import {BulletFactory, loadBullet} from './entities/Bullet.js';
-import {CannonFactory, loadCannon} from './entities/Cannon.js';
-import {GoombaFactory, loadGoomba} from './entities/Goomba.js';
-import {KoopaFactory, loadKoopa} from './entities/Koopa.js';
-import {loadMario, MarioFactory} from './entities/Mario.js';
+import {loadBullet} from './entities/Bullet.js';
+import type {BulletFactory} from './entities/Bullet.js';
+import {loadCannon} from './entities/Cannon.js';
+import type {CannonFactory} from './entities/Cannon.js';
+import {loadGoomba} from './entities/Goomba.js';
+import type {GoombaFactory} from './entities/Goomba.js';
+import {loadKoopa} from './entities/Koopa.js';
+import type {KoopaFactory} from './entities/Koopa.js';
+import {loadMario} from './entities/Mario.js';
+import type {MarioFactory} from './entities/Mario.js';
 
 type ProgressCallback = () => void;
 

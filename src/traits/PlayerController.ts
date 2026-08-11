@@ -13,7 +13,11 @@ export default class PlayerController extends Trait {
         this.player = entity;
     }
 
-    update(_entity: Entity, _gameContext: GameContext, level: Level): void {
+    override update(
+        _entity: Entity,
+        _gameContext: GameContext,
+        level: Level,
+    ): void {
         if (!this.player) {
             throw new Error('Player controller has no player');
         }

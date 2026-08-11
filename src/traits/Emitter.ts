@@ -20,7 +20,7 @@ export default class Emitter extends Trait {
         }
     }
 
-    update(entity: Entity, gameContext: GameContext, level: Level): void {
+    override update(entity: Entity, gameContext: GameContext, level: Level): void {
         this.coolDown -= gameContext.deltaTime;
         if (this.coolDown <= 0) {
             this.emit(entity, gameContext, level);

@@ -1,4 +1,5 @@
-import Keyboard, {KeyState} from './KeyboardState.js';
+import Keyboard from './KeyboardState.js';
+import type {KeyState} from './KeyboardState.js';
 import InputRouter from './InputRouter.js';
 import Jump from './traits/Jump.js';
 import Go from './traits/Go.js';

@@ -19,7 +19,7 @@ export default class Killable extends Trait {
         this.deadTime = 0;
     }
 
-    update(entity: Entity, {deltaTime}: GameContext, level: Level): void {
+    override update(entity: Entity, {deltaTime}: GameContext, level: Level): void {
         if (this.dead) {
             this.deadTime += deltaTime;
             if (this.deadTime > this.removeAfter) {

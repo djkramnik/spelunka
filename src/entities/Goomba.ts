@@ -16,7 +16,7 @@ export async function loadGoomba(): Promise<GoombaFactory> {
 }
 
 class Behavior extends Trait {
-    collides(us: Entity, them: Entity): void {
+    override collides(us: Entity, them: Entity): void {
         if (us.traits.get(Killable).dead) {
             return;
         }

@@ -19,7 +19,7 @@ export async function loadBullet(): Promise<BulletFactory> {
 class Behavior extends Trait {
     private readonly gravity = new Gravity();
 
-    collides(us: Entity, them: Entity): void {
+    override collides(us: Entity, them: Entity): void {
         if (us.traits.get(Killable).dead) {
             return;
         }
@@ -35,7 +35,7 @@ class Behavior extends Trait {
         }
     }
 
-    update(entity: Entity, gameContext: GameContext, level: Level): void {
+    override update(entity: Entity, gameContext: GameContext, level: Level): void {
         if (entity.traits.get(Killable).dead) {
             this.gravity.update(entity, gameContext, level);
         }

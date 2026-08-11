@@ -33,7 +33,7 @@ class Behavior extends Trait {
     panicSpeed = 300;
     state: KoopaState = STATE_WALKING;
 
-    collides(us: Entity, them: Entity): void {
+    override collides(us: Entity, them: Entity): void {
         if (us.traits.get(Killable).dead) {
             return;
         }
@@ -61,7 +61,7 @@ class Behavior extends Trait {
         }
     }
 
-    private handleStomp(us: Entity, them: Entity): void {
+    private handleStomp(us: Entity, _them: Entity): void {
         if (this.state === STATE_WALKING) {
             this.hide(us);
         } else if (this.state === STATE_HIDING) {
@@ -102,7 +102,7 @@ class Behavior extends Trait {
         this.state = STATE_PANIC;
     }
 
-    update(us: Entity, gameContext: GameContext, _level: Level): void {
+    override update(us: Entity, gameContext: GameContext, _level: Level): void {
         if (this.state === STATE_HIDING) {
             this.hideTime += gameContext.deltaTime;
             if (this.hideTime > this.hideDuration) {

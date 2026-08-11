@@ -26,7 +26,7 @@ export default class Jump extends Trait {
         this.requestTime = 0;
     }
 
-    obstruct(entity: Entity, side: symbol): void {
+    override obstruct(_entity: Entity, side: symbol): void {
         if (side === Sides.BOTTOM) {
             this.ready = 1;
         } else if (side === Sides.TOP) {
@@ -34,7 +34,11 @@ export default class Jump extends Trait {
         }
     }
 
-    update(entity: Entity, {deltaTime}: GameContext, _level: Level): void {
+    override update(
+        entity: Entity,
+        {deltaTime}: GameContext,
+        _level: Level,
+    ): void {
         if (this.requestTime > 0) {
             if (this.ready > 0) {
                 entity.sounds.add('jump');

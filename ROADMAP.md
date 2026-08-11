@@ -38,7 +38,7 @@
     - [x] Convert the main entry point and browser bootstrap.
   - [ ] Tighten compiler options incrementally, remove temporary escape
         hatches, and finish with strict type checking enabled.
-    - [ ] Enable stricter compiler checks in compatible groups.
+    - [x] Enable stricter compiler checks in compatible groups.
     - [ ] Remove temporary types and remaining JavaScript escape hatches.
     - [ ] Enable full strict mode and resolve the final diagnostics.
   - After every checkbox: build the project, then manually verify that the
