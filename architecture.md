@@ -14,27 +14,115 @@ one canvas. The browser loads the TypeScript entry module through Vite, the
 entry module loads the assets and constructs the game objects, and a fixed-step
 timer updates and redraws the current scene.
 
-At a high level, startup proceeds as follows:
+### Runtime pseudocode
 
-1. `index.html` loads `/src/main.ts` as an ES module.
-2. `bootstrap()` finds the game canvas and loads the bitmap font.
-3. The canvas displays a black screen with `CLICK TO START` and waits for a
-   click anywhere in the window.
-4. The first click removes the start listener and calls `main()`. Starting from
-   a user gesture allows the game to create and use its `AudioContext` without
-   running afoul of normal browser autoplay restrictions.
-5. The game loads the entity assets, creates the Mario player, installs the
-   keyboard controls, creates the scene runner, and starts the animation loop.
-6. Level `1-1` is loaded and assembled. While that work is in progress, the
-   canvas displays a loading bar.
-7. Once the level is ready, the scene runner shows a two-second player/status
-   screen and then begins updating and drawing the level.
-8. A level trigger can call the same level-loading flow for another named
-   level.
+The following is a condensed, code-shaped representation of the current
+implementation. It omits error handling and some render-layer wiring, but
+preserves the runtime control flow.
 
-The main loop uses `requestAnimationFrame` for browser scheduling but advances
-the simulation in fixed `1/60`-second steps. On each step, the current scene is
-updated and then drawn into the canvas.
+```ts
+async function bootstrap() {
+    const canvas = document.getElementById('screen') as HTMLCanvasElement;
+    const context = canvas.getContext('2d');
+    // See: DOM and browser objects
+
+    const font = await loadFont();
+    // See: Asset loading
+
+    drawStartPrompt(context, font, 'CLICK TO START');
+
+    const start = () => {
+        window.removeEventListener('click', start);
+        void main(canvas, font);
+    };
+    window.addEventListener('click', start);
+    // See: Click and keypress handlers
+}
+
+async function main(canvas: HTMLCanvasElement, font: Font) {
+    const videoContext = canvas.getContext('2d');
+    const audioContext = new AudioContext();
+    const loadingProgress = new LoadingProgress();
+
+    loadingProgress.reset(9, 'Loading game');
+    const entityFactory = await loadEntities(audioContext, () => {
+        loadingProgress.advance();
+        loadingProgress.draw(videoContext);
+    });
+    const loadLevel = createLevelLoader(entityFactory);
+    // See: Asset loading
+
+    const sceneRunner = new SceneRunner();
+    const mario = entityFactory.mario();
+    makePlayer(mario, 'MARIO');
+
+    const inputRouter = setupKeyboard(window);
+    inputRouter.addReceiver(mario);
+    // See: Click and keypress handlers
+
+    async function runLevel(name: string, continuingStartup = false) {
+        configureProgressForLevel(name, continuingStartup);
+
+        const loadingScene = createLoadingScene(loadingProgress);
+        sceneRunner.addScene(loadingScene);
+        sceneRunner.runNext();
+
+        const level = await loadLevel(name, () => {
+            loadingProgress.advance();
+        });
+        // See: Asset loading
+
+        level.events.listen(Level.EVENT_TRIGGER, trigger => {
+            void runLevel(trigger.name);
+        });
+
+        mario.pos.set(0, 0);
+        level.entities.add(mario);
+        level.entities.add(createPlayerEnv(mario));
+        addDashboardAndCollisionLayers(level, font);
+
+        const statusScene = createTwoSecondPlayerStatusScene(level, font);
+        sceneRunner.addScene(statusScene);
+        sceneRunner.addScene(level);
+        sceneRunner.runNext();
+        // See: Animation and scene flow
+    }
+
+    const gameContext = {
+        audioContext,
+        videoContext,
+        entityFactory,
+        deltaTime: 0,
+    };
+
+    const timer = new Timer(1 / 60);
+    timer.update = deltaTime => {
+        gameContext.deltaTime = deltaTime;
+        sceneRunner.update(gameContext); // Updates and draws the current scene.
+    };
+    timer.start();
+    // See: Animation and scene flow
+
+    await runLevel('1-1', true);
+}
+
+// Timer's internal fixed-step game loop, simplified from Timer.ts.
+function animationFrame(currentTime: number) {
+    accumulatedTime += (currentTime - lastTime) / 1000;
+    accumulatedTime = Math.min(accumulatedTime, 1);
+
+    while (accumulatedTime > 1 / 60) {
+        timer.update(1 / 60); // Calls sceneRunner.update(gameContext).
+        accumulatedTime -= 1 / 60;
+    }
+
+    lastTime = currentTime;
+    requestAnimationFrame(animationFrame);
+    // See: Animation and scene flow
+}
+
+void bootstrap();
+```
 
 ### Asset loading
 
@@ -104,3 +192,23 @@ prevents the browser's default action and ignores repeated `keydown` events
 that do not change the stored pressed/released state. Unmapped keys are left
 alone. An `InputRouter` forwards each mapped action to its registered
 receivers; currently the only receiver is the Mario entity.
+
+### Animation and scene flow
+
+The main loop uses `requestAnimationFrame` for browser scheduling but advances
+the simulation in fixed `1/60`-second steps. Elapsed browser time is accumulated
+and may produce multiple simulation steps when a frame is late. On every fixed
+step, `SceneRunner` updates and then draws its current scene.
+
+Scenes are stored in insertion order. Initial level startup moves through three
+of them:
+
+1. A loading scene draws a black background and the loading bar while assets
+   are pending.
+2. A two-second timed scene draws the dashboard and player status.
+3. The `Level` scene runs the game world.
+
+When a scene completes, the runner pauses it and advances to the next scene.
+During a level update, entities update their traits, entity collisions are
+checked, entity state is finalized, and the camera follows the player. The
+level's compositor then draws its ordered render layers into the same canvas.
