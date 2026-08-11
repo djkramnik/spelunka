@@ -1,21 +1,22 @@
+import type Entity from '../Entity.js';
 import Trait from '../Trait.js';
 import Killable from './Killable.js';
 
+const EVENT_STOMP: unique symbol = Symbol('stomp');
+
 export default class Stomper extends Trait {
-    static EVENT_STOMP = Symbol('stomp');
+    static readonly EVENT_STOMP = EVENT_STOMP;
 
-    constructor() {
-        super();
-        this.bounceSpeed = 400;
-    }
+    bounceSpeed = 400;
 
-    bounce(us, them) {
+    bounce(us: Entity, them: Entity): void {
         us.bounds.bottom = them.bounds.top;
         us.vel.y = -this.bounceSpeed;
     }
 
-    collides(us, them) {
-        if (!them.traits.has(Killable) || them.traits.get(Killable).dead) {
+    collides(us: Entity, them: Entity): void {
+        const killable = them.traits.get(Killable);
+        if (!killable || killable.dead) {
             return;
         }
 

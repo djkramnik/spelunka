@@ -28,8 +28,8 @@
     - [x] Add Zod schemas at every external JSON boundary.
   - [ ] Convert traits and entity collision behavior, followed by concrete
         entities such as Mario, Goombas, Koopas, cannons, and bullets.
-    - [ ] Convert the trait base and movement/physics traits.
-    - [ ] Convert interaction, collision, and lifecycle traits.
+    - [x] Convert the trait base and movement/physics traits.
+    - [x] Convert interaction, collision, and lifecycle traits.
     - [ ] Convert the entity core and concrete entity factories.
   - [ ] Convert layers, player orchestration, debugging helpers, and finally
         the main entry point.

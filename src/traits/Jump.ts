@@ -1,33 +1,32 @@
 import {Sides} from '../Entity.js';
+import type Entity from '../Entity.js';
+import type Level from '../Level.js';
+import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 
 export default class Jump extends Trait {
-    constructor() {
-        super();
+    ready = 0;
+    duration = 0.3;
+    engageTime = 0;
+    requestTime = 0;
+    gracePeriod = 0.1;
+    speedBoost = 0.3;
+    velocity = 200;
 
-        this.ready = 0;
-        this.duration = 0.3;
-        this.engageTime = 0;
-        this.requestTime = 0;
-        this.gracePeriod = 0.1;
-        this.speedBoost = 0.3;
-        this.velocity = 200;
-    }
-
-    get falling() {
+    get falling(): boolean {
         return this.ready < 0;
     }
 
-    start() {
+    start(): void {
         this.requestTime = this.gracePeriod;
     }
 
-    cancel() {
+    cancel(): void {
         this.engageTime = 0;
         this.requestTime = 0;
     }
 
-    obstruct(entity, side) {
+    obstruct(entity: Entity, side: symbol): void {
         if (side === Sides.BOTTOM) {
             this.ready = 1;
         } else if (side === Sides.TOP) {
@@ -35,7 +34,7 @@ export default class Jump extends Trait {
         }
     }
 
-    update(entity, {deltaTime}, level) {
+    update(entity: Entity, {deltaTime}: GameContext, _level: Level): void {
         if (this.requestTime > 0) {
             if (this.ready > 0) {
                 entity.sounds.add('jump');
@@ -47,7 +46,9 @@ export default class Jump extends Trait {
         }
 
         if (this.engageTime > 0) {
-            entity.vel.y = -(this.velocity + Math.abs(entity.vel.x) * this.speedBoost);
+            entity.vel.y = -(
+                this.velocity + Math.abs(entity.vel.x) * this.speedBoost
+            );
             this.engageTime -= deltaTime;
         }
 

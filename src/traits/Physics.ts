@@ -1,8 +1,12 @@
+import type Entity from '../Entity.js';
+import type Level from '../Level.js';
+import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 
 export default class Physics extends Trait {
-    update(entity, gameContext, level) {
+    update(entity: Entity, gameContext: GameContext, level: Level): void {
         const {deltaTime} = gameContext;
+
         entity.pos.x += entity.vel.x * deltaTime;
         level.tileCollider.checkX(entity, gameContext, level);
 

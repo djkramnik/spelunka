@@ -1,13 +1,17 @@
 import {Sides} from '../Entity.js';
+import type Entity from '../Entity.js';
 import Trait from '../Trait.js';
+import type {CollisionTile} from '../TileCollider.js';
+import type {TileMatch} from '../TileResolver.js';
 
 export default class Solid extends Trait {
-    constructor() {
-        super();
-        this.obstructs = true;
-    }
+    obstructs = true;
 
-    obstruct(entity, side, match) {
+    obstruct(
+        entity: Entity,
+        side: symbol,
+        match: TileMatch<CollisionTile>,
+    ): void {
         if (!this.obstructs) {
             return;
         }
