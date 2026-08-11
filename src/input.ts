@@ -1,13 +1,23 @@
-import Keyboard from './KeyboardState.js';
+import Keyboard, {KeyState} from './KeyboardState.js';
 import InputRouter from './InputRouter.js';
 import Jump from './traits/Jump.js';
 import Go from './traits/Go.js';
 
-export function setupKeyboard(window) {
-    const input = new Keyboard();
-    const router = new InputRouter();
+interface InputTraits {
+    get(trait: typeof Jump): Jump;
+    get(trait: typeof Go): Go;
+}
 
-    input.listenTo(window);
+interface KeyboardControlledEntity {
+    traits: InputTraits;
+    turbo(state: KeyState): void;
+}
+
+export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEntity> {
+    const input = new Keyboard();
+    const router = new InputRouter<KeyboardControlledEntity>();
+
+    input.listenTo(target);
 
     input.addMapping('KeyZ', keyState => {
         if (keyState) {
@@ -22,11 +32,15 @@ export function setupKeyboard(window) {
     });
 
     input.addMapping('ArrowRight', keyState => {
-        router.route(entity => entity.traits.get(Go).dir += keyState ? 1 : -1);
+        router.route(entity => {
+            entity.traits.get(Go).dir += keyState ? 1 : -1;
+        });
     });
 
     input.addMapping('ArrowLeft', keyState => {
-        router.route(entity => entity.traits.get(Go).dir += keyState ? -1 : 1);
+        router.route(entity => {
+            entity.traits.get(Go).dir += keyState ? -1 : 1;
+        });
     });
 
     return router;

@@ -1,12 +1,9 @@
-import Scene from './Scene.js';
+import Scene, {GameContext} from './Scene.js';
 
 export default class TimedScene extends Scene {
-    constructor() {
-        super();
-        this.countDown = 2;
-    }
+    countDown = 2;
 
-    update(gameContext) {
+    update(gameContext: GameContext): void {
         this.countDown -= gameContext.deltaTime;
         if (this.countDown <= 0) {
             this.events.emit(Scene.EVENT_COMPLETE);

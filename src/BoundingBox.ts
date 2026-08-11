@@ -1,46 +1,48 @@
-export default class BoundingBox {
-    constructor(pos, size, offset) {
-        this.pos = pos;
-        this.size = size;
-        this.offset = offset;
-    }
+import {Vec2} from './math.js';
 
-    overlaps(box) {
+export default class BoundingBox {
+    constructor(
+        private readonly pos: Vec2,
+        private readonly size: Vec2,
+        private readonly offset: Vec2,
+    ) {}
+
+    overlaps(box: BoundingBox): boolean {
         return this.bottom > box.top
             && this.top < box.bottom
             && this.left < box.right
             && this.right > box.left;
     }
 
-    get bottom() {
+    get bottom(): number {
         return this.pos.y + this.size.y + this.offset.y;
     }
 
-    set bottom(y) {
+    set bottom(y: number) {
         this.pos.y = y - (this.size.y + this.offset.y);
     }
 
-    get top() {
+    get top(): number {
         return this.pos.y + this.offset.y;
     }
 
-    set top(y) {
+    set top(y: number) {
         this.pos.y = y - this.offset.y;
     }
 
-    get left() {
+    get left(): number {
         return this.pos.x + this.offset.x;
     }
 
-    set left(x) {
+    set left(x: number) {
         this.pos.x = x - this.offset.x;
     }
 
-    get right() {
+    get right(): number {
         return this.pos.x + this.size.x + this.offset.x;
     }
 
-    set right(x) {
+    set right(x: number) {
         this.pos.x = x - (this.size.x + this.offset.x);
     }
 }

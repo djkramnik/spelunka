@@ -1,28 +1,31 @@
 import {Sides} from '../Entity.js';
-import Player from "../traits/Player.js";
+import type {TileCollisionContext, TileHandler} from '../TileCollider.js';
+import Player from '../traits/Player.js';
 
-function handleX({entity, match}) {
-
+const handleX: TileHandler = ({entity, match}) => {
     if (entity.vel.x > 0) {
         if (entity.bounds.right > match.x1) {
             entity.obstruct(Sides.RIGHT, match);
         }
-    } else if (entity.vel.x < 0) {
-        if (entity.bounds.left < match.x2) {
-            entity.obstruct(Sides.LEFT, match);
-        }
+    } else if (entity.vel.x < 0 && entity.bounds.left < match.x2) {
+        entity.obstruct(Sides.LEFT, match);
     }
-}
+};
 
-function handleY({entity, match, resolver, gameContext, level}) {
+const handleY: TileHandler = ({
+    entity,
+    match,
+    resolver,
+    gameContext,
+    level,
+}: TileCollisionContext) => {
     if (entity.vel.y > 0) {
         if (entity.bounds.bottom > match.y1) {
             entity.obstruct(Sides.BOTTOM, match);
         }
     } else if (entity.vel.y < 0) {
         if (entity.traits.has(Player)) {
-            const grid = resolver.matrix;
-            grid.delete(match.indexX, match.indexY);
+            resolver.matrix.delete(match.indexX, match.indexY);
 
             const goomba = gameContext.entityFactory.goomba();
             goomba.vel.set(50, -400);
@@ -34,6 +37,6 @@ function handleY({entity, match, resolver, gameContext, level}) {
             entity.obstruct(Sides.TOP, match);
         }
     }
-}
+};
 
-export const brick = [handleX, handleY];
+export const brick: readonly [TileHandler, TileHandler] = [handleX, handleY];

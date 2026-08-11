@@ -1,19 +1,17 @@
-import Scene from './Scene.js';
+import Scene, {GameContext} from './Scene.js';
 
 export default class SceneRunner {
-    constructor() {
-        this.sceneIndex = -1;
-        this.scenes = [];
-    }
+    private sceneIndex = -1;
+    private readonly scenes: Array<Scene<any>> = [];
 
-    addScene(scene) {
+    addScene(scene: Scene<any>): void {
         scene.events.listen(Scene.EVENT_COMPLETE, () => {
             this.runNext();
         });
         this.scenes.push(scene);
     }
 
-    runNext() {
+    runNext(): void {
         const currentScene = this.scenes[this.sceneIndex];
         if (currentScene) {
             currentScene.pause();
@@ -21,7 +19,7 @@ export default class SceneRunner {
         this.sceneIndex++;
     }
 
-    update(gameContext) {
+    update(gameContext: GameContext): void {
         const currentScene = this.scenes[this.sceneIndex];
         if (currentScene) {
             currentScene.update(gameContext);

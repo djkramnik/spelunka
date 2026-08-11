@@ -1,7 +1,7 @@
 export type MatrixCallback<T> = (value: T, x: number, y: number) => void;
 
 export class Matrix<T = unknown> {
-    private readonly grid: Array<Array<T> | undefined> = [];
+    readonly grid: Array<Array<T> | undefined> = [];
 
     forEach(callback: MatrixCallback<T>): void {
         this.grid.forEach((column, x) => {

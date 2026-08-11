@@ -1,15 +1,18 @@
+export type TimerUpdate = (deltaTime: number) => void;
+
 export default class Timer {
-    constructor(deltaTime = 1/60) {
+    update: TimerUpdate = () => {};
+
+    private readonly updateProxy: FrameRequestCallback;
+
+    constructor(deltaTime = 1 / 60) {
         let accumulatedTime = 0;
-        let lastTime = null;
+        let lastTime: number | null = null;
 
-        this.updateProxy = (time) => {
-            if (lastTime) {
+        this.updateProxy = time => {
+            if (lastTime !== null) {
                 accumulatedTime += (time - lastTime) / 1000;
-
-                if (accumulatedTime > 1) {
-                    accumulatedTime = 1;
-                }
+                accumulatedTime = Math.min(accumulatedTime, 1);
 
                 while (accumulatedTime > deltaTime) {
                     this.update(deltaTime);
@@ -18,16 +21,15 @@ export default class Timer {
             }
 
             lastTime = time;
-
             this.enqueue();
-        }
+        };
     }
 
-    enqueue() {
+    private enqueue(): void {
         requestAnimationFrame(this.updateProxy);
     }
 
-    start() {
+    start(): void {
         this.enqueue();
     }
 }
