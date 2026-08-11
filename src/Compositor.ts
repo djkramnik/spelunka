@@ -1,3 +1,5 @@
+export type CanvasLayer = (context: CanvasRenderingContext2D) => void;
+
 export type RenderLayer<Camera = undefined> = (
     context: CanvasRenderingContext2D,
     camera: Camera,

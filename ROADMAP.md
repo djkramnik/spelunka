@@ -33,7 +33,7 @@
     - [x] Convert the entity core and concrete entity factories.
   - [ ] Convert layers, player orchestration, debugging helpers, and finally
         the main entry point.
-    - [ ] Convert rendering layers.
+    - [x] Convert rendering layers.
     - [ ] Convert player orchestration and debugging helpers.
     - [ ] Convert the main entry point and browser bootstrap.
   - [ ] Tighten compiler options incrementally, remove temporary escape
