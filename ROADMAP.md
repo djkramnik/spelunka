@@ -31,11 +31,11 @@
     - [x] Convert the trait base and movement/physics traits.
     - [x] Convert interaction, collision, and lifecycle traits.
     - [x] Convert the entity core and concrete entity factories.
-  - [ ] Convert layers, player orchestration, debugging helpers, and finally
+  - [x] Convert layers, player orchestration, debugging helpers, and finally
         the main entry point.
     - [x] Convert rendering layers.
     - [x] Convert player orchestration and debugging helpers.
-    - [ ] Convert the main entry point and browser bootstrap.
+    - [x] Convert the main entry point and browser bootstrap.
   - [ ] Tighten compiler options incrementally, remove temporary escape
         hatches, and finish with strict type checking enabled.
     - [ ] Enable stricter compiler checks in compatible groups.
