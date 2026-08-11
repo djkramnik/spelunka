@@ -1,32 +1,26 @@
-type UntypedEventMap = Record<PropertyKey, any[]>;
-type EventMapConstraint<Events> = Record<keyof Events, unknown[]>;
+import type {BufferedEventKey} from './EventEmitter.js';
+import {EventKey} from './EventEmitter.js';
 
-interface BufferedEvent {
-    name: PropertyKey;
-    args: any[];
-}
+export default class EventBuffer {
+    private readonly eventKeys = new Set<BufferedEventKey>();
 
-export default class EventBuffer<
-    Events extends EventMapConstraint<Events> = UntypedEventMap,
-> {
-    private readonly events: BufferedEvent[] = [];
-
-    emit<Name extends keyof Events>(name: Name, ...args: Events[Name]): void {
-        this.events.push({name, args});
+    emit<Arguments extends unknown[]>(
+        event: EventKey<Arguments>,
+        ...args: Arguments
+    ): void {
+        event.buffer(this, args);
+        this.eventKeys.add(event);
     }
 
-    process<Name extends keyof Events>(
-        name: Name,
-        callback: (...args: Events[Name]) => void,
+    process<Arguments extends unknown[]>(
+        event: EventKey<Arguments>,
+        callback: (...args: NoInfer<Arguments>) => void,
     ): void {
-        this.events.forEach(event => {
-            if (event.name === name) {
-                callback(...event.args as Events[Name]);
-            }
-        });
+        event.process(this, callback);
     }
 
     clear(): void {
-        this.events.length = 0;
+        this.eventKeys.forEach(event => event.clearBuffered(this));
+        this.eventKeys.clear();
     }
 }

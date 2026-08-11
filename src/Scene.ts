@@ -1,8 +1,8 @@
 import Compositor from './Compositor.js';
 import type Entity from './Entity.js';
-import EventEmitter from './EventEmitter.js';
+import EventEmitter, {EventKey} from './EventEmitter.js';
 
-const EVENT_COMPLETE: unique symbol = Symbol('scene complete');
+const EVENT_COMPLETE = new EventKey<[]>('scene complete');
 
 export type EntityFactory = Record<string, () => Entity>;
 

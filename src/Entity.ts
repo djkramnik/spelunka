@@ -17,7 +17,7 @@ export const Sides = {TOP, BOTTOM, LEFT, RIGHT} as const;
 export type Side = typeof Sides[keyof typeof Sides];
 
 export type TraitConstructor<TraitType extends Trait = Trait> =
-    abstract new (...args: any[]) => TraitType;
+    new () => TraitType;
 
 export class TraitMap {
     private readonly traits = new Map<Function, Trait>();
@@ -30,10 +30,10 @@ export class TraitMap {
         traitType: TraitConstructor<TraitType>,
     ): TraitType {
         const trait = this.traits.get(traitType);
-        if (!trait) {
+        if (!(trait instanceof traitType)) {
             throw new Error(`Entity is missing trait: ${traitType.name}`);
         }
-        return trait as TraitType;
+        return trait;
     }
 
     has<TraitType extends Trait>(traitType: TraitConstructor<TraitType>): boolean {

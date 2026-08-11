@@ -39,7 +39,7 @@
   - [ ] Tighten compiler options incrementally, remove temporary escape
         hatches, and finish with strict type checking enabled.
     - [x] Enable stricter compiler checks in compatible groups.
-    - [ ] Remove temporary types and remaining JavaScript escape hatches.
+    - [x] Remove temporary types and remaining JavaScript escape hatches.
     - [ ] Enable full strict mode and resolve the final diagnostics.
   - After every checkbox: build the project, then manually verify that the
     current game loads and plays before starting the next chunk.

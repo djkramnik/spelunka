@@ -31,7 +31,7 @@ export default class SpriteSheet {
         width: number,
         height: number,
     ): void {
-        const buffers = [false, true].map(flip => {
+        const createBuffer = (flip: boolean): HTMLCanvasElement => {
             const buffer = document.createElement('canvas');
             buffer.width = width;
             buffer.height = height;
@@ -59,7 +59,12 @@ export default class SpriteSheet {
             );
 
             return buffer;
-        }) as SpriteBuffers;
+        };
+
+        const buffers: SpriteBuffers = [
+            createBuffer(false),
+            createBuffer(true),
+        ];
 
         this.tiles.set(name, buffers);
     }

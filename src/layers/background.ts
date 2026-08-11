@@ -1,4 +1,5 @@
 import Camera from '../Camera.js';
+import {requireCamera} from '../Compositor.js';
 import type {RenderLayer} from '../Compositor.js';
 import type Level from '../Level.js';
 import type {NamedTileSpec} from '../loaders/schemas.js';
@@ -52,15 +53,16 @@ export function createBackgroundLayer(
     }
 
     return function drawBackgroundLayer(context, camera): void {
-        const drawWidth = resolver.toIndex(camera.size.x);
-        const drawFrom = resolver.toIndex(camera.pos.x);
+        const view = requireCamera(camera);
+        const drawWidth = resolver.toIndex(view.size.x);
+        const drawFrom = resolver.toIndex(view.pos.x);
         const drawTo = drawFrom + drawWidth;
         redraw(drawFrom, drawTo);
 
         context.drawImage(
             buffer,
-            Math.floor(-camera.pos.x % 16),
-            Math.floor(-camera.pos.y),
+            Math.floor(-view.pos.x % 16),
+            Math.floor(-view.pos.y),
         );
     };
 }

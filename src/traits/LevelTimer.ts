@@ -1,10 +1,11 @@
 import type Entity from '../Entity.js';
+import {EventKey} from '../EventEmitter.js';
 import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 
-const EVENT_TIMER_HURRY: unique symbol = Symbol('timer hurry');
-const EVENT_TIMER_OK: unique symbol = Symbol('timer ok');
+const EVENT_TIMER_HURRY = new EventKey<[]>('timer hurry');
+const EVENT_TIMER_OK = new EventKey<[]>('timer ok');
 
 export default class LevelTimer extends Trait {
     static readonly EVENT_TIMER_HURRY = EVENT_TIMER_HURRY;

@@ -1,11 +1,16 @@
 import Scene from './Scene.js';
 import type {GameContext} from './Scene.js';
 
+type RunnableScene = Pick<
+    Scene,
+    'events' | 'draw' | 'update' | 'pause'
+>;
+
 export default class SceneRunner {
     private sceneIndex = -1;
-    private readonly scenes: Array<Scene<any>> = [];
+    private readonly scenes: RunnableScene[] = [];
 
-    addScene(scene: Scene<any>): void {
+    addScene(scene: RunnableScene): void {
         scene.events.listen(Scene.EVENT_COMPLETE, () => {
             this.runNext();
         });

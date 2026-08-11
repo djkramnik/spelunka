@@ -10,16 +10,30 @@ export type TileRange =
     | [number, number, number]
     | [number, number, number, number];
 
-export const TileRangeSchema = z.union([
-    z.tuple([CoordinateSchema, CoordinateSchema]),
-    z.tuple([CoordinateSchema, PositiveNumberSchema, CoordinateSchema]),
-    z.tuple([
-        CoordinateSchema,
-        PositiveNumberSchema,
-        CoordinateSchema,
-        PositiveNumberSchema,
-    ]),
-]) as unknown as z.ZodType<TileRange>;
+export const TileRangeSchema = z.custom<TileRange>((value): value is TileRange => {
+    if (!Array.isArray(value)) {
+        return false;
+    }
+
+    const coordinates: readonly unknown[] = value;
+    if (!coordinates.every(coordinate => (
+        typeof coordinate === 'number' && Number.isFinite(coordinate)
+    ))) {
+        return false;
+    }
+
+    if (coordinates.length === 2) {
+        return true;
+    }
+
+    if (coordinates.length === 3) {
+        return Number(coordinates[1]) > 0;
+    }
+
+    return coordinates.length === 4
+        && Number(coordinates[1]) > 0
+        && Number(coordinates[3]) > 0;
+}, 'Expected a 2-, 3-, or 4-number tile range');
 
 const TileRangesSchema = z.array(TileRangeSchema).min(1);
 

@@ -55,43 +55,39 @@ function createMarioFactory(
         return 'idle';
     }
 
-    function setTurboState(
-        this: Entity,
-        turboOn: boolean | KeyState,
-    ): void {
-        this.traits.get(Go).dragFactor = turboOn ? FAST_DRAG : SLOW_DRAG;
-    }
+    class MarioEntity extends Entity {
+        constructor() {
+            super();
+            this.audio = audio;
+            this.size.set(14, 16);
 
-    function drawMario(
-        this: Entity,
-        context: CanvasRenderingContext2D,
-    ): void {
-        sprite.draw(
-            routeFrame(this),
-            context,
-            0,
-            0,
-            this.traits.get(Go).heading < 0,
-        );
+            this.addTrait(new Physics());
+            this.addTrait(new Solid());
+            this.addTrait(new Go());
+            this.addTrait(new Jump());
+            this.addTrait(new Killable());
+            this.addTrait(new Stomper());
+
+            this.traits.get(Killable).removeAfter = 0;
+            this.turbo(false);
+        }
+
+        turbo(turboOn: boolean | KeyState): void {
+            this.traits.get(Go).dragFactor = turboOn ? FAST_DRAG : SLOW_DRAG;
+        }
+
+        override draw(context: CanvasRenderingContext2D): void {
+            sprite.draw(
+                routeFrame(this),
+                context,
+                0,
+                0,
+                this.traits.get(Go).heading < 0,
+            );
+        }
     }
 
     return function createMario(): Mario {
-        const mario = new Entity() as Mario;
-        mario.audio = audio;
-        mario.size.set(14, 16);
-
-        mario.addTrait(new Physics());
-        mario.addTrait(new Solid());
-        mario.addTrait(new Go());
-        mario.addTrait(new Jump());
-        mario.addTrait(new Killable());
-        mario.addTrait(new Stomper());
-
-        mario.traits.get(Killable).removeAfter = 0;
-        mario.turbo = setTurboState;
-        mario.draw = drawMario;
-        mario.turbo(false);
-
-        return mario;
+        return new MarioEntity();
     };
 }

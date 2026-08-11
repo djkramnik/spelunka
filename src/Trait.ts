@@ -1,17 +1,15 @@
 import type Entity from './Entity.js';
+import type EventBuffer from './EventBuffer.js';
+import {EventKey} from './EventEmitter.js';
 import type Level from './Level.js';
 import type {GameContext} from './Scene.js';
 import type {CollisionTile} from './TileCollider.js';
 import type {TileMatch} from './TileResolver.js';
 
-const EVENT_TASK: unique symbol = Symbol('task');
-
-type TraitEventCallback = (...args: any[]) => void;
+const EVENT_TASK = new EventKey<[entity: Entity]>('task');
 
 interface TraitListener {
-    name: PropertyKey;
-    callback: TraitEventCallback;
-    count: number;
+    process(events: EventBuffer): boolean;
 }
 
 export default class Trait {
@@ -19,19 +17,24 @@ export default class Trait {
 
     private listeners: TraitListener[] = [];
 
-    listen(
-        name: PropertyKey,
-        callback: TraitEventCallback,
+    listen<Arguments extends unknown[]>(
+        event: EventKey<Arguments>,
+        callback: (...args: NoInfer<Arguments>) => void,
         count = Infinity,
     ): void {
-        this.listeners.push({name, callback, count});
+        let remaining = count;
+        this.listeners.push({
+            process(events): boolean {
+                events.process(event, callback);
+                remaining--;
+                return remaining > 0;
+            },
+        });
     }
 
     finalize(entity: Entity): void {
         this.listeners = this.listeners.filter(listener => {
-            entity.events.process(listener.name, listener.callback);
-            listener.count--;
-            return listener.count > 0;
+            return listener.process(entity.events);
         });
     }
 

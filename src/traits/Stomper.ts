@@ -1,8 +1,9 @@
 import type Entity from '../Entity.js';
+import {EventKey} from '../EventEmitter.js';
 import Trait from '../Trait.js';
 import Killable from './Killable.js';
 
-const EVENT_STOMP: unique symbol = Symbol('stomp');
+const EVENT_STOMP = new EventKey<[us: Entity, them: Entity]>('stomp');
 
 export default class Stomper extends Trait {
     static readonly EVENT_STOMP = EVENT_STOMP;
