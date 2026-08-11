@@ -3,18 +3,13 @@ import type Level from '../Level.js';
 import {Vec2} from '../math.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
-
-type PlayerEntity = Entity & {
-    killable: {
-        revive(): void;
-    };
-};
+import Killable from './Killable.js';
 
 export default class PlayerController extends Trait {
     readonly checkpoint = new Vec2(0, 0);
-    private player: PlayerEntity | null = null;
+    private player: Entity | null = null;
 
-    setPlayer(entity: PlayerEntity): void {
+    setPlayer(entity: Entity): void {
         this.player = entity;
     }
 
@@ -24,7 +19,7 @@ export default class PlayerController extends Trait {
         }
 
         if (!level.entities.has(this.player)) {
-            this.player.killable.revive();
+            this.player.traits.get(Killable).revive();
             this.player.pos.copy(this.checkpoint);
             level.entities.add(this.player);
         }

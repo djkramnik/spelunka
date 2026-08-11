@@ -34,7 +34,7 @@
   - [ ] Convert layers, player orchestration, debugging helpers, and finally
         the main entry point.
     - [x] Convert rendering layers.
-    - [ ] Convert player orchestration and debugging helpers.
+    - [x] Convert player orchestration and debugging helpers.
     - [ ] Convert the main entry point and browser bootstrap.
   - [ ] Tighten compiler options incrementally, remove temporary escape
         hatches, and finish with strict type checking enabled.
