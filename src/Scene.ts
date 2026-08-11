@@ -4,11 +4,13 @@ import EventEmitter from './EventEmitter.js';
 
 const EVENT_COMPLETE: unique symbol = Symbol('scene complete');
 
+export type EntityFactory = Record<string, () => Entity>;
+
 export interface GameContext {
     videoContext: CanvasRenderingContext2D;
     audioContext: AudioContext;
     deltaTime: number;
-    entityFactory: Record<string, () => Entity>;
+    entityFactory: EntityFactory;
 }
 
 export default class Scene<Camera = undefined> {

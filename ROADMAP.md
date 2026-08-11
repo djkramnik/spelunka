@@ -21,11 +21,11 @@
     - [x] Convert sprite sheets, compositors, and cameras.
     - [x] Convert tile storage and collision resolution.
     - [x] Convert scenes, scene runners, and levels.
-  - [ ] Convert audio, loaders, and JSON boundaries. Add Zod schemas where
+  - [x] Convert audio, loaders, and JSON boundaries. Add Zod schemas where
         external level, sprite, sound, and music data enters the game.
-    - [ ] Convert audio boards, music players, and music controllers.
-    - [ ] Convert image, font, sprite, audio, music, and level loaders.
-    - [ ] Add Zod schemas at every external JSON boundary.
+    - [x] Convert audio boards, music players, and music controllers.
+    - [x] Convert image, font, sprite, audio, music, and level loaders.
+    - [x] Add Zod schemas at every external JSON boundary.
   - [ ] Convert traits and entity collision behavior, followed by concrete
         entities such as Mario, Goombas, Koopas, cannons, and bullets.
     - [ ] Convert the trait base and movement/physics traits.

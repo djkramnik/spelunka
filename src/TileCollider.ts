@@ -8,7 +8,7 @@ import {coin} from './tiles/coin.js';
 import {ground} from './tiles/ground.js';
 
 export interface CollisionTile {
-    type: string;
+    type?: string;
 }
 
 interface PlayerState {
@@ -98,7 +98,9 @@ export default class TileCollider {
         gameContext: GameContext,
         level: Level,
     ): void {
-        const handler = handlers[match.tile.type]?.[index];
+        const handler = match.tile.type
+            ? handlers[match.tile.type]?.[index]
+            : undefined;
         if (handler) {
             handler({entity, match, resolver, gameContext, level});
         }
