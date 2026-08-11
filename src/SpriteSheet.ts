@@ -16,6 +16,14 @@ export default class SpriteSheet {
         this.animations.set(name, animation);
     }
 
+    getAnimation(name: string): Animation {
+        const animation = this.animations.get(name);
+        if (!animation) {
+            throw new Error(`Unknown animation: ${name}`);
+        }
+        return animation;
+    }
+
     define(
         name: string,
         x: number,
@@ -89,11 +97,7 @@ export default class SpriteSheet {
         y: number,
         distance: number,
     ): void {
-        const animation = this.animations.get(name);
-        if (!animation) {
-            throw new Error(`Unknown animation: ${name}`);
-        }
-
+        const animation = this.getAnimation(name);
         this.drawTile(animation(distance), context, x, y);
     }
 

@@ -1,20 +1,22 @@
 import Entity from '../Entity.js';
+import {loadSpriteSheet} from '../loaders/sprite.js';
+import SpriteSheet from '../SpriteSheet.js';
 import Trait from '../Trait.js';
 import Killable from '../traits/Killable.js';
 import PendulumMove from '../traits/PendulumMove.js';
 import Physics from '../traits/Physics.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
-import {loadSpriteSheet} from '../loaders/sprite.js';
 
-export function loadGoomba() {
-    return loadSpriteSheet('goomba')
-    .then(createGoombaFactory);
+export type GoombaFactory = () => Entity;
+
+export async function loadGoomba(): Promise<GoombaFactory> {
+    const sprite = await loadSpriteSheet('goomba');
+    return createGoombaFactory(sprite);
 }
 
-
 class Behavior extends Trait {
-    collides(us, them) {
+    collides(us: Entity, them: Entity): void {
         if (us.traits.get(Killable).dead) {
             return;
         }
@@ -30,23 +32,25 @@ class Behavior extends Trait {
     }
 }
 
+function createGoombaFactory(sprite: SpriteSheet): GoombaFactory {
+    const walkAnimation = sprite.getAnimation('walk');
 
-function createGoombaFactory(sprite) {
-    const walkAnim = sprite.animations.get('walk');
-
-    function routeAnim(goomba) {
+    function routeAnimation(goomba: Entity): string {
         if (goomba.traits.get(Killable).dead) {
             return 'flat';
         }
 
-        return walkAnim(goomba.lifetime);
+        return walkAnimation(goomba.lifetime);
     }
 
-    function drawGoomba(context) {
-        sprite.draw(routeAnim(this), context, 0, 0);
+    function drawGoomba(
+        this: Entity,
+        context: CanvasRenderingContext2D,
+    ): void {
+        sprite.draw(routeAnimation(this), context, 0, 0);
     }
 
-    return function createGoomba() {
+    return function createGoomba(): Entity {
         const goomba = new Entity();
         goomba.size.set(16, 16);
 
@@ -55,7 +59,6 @@ function createGoombaFactory(sprite) {
         goomba.addTrait(new PendulumMove());
         goomba.addTrait(new Behavior());
         goomba.addTrait(new Killable());
-
         goomba.draw = drawGoomba;
 
         return goomba;

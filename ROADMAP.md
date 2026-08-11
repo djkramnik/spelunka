@@ -26,11 +26,11 @@
     - [x] Convert audio boards, music players, and music controllers.
     - [x] Convert image, font, sprite, audio, music, and level loaders.
     - [x] Add Zod schemas at every external JSON boundary.
-  - [ ] Convert traits and entity collision behavior, followed by concrete
+  - [x] Convert traits and entity collision behavior, followed by concrete
         entities such as Mario, Goombas, Koopas, cannons, and bullets.
     - [x] Convert the trait base and movement/physics traits.
     - [x] Convert interaction, collision, and lifecycle traits.
-    - [ ] Convert the entity core and concrete entity factories.
+    - [x] Convert the entity core and concrete entity factories.
   - [ ] Convert layers, player orchestration, debugging helpers, and finally
         the main entry point.
     - [ ] Convert rendering layers.
