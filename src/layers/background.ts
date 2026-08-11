@@ -22,7 +22,7 @@ export function createBackgroundLayer(
         throw new Error('Unable to create background buffer context');
     }
 
-    function redraw(startIndex: number, endIndex: number): void {
+    const redraw = (startIndex: number, endIndex: number): void => {
         bufferContext.clearRect(0, 0, buffer.width, buffer.height);
 
         for (let x = startIndex; x <= endIndex; ++x) {
@@ -50,7 +50,7 @@ export function createBackgroundLayer(
                 }
             });
         }
-    }
+    };
 
     return function drawBackgroundLayer(context, camera): void {
         const view = requireCamera(camera);

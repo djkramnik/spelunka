@@ -27,7 +27,12 @@ const handleY: TileHandler = ({
         if (entity.traits.has(Player)) {
             resolver.matrix.delete(match.indexX, match.indexY);
 
-            const goomba = gameContext.entityFactory['goomba']();
+            const createGoomba = gameContext.entityFactory['goomba'];
+            if (!createGoomba) {
+                throw new Error('Goomba entity factory is not registered');
+            }
+
+            const goomba = createGoomba();
             goomba.vel.set(50, -400);
             goomba.pos.set(entity.pos.x, match.y1);
             level.entities.add(goomba);

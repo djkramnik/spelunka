@@ -9,7 +9,7 @@ import {coin} from './tiles/coin.js';
 import {ground} from './tiles/ground.js';
 
 export interface CollisionTile {
-    type?: string;
+    type?: string | undefined;
 }
 
 interface PlayerState {

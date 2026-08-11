@@ -37,7 +37,12 @@ function createCannonFactory(audio: AudioBoard): CannonFactory {
             }
         }
 
-        const bullet = gameContext.entityFactory['bullet']();
+        const createBullet = gameContext.entityFactory['bullet'];
+        if (!createBullet) {
+            throw new Error('Bullet entity factory is not registered');
+        }
+
+        const bullet = createBullet();
         bullet.pos.copy(cannon.pos);
         bullet.vel.set(80 * direction, 0);
 

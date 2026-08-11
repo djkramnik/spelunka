@@ -36,11 +36,11 @@
     - [x] Convert rendering layers.
     - [x] Convert player orchestration and debugging helpers.
     - [x] Convert the main entry point and browser bootstrap.
-  - [ ] Tighten compiler options incrementally, remove temporary escape
+  - [x] Tighten compiler options incrementally, remove temporary escape
         hatches, and finish with strict type checking enabled.
     - [x] Enable stricter compiler checks in compatible groups.
     - [x] Remove temporary types and remaining JavaScript escape hatches.
-    - [ ] Enable full strict mode and resolve the final diagnostics.
+    - [x] Enable full strict mode and resolve the final diagnostics.
   - After every checkbox: build the project, then manually verify that the
     current game loads and plays before starting the next chunk.
 - Review the codebase interactively.
