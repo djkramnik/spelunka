@@ -1,6 +1,10 @@
 # Done
 
 - [x] Evaluate that the game runs.
+- [x] Review the codebase interactively.
+  - [x] Review runtime startup, assets, DOM, input, and the main loop.
+  - [x] Review physics and character movement.
+  - [x] Review tile and entity collision logic.
 - Convert the JavaScript to TypeScript piecemeal.
   - [x] Replace the legacy `serve` setup with Vite for development and
         production builds.
