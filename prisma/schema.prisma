@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../server/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model PerformanceSession {
+  id          String              @id
+  sourceUrl   String
+  userAgent   String
+  startedAt   DateTime
+  lastSeenAt  DateTime
+  createdAt   DateTime            @default(now())
+  samples     PerformanceSample[]
+}
+
+model PerformanceSample {
+  id          Int                @id @default(autoincrement())
+  sessionId   String
+  sequence    Int
+  capturedAt  DateTime
+  durationMs  Float
+  payload     Json
+  createdAt   DateTime           @default(now())
+  session     PerformanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, sequence])
+  @@index([capturedAt])
+}

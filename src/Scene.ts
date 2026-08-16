@@ -1,6 +1,7 @@
 import Compositor from './Compositor.js';
 import type Entity from './Entity.js';
 import EventEmitter, {EventKey} from './EventEmitter.js';
+import type PerformanceMetrics from './PerformanceMetrics.js';
 
 const EVENT_COMPLETE = new EventKey<[]>('scene complete');
 
@@ -11,6 +12,7 @@ export interface GameContext {
     audioContext: AudioContext;
     deltaTime: number;
     entityFactory: EntityFactory;
+    performanceMetrics: PerformanceMetrics;
 }
 
 export default class Scene<Camera = undefined> {

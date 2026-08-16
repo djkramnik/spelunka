@@ -11,6 +11,7 @@ import {createLevelLoader} from './loaders/level.js';
 import {Font, loadFont} from './loaders/font.js';
 import type {LevelSpec} from './loaders/schemas.js';
 import LoadingProgress from './loading-progress.js';
+import PerformanceMetrics from './PerformanceMetrics.js';
 import {createPlayerEnv, findPlayers, makePlayer} from './player.js';
 import Scene from './Scene.js';
 import type {GameContext} from './Scene.js';
@@ -109,14 +110,19 @@ async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
         sceneRunner.runNext();
     }
 
+    const performanceMetrics = new PerformanceMetrics({
+        enabled: new URLSearchParams(window.location.search).get('perf') === '1',
+        exportUrl: '/api/performance-samples',
+    });
     const gameContext: GameContext = {
         audioContext,
         videoContext,
         entityFactory,
         deltaTime: 0,
+        performanceMetrics,
     };
 
-    const timer = new Timer(1 / 60);
+    const timer = new Timer(1 / 60, performanceMetrics);
     timer.update = deltaTime => {
         gameContext.deltaTime = deltaTime;
         sceneRunner.update(gameContext);

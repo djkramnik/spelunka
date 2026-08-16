@@ -3,20 +3,20 @@
 - [ ] Evaluate current performance and identify opportunities to improve it.
   - [x] Discuss ways to measure game performance objectively.
   - [ ] Implement the game performance measures.
-    - [ ] Add initial runtime instrumentation.
-      - [ ] Measure animation-frame pacing and fixed-step pressure.
-      - [ ] Measure update, collision, finalization, and rendering time.
-      - [ ] Count entities, collision candidates and overlaps, tile candidates,
+    - [x] Add initial runtime instrumentation.
+      - [x] Measure animation-frame pacing and fixed-step pressure.
+      - [x] Measure update, collision, finalization, and rendering time.
+      - [x] Count entities, collision candidates and overlaps, tile candidates,
             simulation steps, and rendered frames.
-      - [ ] Print periodic summaries for inspection in browser DevTools.
-    - [ ] Exercise the game manually and inspect the DevTools measurements.
-      - [ ] Identify which metrics are useful, noisy, or missing.
-      - [ ] Estimate the overhead introduced by the instrumentation.
+      - [x] Print periodic summaries for inspection in browser DevTools.
+    - [x] Exercise the game manually and inspect the DevTools measurements.
+      - [x] Identify which metrics are useful, noisy, or missing.
+      - [x] Estimate the overhead introduced by the instrumentation.
     - [ ] Design durable logging from the observed measurements.
-      - [ ] Decide the structured log format and retained raw samples.
-      - [ ] Add an explicit flag for enabling performance collection.
-      - [ ] Add a local server endpoint for receiving browser metrics.
-      - [ ] Save exported runs in a gitignored `performance-logs/` directory.
+      - [x] Decide the structured log format and retained raw samples.
+      - [x] Add an explicit flag for enabling performance collection.
+      - [x] Add a local server endpoint for receiving browser metrics.
+      - [x] Save exported runs in the local `spelunka` PostgreSQL database.
     - [ ] Add repeatable performance-testing workloads.
       - [ ] Add a representative gameplay workload.
       - [ ] Add deterministic collision workloads at increasing entity counts.

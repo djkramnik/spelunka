@@ -11,10 +11,27 @@ This project is built during my YouTube series [Code Super Mario in JS](https://
 
 ## Running
 
-* Clone repository.
-* Run `npm install`.
-* Run `npm start`.
-* Go to `http://localhost:5000`.
+- Clone the repository.
+- Run `npm install`.
+- Run `npm run db:deploy` to create the local performance database.
+- Run `npm start`.
+- Open `http://127.0.0.1:5173/`.
+
+## Performance collection
+
+Performance collection is disabled during normal play. To collect it, start the
+project normally and open:
+
+`http://127.0.0.1:5173/?perf=1`
+
+The browser prints a summary to DevTools and posts the same versioned JSON
+object to the local Express server every five seconds. Prisma stores sessions
+and samples in the `spelunka` database of the Docker PostgreSQL instance at
+`localhost:5432`.
+
+The Express process prints a confirmation to stdout after each sample is
+written. Use pgAdmin to inspect the `PerformanceSession` and
+`PerformanceSample` tables directly.
 
 
 ## Reproductions

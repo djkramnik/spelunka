@@ -1,5 +1,7 @@
 node_modules/
 dist/
+server/generated/
+.env
 
 # Beads / Dolt files (added by bd init)
 .dolt/

@@ -10,11 +10,14 @@ export default class EntityCollider<
 > {
     constructor(private readonly entities: Set<Entity>) {}
 
-    check(subject: Entity): void {
+    check(subject: Entity): number {
+        let overlaps = 0;
         this.entities.forEach(candidate => {
             if (subject !== candidate && subject.bounds.overlaps(candidate.bounds)) {
+                overlaps++;
                 subject.collides(candidate);
             }
         });
+        return overlaps;
     }
 }

@@ -10,6 +10,11 @@ export interface TileMatch<Tile> {
     y2: number;
 }
 
+export interface TileSearchResult<Tile> {
+    matches: Array<TileMatch<Tile>>;
+    candidateCount: number;
+}
+
 export default class TileResolver<Tile> {
     constructor(
         readonly matrix: Matrix<Tile>,
@@ -59,11 +64,13 @@ export default class TileResolver<Tile> {
         x2: number,
         y1: number,
         y2: number,
-    ): Array<TileMatch<Tile>> {
+    ): TileSearchResult<Tile> {
         const matches: Array<TileMatch<Tile>> = [];
+        let candidateCount = 0;
 
         this.toIndexRange(x1, x2).forEach(indexX => {
             this.toIndexRange(y1, y2).forEach(indexY => {
+                candidateCount++;
                 const match = this.getByIndex(indexX, indexY);
                 if (match) {
                     matches.push(match);
@@ -71,6 +78,6 @@ export default class TileResolver<Tile> {
             });
         });
 
-        return matches;
+        return {matches, candidateCount};
     }
 }

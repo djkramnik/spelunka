@@ -41,20 +41,37 @@ export default class Level extends Scene<Camera> {
     }
 
     override update(gameContext: GameContext): void {
-        this.entities.forEach(entity => {
-            entity.update(gameContext, this);
+        const entityCount = this.entities.size;
+
+        gameContext.performanceMetrics.measure('update', () => {
+            this.entities.forEach(entity => {
+                entity.update(gameContext, this);
+            });
         });
 
-        this.entities.forEach(entity => {
-            this.entityCollider.check(entity);
+        let overlaps = 0;
+        gameContext.performanceMetrics.measure('collision', () => {
+            this.entities.forEach(entity => {
+                overlaps += this.entityCollider.check(entity);
+            });
         });
 
-        this.entities.forEach(entity => {
-            entity.finalize();
+        gameContext.performanceMetrics.measure('finalization', () => {
+            this.entities.forEach(entity => {
+                entity.finalize();
+            });
         });
 
-        focusPlayer(this);
-        this.totalTime += gameContext.deltaTime;
+        gameContext.performanceMetrics.measure('levelRemainder', () => {
+            focusPlayer(this);
+            this.totalTime += gameContext.deltaTime;
+        });
+
+        gameContext.performanceMetrics.recordEntityWork(
+            entityCount,
+            entityCount * Math.max(0, entityCount - 1),
+            overlaps,
+        );
     }
 
     override pause(): void {

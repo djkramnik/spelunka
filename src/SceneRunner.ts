@@ -29,7 +29,9 @@ export default class SceneRunner {
         const currentScene = this.scenes[this.sceneIndex];
         if (currentScene) {
             currentScene.update(gameContext);
-            currentScene.draw(gameContext);
+            gameContext.performanceMetrics.measure('render', () => {
+                currentScene.draw(gameContext);
+            });
         }
     }
 }

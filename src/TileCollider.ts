@@ -54,12 +54,13 @@ export default class TileCollider {
         }
 
         for (const resolver of this.resolvers) {
-            const matches = resolver.searchByRange(
+            const {matches, candidateCount} = resolver.searchByRange(
                 x,
                 x,
                 entity.bounds.top,
                 entity.bounds.bottom,
             );
+            gameContext.performanceMetrics.recordTileCandidates(candidateCount);
 
             matches.forEach(match => {
                 this.handle(0, entity, match, resolver, gameContext, level);
@@ -78,12 +79,13 @@ export default class TileCollider {
         }
 
         for (const resolver of this.resolvers) {
-            const matches = resolver.searchByRange(
+            const {matches, candidateCount} = resolver.searchByRange(
                 entity.bounds.left,
                 entity.bounds.right,
                 y,
                 y,
             );
+            gameContext.performanceMetrics.recordTileCandidates(candidateCount);
 
             matches.forEach(match => {
                 this.handle(1, entity, match, resolver, gameContext, level);
