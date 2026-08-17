@@ -642,9 +642,11 @@ enabled for the full run. The workload applies those states directly rather
 than dispatching browser keyboard events, so focus and browser synthetic-input
 policy cannot change the test. This exercises the normal movement, tile and
 entity collision and rendering paths. Performance-enabled runs load the
-212-tile `performance-entities` level: Mario runs on flat ground while 41
-koopas walk on a full-width brick bridge at row 4, beyond turbo-jump reach.
-Bridge end walls keep the koopas from falling into Mario's lane. A goto trigger
+212-tile `performance-entities` level: Mario runs and jumps on flat ground while
+123 koopas walk on three full-width brick bridges at rows 0, 2, and 4, all
+beyond turbo-jump reach. Bridge end walls keep the koopas from falling into
+Mario's lane. The workload holds jump from startup in addition to right and
+turbo. A goto trigger
 near the right edge reloads the same level inside the existing scene runner.
 The timer and `PerformanceMetrics` instance remain alive, so level-loading time
 and every loop retain one session ID. More than one completed level load is the

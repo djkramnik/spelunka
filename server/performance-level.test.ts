@@ -7,10 +7,12 @@ const levelUrl = new URL('../public/levels/performance-entities.json', import.me
 const level = LevelSpecSchema.parse(JSON.parse(await readFile(levelUrl, 'utf8')));
 
 assert.deepEqual(level.playerSpawn, [0, 192]);
-assert.equal(level.entities.length, 41);
+assert.equal(level.entities.length, 123);
 assert.deepEqual(
     level.entities.map(entity => entity.pos),
-    Array.from({length: 41}, (_, index) => [(index + 1) * 80, 40]),
+    [40, 8, -24].flatMap(y => (
+        Array.from({length: 41}, (_, index) => [(index + 1) * 80, y])
+    )),
 );
 
 const namedTiles = level.layers.flatMap(layer => layer.tiles).filter(tile => (
@@ -21,9 +23,11 @@ const bridge = namedTiles.find(tile => tile.name === 'bricks');
 
 assert.deepEqual(ground?.ranges, [[0, 212, 13, 2]]);
 assert.deepEqual(bridge?.ranges, [
+    [0, 212, 0, 1],
+    [0, 212, 2, 1],
     [0, 212, 4, 1],
-    [0, 1, 0, 4],
-    [211, 1, 0, 4],
+    [0, 1, -1, 5],
+    [211, 1, -1, 5],
 ]);
 assert.deepEqual(level.triggers, [{
     type: 'goto',

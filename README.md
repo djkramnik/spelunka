@@ -67,8 +67,9 @@ reports more than one `workloadLevelLoads` in `window.performanceBenchmark`.
 
 Any runtime started with `?perf=1` loads `performance-entities` instead of
 `1-1`. It has the same 212-tile width and flat ground as 1-1. A solid brick
-bridge at row 4 holds 41 koopas, spaced every five tiles and contained by end
-walls so they remain vertically isolated from Mario.
+bridges at rows 0, 2, and 4 hold 123 koopas, spaced every five tiles and
+contained by end walls so they remain vertically isolated from Mario. The
+`run-right` workload also holds jump from startup along with right and turbo.
 
 Inspect a saved run with
 `npm run performance:benchmark:show -- run-right [full-git-commit]`.

@@ -2,6 +2,7 @@ import type {PerformanceBenchmark} from '../shared/performance.js';
 import type Entity from './Entity.js';
 import type {Mario} from './entities/Mario.js';
 import Go from './traits/Go.js';
+import Jump from './traits/Jump.js';
 import Killable from './traits/Killable.js';
 
 type BenchmarkPlayer = Entity & Pick<Mario, 'turbo'>;
@@ -20,6 +21,7 @@ export function applyBenchmarkWorkload(
 
     mario.traits.get(Go).dir = 1;
     mario.turbo(true);
+    mario.traits.get(Jump).start();
 }
 
 export function benchmarkAttemptEnded(
