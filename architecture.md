@@ -633,3 +633,17 @@ The collision visualization layer is now opt-in with `?debug=collision` rather
 than part of normal rendering. Besides drawing debug geometry, that layer wraps
 tile resolution and allocates candidate-position objects, so including it would
 measure diagnostic overhead rather than the game workload.
+
+### 2026-08-17: Run-right benchmark contract
+
+The `run-right` workload extends benchmark collection to eight five-second
+windows. It keeps Mario's rightward movement direction active with turbo
+enabled for the full run. The workload applies those states directly rather
+than dispatching browser keyboard events, so focus and browser synthetic-input
+policy cannot change the test. This exercises the normal movement, tile and
+entity collision, rendering, and hazard paths. When Mario dies, the benchmark
+creates a new Mario and loads a fresh level 1-1 inside the existing scene runner.
+The timer and `PerformanceMetrics` instance remain alive, so level-loading time
+and all attempts retain one session ID. More than one recorded attempt is the
+completion check. Sequence 1 remains the startup/warm-up sample and sequences
+2–8 are the measured gameplay windows.

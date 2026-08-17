@@ -2,6 +2,8 @@ import type {PerformanceBenchmark} from '../shared/performance.js';
 
 const IDLE_START_SAMPLE_COUNT = 4;
 const IDLE_START_WARMUP_SAMPLES = 1;
+const RUN_RIGHT_SAMPLE_COUNT = 8;
+const RUN_RIGHT_WARMUP_SAMPLES = 1;
 
 export interface RuntimeOptions {
     performanceEnabled: boolean;
@@ -19,7 +21,11 @@ export function parseRuntimeOptions(
     const performanceEnabled = searchParams.get('perf') === '1';
     const benchmarkName = searchParams.get('benchmark');
 
-    if (benchmarkName !== null && benchmarkName !== 'idle-start') {
+    if (
+        benchmarkName !== null
+        && benchmarkName !== 'idle-start'
+        && benchmarkName !== 'run-right'
+    ) {
         throw new Error(`Unknown performance benchmark: ${benchmarkName}`);
     }
     if (benchmarkName && !performanceEnabled) {
@@ -29,14 +35,22 @@ export function parseRuntimeOptions(
         throw new Error(`Unable to identify benchmark Git commit: ${gitCommit}`);
     }
 
-    const benchmark = benchmarkName === 'idle-start'
-        ? {
+    let benchmark: PerformanceBenchmark | undefined;
+    if (benchmarkName === 'idle-start') {
+        benchmark = {
             name: benchmarkName,
             gitCommit,
             sampleCount: IDLE_START_SAMPLE_COUNT,
             warmupSamples: IDLE_START_WARMUP_SAMPLES,
-        } satisfies PerformanceBenchmark
-        : undefined;
+        };
+    } else if (benchmarkName === 'run-right') {
+        benchmark = {
+            name: benchmarkName,
+            gitCommit,
+            sampleCount: RUN_RIGHT_SAMPLE_COUNT,
+            warmupSamples: RUN_RIGHT_WARMUP_SAMPLES,
+        };
+    }
 
     return {
         performanceEnabled,

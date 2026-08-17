@@ -54,6 +54,21 @@ Run `npm run performance:benchmark:show -- idle-start` to print the newest run
 for the current commit. Pass a full commit after the benchmark name to inspect
 a selected historical commit.
 
+### Run-right benchmark
+
+Open `http://127.0.0.1:5173/?perf=1&benchmark=run-right` for a longer gameplay
+workload. It holds right with turbo enabled for eight five-second windows
+(40 seconds total), exercising movement, tile and entity collision checks, and
+the hazards in the first section of level 1-1. The first window is retained as
+warm-up. Controls are applied directly to Mario so the run does not depend on
+window focus or synthetic keyboard events. When Mario dies, the harness creates
+a new Mario and reloads a fresh level 1-1 without recreating the timer or
+performance session. A completed run reports more than one `workloadAttempts`
+in `window.performanceBenchmark`.
+
+Inspect a saved run with
+`npm run performance:benchmark:show -- run-right [full-git-commit]`.
+
 Collision visualization is disabled by default because it changes the measured
 render and allocation workload. Add `&debug=collision` when those overlays are
 needed for development rather than benchmarking.

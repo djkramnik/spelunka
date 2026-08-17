@@ -9,7 +9,7 @@ const DistributionZ = z.object({
 });
 
 export const PerformanceBenchmarkZ = z.object({
-    name: z.literal('idle-start'),
+    name: z.enum(['idle-start', 'run-right']),
     gitCommit: z.string().regex(/^[0-9a-f]{7,40}$/),
     sampleCount: z.number().int().positive(),
     warmupSamples: z.number().int().nonnegative(),

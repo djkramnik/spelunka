@@ -22,6 +22,22 @@ if (
 
 console.log('Idle-start benchmark options regression passed');
 
+const runRightOptions = parseRuntimeOptions(
+    new URLSearchParams('perf=1&benchmark=run-right'),
+    commit,
+);
+if (
+    runRightOptions.benchmark?.name !== 'run-right'
+    || runRightOptions.benchmark.sampleCount !== 8
+    || runRightOptions.benchmark.warmupSamples !== 1
+    || runRightOptions.inputEnabled
+    || runRightOptions.audioEnabled
+) {
+    throw new Error('Run-right benchmark options were not deterministic');
+}
+
+console.log('Run-right benchmark options regression passed');
+
 const debugOptions = parseRuntimeOptions(
     new URLSearchParams('debug=collision'),
     commit,

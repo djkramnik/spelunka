@@ -1,5 +1,9 @@
 import Entity from './Entity.js';
 import type {PerformanceSummary} from '../shared/performance.js';
+import {
+    applyBenchmarkWorkload,
+    benchmarkAttemptEnded,
+} from './benchmark-workloads.js';
 import {loadEntities} from './entities.js';
 import {setupKeyboard} from './input.js';
 import {createCollisionLayer} from './layers/collision.js';
@@ -30,8 +34,9 @@ declare global {
         performanceBenchmark?: {
             name: string;
             gitCommit: string;
-            status: 'running' | 'complete';
+            status: 'running' | 'complete' | 'failed';
             completedAt?: string;
+            workloadAttempts?: number;
         };
     }
 }
@@ -69,9 +74,13 @@ async function main(
     });
     const sceneRunner = new SceneRunner();
 
-    const mario = entityFactory.mario();
+    let mario = entityFactory.mario();
     makePlayer(mario, 'MARIO');
     window.mario = mario;
+
+    if (runtimeOptions.benchmark) {
+        applyBenchmarkWorkload(runtimeOptions.benchmark, mario);
+    }
 
     if (runtimeOptions.inputEnabled) {
         const inputRouter = setupKeyboard(window);
@@ -142,6 +151,10 @@ async function main(
     }
 
     let timer: Timer | null = null;
+    let benchmarkWorkloadAttempts = runtimeOptions.benchmark?.name === 'run-right'
+        ? 1
+        : 0;
+    let benchmarkRestartPending = false;
     const performanceMetrics = new PerformanceMetrics({
         enabled: runtimeOptions.performanceEnabled,
         exportUrl: '/api/performance-samples',
@@ -150,15 +163,22 @@ async function main(
             maxReports: runtimeOptions.benchmark.sampleCount,
             onComplete: (summary: PerformanceSummary): void => {
                 timer?.stop();
+                const workloadComplete = runtimeOptions.benchmark?.name !== 'run-right'
+                    || benchmarkWorkloadAttempts > 1;
                 window.performanceBenchmark = {
                     name: runtimeOptions.benchmark?.name ?? 'idle-start',
                     gitCommit: runtimeOptions.benchmark?.gitCommit ?? __GIT_COMMIT__,
-                    status: 'complete',
+                    status: workloadComplete ? 'complete' : 'failed',
                     completedAt: summary.capturedAt,
+                    workloadAttempts: benchmarkWorkloadAttempts,
                 };
-                console.info(
-                    `[performance] benchmark complete for ${summary.benchmark?.gitCommit}`,
-                );
+                if (workloadComplete) {
+                    console.info(
+                        `[performance] benchmark complete for ${summary.benchmark?.gitCommit}`,
+                    );
+                } else {
+                    console.error('[performance] benchmark completed without a restart');
+                }
             },
         } : {}),
     });
@@ -170,9 +190,43 @@ async function main(
         performanceMetrics,
     };
 
+    const restartBenchmarkAttempt = async (): Promise<void> => {
+        const benchmark = runtimeOptions.benchmark;
+        if (!benchmark || benchmark.name !== 'run-right') {
+            return;
+        }
+
+        const nextMario = entityFactory.mario();
+        makePlayer(nextMario, 'MARIO');
+        applyBenchmarkWorkload(benchmark, nextMario);
+        mario = nextMario;
+        window.mario = nextMario;
+        benchmarkWorkloadAttempts++;
+
+        await runLevel('1-1');
+        benchmarkRestartPending = false;
+    };
+
     timer = new Timer(1 / 60, performanceMetrics);
     timer.update = deltaTime => {
         gameContext.deltaTime = deltaTime;
+        if (
+            runtimeOptions.benchmark
+            && !benchmarkRestartPending
+            && benchmarkAttemptEnded(runtimeOptions.benchmark, mario)
+        ) {
+            benchmarkRestartPending = true;
+            void restartBenchmarkAttempt().catch(error => {
+                timer?.stop();
+                window.performanceBenchmark = {
+                    name: runtimeOptions.benchmark?.name ?? 'run-right',
+                    gitCommit: runtimeOptions.benchmark?.gitCommit ?? __GIT_COMMIT__,
+                    status: 'failed',
+                    workloadAttempts: benchmarkWorkloadAttempts,
+                };
+                console.error('[performance] unable to restart benchmark attempt', error);
+            });
+        }
         sceneRunner.update(gameContext);
     };
     timer.start();
