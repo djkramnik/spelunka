@@ -5,19 +5,56 @@ interface CollidableEntity<Entity> {
     collides(candidate: Entity): void;
 }
 
+export interface EntityCollisionResult {
+    candidateChecks: number;
+    overlaps: number;
+}
+
 export default class EntityCollider<
     Entity extends CollidableEntity<Entity>,
 > {
-    constructor(private readonly entities: Set<Entity>) {}
+    private readonly sortedEntities: Entity[] = [];
 
-    check(subject: Entity): number {
+    constructor(private readonly entities: ReadonlySet<Entity>) {}
+
+    check(): EntityCollisionResult {
+        this.sortedEntities.length = 0;
+        this.entities.forEach(entity => this.sortedEntities.push(entity));
+        this.sortedEntities.sort((a, b) => a.bounds.left - b.bounds.left);
+
+        let candidateChecks = 0;
         let overlaps = 0;
-        this.entities.forEach(candidate => {
-            if (subject !== candidate && subject.bounds.overlaps(candidate.bounds)) {
-                overlaps++;
-                subject.collides(candidate);
+
+        for (let subjectIndex = 0;
+            subjectIndex < this.sortedEntities.length;
+            subjectIndex++) {
+            const subject = this.sortedEntities[subjectIndex];
+            if (!subject) {
+                continue;
             }
-        });
-        return overlaps;
+
+            const subjectRight = subject.bounds.right;
+            for (let candidateIndex = subjectIndex + 1;
+                candidateIndex < this.sortedEntities.length;
+                candidateIndex++) {
+                const candidate = this.sortedEntities[candidateIndex];
+                if (!candidate || candidate.bounds.left >= subjectRight) {
+                    break;
+                }
+
+                candidateChecks++;
+                if (!subject.bounds.overlaps(candidate.bounds)) {
+                    continue;
+                }
+
+                // Preserve the old directional trait callbacks while testing
+                // each unordered pair only once.
+                overlaps += 2;
+                subject.collides(candidate);
+                candidate.collides(subject);
+            }
+        }
+
+        return {candidateChecks, overlaps};
     }
 }

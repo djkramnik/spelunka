@@ -51,11 +51,12 @@ export default class Level extends Scene<Camera> {
             });
         });
 
+        let collisionCandidates = 0;
         let overlaps = 0;
         gameContext.performanceMetrics.measure('collision', () => {
-            this.entities.forEach(entity => {
-                overlaps += this.entityCollider.check(entity);
-            });
+            const result = this.entityCollider.check();
+            collisionCandidates = result.candidateChecks;
+            overlaps = result.overlaps;
         });
 
         gameContext.performanceMetrics.measure('finalization', () => {
@@ -71,7 +72,7 @@ export default class Level extends Scene<Camera> {
 
         gameContext.performanceMetrics.recordEntityWork(
             entityCount,
-            entityCount * Math.max(0, entityCount - 1),
+            collisionCandidates,
             overlaps,
         );
     }

@@ -10,10 +10,10 @@ const trigger = new Entity();
 trigger.size.set(64, 64);
 
 const collider = new EntityCollider(new Set([mario, trigger]));
-const overlaps = collider.check(mario);
+const {overlaps} = collider.check();
 
-if (overlaps !== 1) {
-    throw new Error(`Expected one collision overlap, received ${overlaps}`);
+if (overlaps !== 2) {
+    throw new Error(`Expected two directional overlaps, received ${overlaps}`);
 }
 
 console.log('Stomper collision regression passed');

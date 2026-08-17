@@ -652,3 +652,12 @@ The timer and `PerformanceMetrics` instance remain alive, so level-loading time
 and every loop retain one session ID. More than one completed level load is the
 completion check. Sequence 1 remains the startup/warm-up sample and sequences
 2–8 are the measured gameplay windows.
+
+### Entity collision broad phase
+
+Entity collision uses an X-axis sweep-and-prune broad phase. Each level step
+sorts entities by their left bound, then compares an entity only with following
+entities whose left bounds remain inside its right bound. A surviving overlap
+still invokes trait collision callbacks in both directions. The measured
+candidate count is the number of full bounding-box checks actually performed,
+rather than the previous theoretical ordered-pair count.
