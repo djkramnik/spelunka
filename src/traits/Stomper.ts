@@ -16,8 +16,12 @@ export default class Stomper extends Trait {
     }
 
     override collides(us: Entity, them: Entity): void {
+        if (!them.traits.has(Killable)) {
+            return;
+        }
+
         const killable = them.traits.get(Killable);
-        if (!killable || killable.dead) {
+        if (killable.dead) {
             return;
         }
 

@@ -98,7 +98,9 @@ async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
         level.entities.add(playerEnvironment);
 
         const waitScreen = new TimedScene();
-        waitScreen.countDown = 2;
+        // Keep the initial level card, but let trigger-driven transitions
+        // advance to the newly loaded level on the next update.
+        waitScreen.countDown = continueStartupProgress ? 2 : 0;
         waitScreen.comp.layers.push(createColorLayer('#000'));
         waitScreen.comp.layers.push(dashboardLayer);
         waitScreen.comp.layers.push(playerProgressLayer);
