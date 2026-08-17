@@ -6,6 +6,8 @@ export default class Timer {
     update: TimerUpdate = () => {};
 
     private readonly updateProxy: FrameRequestCallback;
+    private animationFrame: number | null = null;
+    private running = false;
 
     constructor(
         deltaTime = 1 / 60,
@@ -15,6 +17,11 @@ export default class Timer {
         let lastTime: number | null = null;
 
         this.updateProxy = time => {
+            this.animationFrame = null;
+            if (!this.running) {
+                return;
+            }
+
             let simulationSteps = 0;
 
             if (lastTime !== null) {
@@ -45,10 +52,21 @@ export default class Timer {
     }
 
     private enqueue(): void {
-        requestAnimationFrame(this.updateProxy);
+        if (this.running && this.animationFrame === null) {
+            this.animationFrame = requestAnimationFrame(this.updateProxy);
+        }
     }
 
     start(): void {
+        this.running = true;
         this.enqueue();
+    }
+
+    stop(): void {
+        this.running = false;
+        if (this.animationFrame !== null) {
+            cancelAnimationFrame(this.animationFrame);
+            this.animationFrame = null;
+        }
     }
 }

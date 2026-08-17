@@ -46,16 +46,18 @@ function loadPattern(name: string): Promise<PatternSheet> {
     );
 }
 
-function setupBehavior(level: Level): void {
+function setupBehavior(level: Level, musicEnabled: boolean): void {
     const timer = createTimer();
     level.entities.add(timer);
 
-    level.events.listen(LevelTimer.EVENT_TIMER_OK, () => {
-        level.music.playTheme();
-    });
-    level.events.listen(LevelTimer.EVENT_TIMER_HURRY, () => {
-        level.music.playHurryTheme();
-    });
+    if (musicEnabled) {
+        level.events.listen(LevelTimer.EVENT_TIMER_OK, () => {
+            level.music.playTheme();
+        });
+        level.events.listen(LevelTimer.EVENT_TIMER_HURRY, () => {
+            level.music.playHurryTheme();
+        });
+    }
 }
 
 function setupBackgrounds(
@@ -111,7 +113,10 @@ function setupTriggers(levelSpec: LevelSpec, level: Level): void {
     }
 }
 
-export function createLevelLoader(entityFactory: EntityFactory) {
+export function createLevelLoader(
+    entityFactory: EntityFactory,
+    {musicEnabled = true}: {musicEnabled?: boolean} = {},
+) {
     return async function loadLevel(
         name: string,
         onProgress: ProgressCallback = () => {},
@@ -141,7 +146,7 @@ export function createLevelLoader(entityFactory: EntityFactory) {
         setupBackgrounds(levelSpec, level, backgroundSprites, patterns);
         setupEntities(levelSpec, level, entityFactory);
         setupTriggers(levelSpec, level);
-        setupBehavior(level);
+        setupBehavior(level, musicEnabled);
 
         return level;
     };

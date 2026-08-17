@@ -1,4 +1,7 @@
-import type {PerformanceSummary} from '../shared/performance.js';
+import type {
+    PerformanceBenchmark,
+    PerformanceSummary,
+} from '../shared/performance.js';
 
 type TimingName =
     | 'fixedStep'
@@ -13,6 +16,9 @@ type Distribution = PerformanceSummary['timings']['fixedStepMs'];
 export interface PerformanceMetricsOptions {
     enabled: boolean;
     exportUrl: string;
+    benchmark?: PerformanceBenchmark;
+    maxReports?: number;
+    onComplete?: (summary: PerformanceSummary) => void;
 }
 
 const REPORT_INTERVAL_MS = 5_000;
@@ -58,6 +64,7 @@ export default class PerformanceMetrics {
     private lastAnimationFrameAt: number | null = null;
     private readonly sessionId = crypto.randomUUID();
     private sequence = 0;
+    private stopped = false;
 
     private readonly frameIntervals: number[] = [];
     private readonly stepsPerFrame: number[] = [];
@@ -91,7 +98,7 @@ export default class PerformanceMetrics {
     }
 
     measure<Result>(name: TimingName, operation: () => Result): Result {
-        if (!this.options.enabled) {
+        if (!this.options.enabled || this.stopped) {
             return operation();
         }
 
@@ -108,7 +115,7 @@ export default class PerformanceMetrics {
         collisionCandidates: number,
         overlaps: number,
     ): void {
-        if (!this.options.enabled) {
+        if (!this.options.enabled || this.stopped) {
             return;
         }
 
@@ -118,7 +125,7 @@ export default class PerformanceMetrics {
     }
 
     recordTileCandidates(count: number): void {
-        if (this.options.enabled) {
+        if (this.options.enabled && !this.stopped) {
             this.tileCandidates += count;
         }
     }
@@ -128,7 +135,7 @@ export default class PerformanceMetrics {
         simulationSteps: number,
         accumulatorSeconds: number,
     ): void {
-        if (!this.options.enabled) {
+        if (!this.options.enabled || this.stopped) {
             return;
         }
 
@@ -157,8 +164,16 @@ export default class PerformanceMetrics {
 
         if (timestamp - this.intervalStartedAt >= REPORT_INTERVAL_MS) {
             const summary = this.createSummary(timestamp);
+            if (
+                this.options.maxReports !== undefined
+                && summary.sequence >= this.options.maxReports
+            ) {
+                this.stopped = true;
+            }
             this.report(summary);
-            this.reset(timestamp);
+            if (!this.stopped) {
+                this.reset(timestamp);
+            }
         }
     }
 
@@ -172,6 +187,9 @@ export default class PerformanceMetrics {
             sessionId: this.sessionId,
             sequence: this.sequence,
             capturedAt: new Date().toISOString(),
+            ...(this.options.benchmark
+                ? {benchmark: this.options.benchmark}
+                : {}),
             window: {
                 durationMs: round(durationMs),
             },
@@ -235,6 +253,12 @@ export default class PerformanceMetrics {
             }).then(response => {
                 if (!response.ok) {
                     throw new Error(`Performance export failed: ${response.status}`);
+                }
+                if (
+                    this.options.maxReports !== undefined
+                    && summary.sequence >= this.options.maxReports
+                ) {
+                    this.options.onComplete?.(summary);
                 }
             }).catch(error => {
                 console.warn('[performance] unable to export summary', error);

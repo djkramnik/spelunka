@@ -8,11 +8,19 @@ const DistributionZ = z.object({
     max: z.number().nonnegative().nullable(),
 });
 
+export const PerformanceBenchmarkZ = z.object({
+    name: z.literal('idle-start'),
+    gitCommit: z.string().regex(/^[0-9a-f]{7,40}$/),
+    sampleCount: z.number().int().positive(),
+    warmupSamples: z.number().int().nonnegative(),
+});
+
 export const PerformanceSummaryZ = z.object({
     schemaVersion: z.literal(1),
     sessionId: z.string().uuid(),
     sequence: z.number().int().positive(),
     capturedAt: z.string().datetime(),
+    benchmark: PerformanceBenchmarkZ.optional(),
     window: z.object({
         durationMs: z.number().positive(),
     }),
@@ -53,3 +61,4 @@ export const PerformanceSummaryZ = z.object({
 });
 
 export type PerformanceSummary = z.infer<typeof PerformanceSummaryZ>;
+export type PerformanceBenchmark = z.infer<typeof PerformanceBenchmarkZ>;

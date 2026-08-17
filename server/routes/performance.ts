@@ -30,11 +30,15 @@ performanceRouter.post(
                         userAgent: summary.environment.userAgent,
                         startedAt: capturedAt,
                         lastSeenAt: capturedAt,
+                        benchmarkName: summary.benchmark?.name ?? null,
+                        gitCommit: summary.benchmark?.gitCommit ?? null,
                     },
                     update: {
                         sourceUrl: summary.environment.sourceUrl,
                         userAgent: summary.environment.userAgent,
                         lastSeenAt: capturedAt,
+                        benchmarkName: summary.benchmark?.name ?? null,
+                        gitCommit: summary.benchmark?.gitCommit ?? null,
                     },
                 });
 

@@ -36,6 +36,28 @@ and `performance_sample` (the five-second records belonging to those runs).
 Run `npm run performance:latest -- 10` to print the newest samples and their
 session metadata as JSON. The optional number selects 1–100 records.
 
+### Idle-start benchmark
+
+Benchmark collection is opt-in and is not run for every commit. Start the game
+and performance server, then open:
+
+`http://127.0.0.1:5173/?perf=1&benchmark=idle-start`
+
+This named workload starts without a click, disables keyboard input, collects
+exactly four five-second windows, and stops collecting. The first window covers
+startup and is retained as warm-up; sequences 2–4 are the steady idle samples.
+The current Git commit is embedded by Vite and stored on the benchmark's
+`performance_session`. Its related `performance_sample.payload` values are the
+JSON benchmark numbers.
+
+Run `npm run performance:benchmark:show -- idle-start` to print the newest run
+for the current commit. Pass a full commit after the benchmark name to inspect
+a selected historical commit.
+
+Collision visualization is disabled by default because it changes the measured
+render and allocation workload. Add `&debug=collision` when those overlays are
+needed for development rather than benchmarking.
+
 
 ## Reproductions
 

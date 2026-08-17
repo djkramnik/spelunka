@@ -1,4 +1,5 @@
 import Entity from './Entity.js';
+import type {PerformanceSummary} from '../shared/performance.js';
 import {loadEntities} from './entities.js';
 import {setupKeyboard} from './input.js';
 import {createCollisionLayer} from './layers/collision.js';
@@ -13,6 +14,8 @@ import type {LevelSpec} from './loaders/schemas.js';
 import LoadingProgress from './loading-progress.js';
 import PerformanceMetrics from './PerformanceMetrics.js';
 import {createPlayerEnv, findPlayers, makePlayer} from './player.js';
+import {parseRuntimeOptions} from './runtime-options.js';
+import type {RuntimeOptions} from './runtime-options.js';
 import Scene from './Scene.js';
 import type {GameContext} from './Scene.js';
 import SceneRunner from './SceneRunner.js';
@@ -20,15 +23,27 @@ import TimedScene from './TimedScene.js';
 import Timer from './Timer.js';
 
 declare global {
+    const __GIT_COMMIT__: string;
+
     interface Window {
         mario?: Entity;
+        performanceBenchmark?: {
+            name: string;
+            gitCommit: string;
+            status: 'running' | 'complete';
+            completedAt?: string;
+        };
     }
 }
 
 const INITIAL_LOAD_TASKS = 9;
 const LEVEL_LOAD_TASKS = 4;
 
-async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
+async function main(
+    canvas: HTMLCanvasElement,
+    font: Font,
+    runtimeOptions: RuntimeOptions,
+): Promise<void> {
     const videoContext = canvas.getContext('2d');
     if (!videoContext) {
         throw new Error('Unable to create the game canvas context');
@@ -49,15 +64,19 @@ async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
         audioContext,
         advanceLoadingProgress,
     );
-    const loadLevel = createLevelLoader(entityFactory);
+    const loadLevel = createLevelLoader(entityFactory, {
+        musicEnabled: runtimeOptions.audioEnabled,
+    });
     const sceneRunner = new SceneRunner();
 
     const mario = entityFactory.mario();
     makePlayer(mario, 'MARIO');
     window.mario = mario;
 
-    const inputRouter = setupKeyboard(window);
-    inputRouter.addReceiver(mario);
+    if (runtimeOptions.inputEnabled) {
+        const inputRouter = setupKeyboard(window);
+        inputRouter.addReceiver(mario);
+    }
 
     async function runLevel(
         name: string,
@@ -106,15 +125,42 @@ async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
         waitScreen.comp.layers.push(playerProgressLayer);
         sceneRunner.addScene(waitScreen);
 
-        level.comp.layers.push(createCollisionLayer(level));
+        if (runtimeOptions.collisionDebugEnabled) {
+            level.comp.layers.push(createCollisionLayer(level));
+        }
         level.comp.layers.push(dashboardLayer);
         sceneRunner.addScene(level);
         sceneRunner.runNext();
     }
 
+    if (runtimeOptions.benchmark) {
+        window.performanceBenchmark = {
+            name: runtimeOptions.benchmark.name,
+            gitCommit: runtimeOptions.benchmark.gitCommit,
+            status: 'running',
+        };
+    }
+
+    let timer: Timer | null = null;
     const performanceMetrics = new PerformanceMetrics({
-        enabled: new URLSearchParams(window.location.search).get('perf') === '1',
+        enabled: runtimeOptions.performanceEnabled,
         exportUrl: '/api/performance-samples',
+        ...(runtimeOptions.benchmark ? {
+            benchmark: runtimeOptions.benchmark,
+            maxReports: runtimeOptions.benchmark.sampleCount,
+            onComplete: (summary: PerformanceSummary): void => {
+                timer?.stop();
+                window.performanceBenchmark = {
+                    name: runtimeOptions.benchmark?.name ?? 'idle-start',
+                    gitCommit: runtimeOptions.benchmark?.gitCommit ?? __GIT_COMMIT__,
+                    status: 'complete',
+                    completedAt: summary.capturedAt,
+                };
+                console.info(
+                    `[performance] benchmark complete for ${summary.benchmark?.gitCommit}`,
+                );
+            },
+        } : {}),
     });
     const gameContext: GameContext = {
         audioContext,
@@ -124,7 +170,7 @@ async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
         performanceMetrics,
     };
 
-    const timer = new Timer(1 / 60, performanceMetrics);
+    timer = new Timer(1 / 60, performanceMetrics);
     timer.update = deltaTime => {
         gameContext.deltaTime = deltaTime;
         sceneRunner.update(gameContext);
@@ -135,6 +181,10 @@ async function main(canvas: HTMLCanvasElement, font: Font): Promise<void> {
 }
 
 async function bootstrap(): Promise<void> {
+    const runtimeOptions = parseRuntimeOptions(
+        new URLSearchParams(window.location.search),
+        __GIT_COMMIT__,
+    );
     const canvas = document.getElementById('screen');
     if (!(canvas instanceof HTMLCanvasElement)) {
         throw new Error('Game canvas #screen was not found');
@@ -151,12 +201,16 @@ async function bootstrap(): Promise<void> {
 
     const start = (): void => {
         window.removeEventListener('click', start);
-        void main(canvas, font).catch(error => {
+        void main(canvas, font, runtimeOptions).catch(error => {
             console.error('Unable to start game', error);
         });
     };
 
-    window.addEventListener('click', start);
+    if (runtimeOptions.autoStart) {
+        start();
+    } else {
+        window.addEventListener('click', start);
+    }
 }
 
 void bootstrap().catch(error => {

@@ -18,7 +18,7 @@
       - [x] Add a local server endpoint for receiving browser metrics.
       - [x] Save exported runs in the local `spelunka` PostgreSQL database.
     - [ ] Add repeatable performance-testing workloads.
-      - [ ] Add a representative gameplay workload.
+      - [x] Add a representative idle-start gameplay workload.
       - [ ] Add deterministic collision workloads at increasing entity counts.
       - [ ] Add correctness checks to the benchmark workloads.
     - [ ] Automate benchmark execution and result capture.

@@ -9,14 +9,17 @@ datasource db {
 
 /// One measured run of the game. Its samples share browser and source context.
 model PerformanceSession {
-  id          String              @id
-  sourceUrl   String
-  userAgent   String
-  startedAt   DateTime
-  lastSeenAt  DateTime
-  createdAt   DateTime            @default(now())
-  samples     PerformanceSample[]
+  id            String              @id
+  sourceUrl     String
+  userAgent     String
+  startedAt     DateTime
+  lastSeenAt    DateTime
+  benchmarkName String?             @map("benchmark_name")
+  gitCommit     String?             @map("git_commit")
+  createdAt     DateTime            @default(now())
+  samples       PerformanceSample[]
 
+  @@index([benchmarkName, gitCommit], map: "performance_session_benchmark_name_git_commit_idx")
   @@map("performance_session")
 }
 

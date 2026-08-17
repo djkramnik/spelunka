@@ -22,6 +22,12 @@ test('POST /api/performance-samples persists a versioned summary', async () => {
             sessionId,
             sequence: 1,
             capturedAt: new Date().toISOString(),
+            benchmark: {
+                name: 'idle-start',
+                gitCommit: '0123456789abcdef0123456789abcdef01234567',
+                sampleCount: 4,
+                warmupSamples: 1,
+            },
             window: {durationMs: 5000},
             environment: {
                 sourceUrl: 'http://127.0.0.1:5173/?perf=1',
@@ -78,6 +84,11 @@ test('POST /api/performance-samples persists a versioned summary', async () => {
         assert.equal(await prisma.performanceSession.count({
             where: {id: sessionId},
         }), 1);
+        const session = await prisma.performanceSession.findUniqueOrThrow({
+            where: {id: sessionId},
+        });
+        assert.equal(session.benchmarkName, summary.benchmark.name);
+        assert.equal(session.gitCommit, summary.benchmark.gitCommit);
         const sample = await prisma.performanceSample.findFirstOrThrow({
             where: {
                 sessionId,

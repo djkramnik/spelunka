@@ -615,3 +615,21 @@ It contains about 300 fixed steps but only 178–179 level subsystem samples
 because the timed wait scene occupies roughly two seconds before the level
 starts. Repeatable performance workloads should either exclude this mixed
 window or identify startup and gameplay phases explicitly.
+
+### 2026-08-16: Idle-start benchmark contract
+
+The first repeatable browser workload is named `idle-start`. It is explicitly
+enabled with `?perf=1&benchmark=idle-start`; benchmark collection is not tied to
+every commit or to the normal Git workflow.
+
+The workload starts without a click, does not install keyboard controls, and
+collects exactly four five-second samples. Sequence 1 is retained as the mixed
+startup/warm-up window. Sequences 2–4 are the comparable steady idle windows.
+Vite embeds the selected Git commit in the browser bundle, and the performance
+server stores the benchmark name and commit on `performance_session`. The
+session's related `performance_sample` rows are the JSON measurement set.
+
+The collision visualization layer is now opt-in with `?debug=collision` rather
+than part of normal rendering. Besides drawing debug geometry, that layer wraps
+tile resolution and allocates candidate-position objects, so including it would
+measure diagnostic overhead rather than the game workload.
