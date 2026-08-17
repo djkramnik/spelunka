@@ -10,6 +10,8 @@
   - `epic-performance-measures` for `spelunka-b2u.2`
   - `epic-complete-level-roadmap` for `spelunka-48u`
   - `epic-spelunky-conversion` for `spelunka-r54`
+  - `epic-hotfix` for `spelunka-ncf`
+- Track every hotfix ticket as a direct child of the `Hotfix` epic (`spelunka-ncf`) and apply the `epic-hotfix` label.
 
 ## Database conventions
 
