@@ -75,8 +75,15 @@ test('POST /api/performance-samples persists a versioned summary', async () => {
         );
 
         assert.equal(response.status, 201);
-        assert.equal(await prisma.performanceSession.count(), 1);
-        const sample = await prisma.performanceSample.findFirstOrThrow();
+        assert.equal(await prisma.performanceSession.count({
+            where: {id: sessionId},
+        }), 1);
+        const sample = await prisma.performanceSample.findFirstOrThrow({
+            where: {
+                sessionId,
+                sequence: 1,
+            },
+        });
         assert.equal(sample.sessionId, summary.sessionId);
         assert.equal(sample.sequence, 1);
         assert.deepEqual(sample.payload, summary);

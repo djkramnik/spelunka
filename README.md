@@ -30,8 +30,11 @@ and samples in the `spelunka` database of the Docker PostgreSQL instance at
 `localhost:5432`.
 
 The Express process prints a confirmation to stdout after each sample is
-written. Use pgAdmin to inspect the `PerformanceSession` and
-`PerformanceSample` tables directly.
+written. Use pgAdmin to inspect `performance_session` (one measured game run)
+and `performance_sample` (the five-second records belonging to those runs).
+
+Run `npm run performance:latest -- 10` to print the newest samples and their
+session metadata as JSON. The optional number selects 1–100 records.
 
 
 ## Reproductions

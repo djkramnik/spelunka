@@ -7,6 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
+/// One measured run of the game. Its samples share browser and source context.
 model PerformanceSession {
   id          String              @id
   sourceUrl   String
@@ -15,8 +16,11 @@ model PerformanceSession {
   lastSeenAt  DateTime
   createdAt   DateTime            @default(now())
   samples     PerformanceSample[]
+
+  @@map("performance_session")
 }
 
+/// One five-second performance window collected during a measured game run.
 model PerformanceSample {
   id          Int                @id @default(autoincrement())
   sessionId   String
@@ -29,4 +33,5 @@ model PerformanceSample {
 
   @@unique([sessionId, sequence])
   @@index([capturedAt])
+  @@map("performance_sample")
 }

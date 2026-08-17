@@ -10,3 +10,10 @@
   - `epic-performance-measures` for `spelunka-b2u.2`
   - `epic-complete-level-roadmap` for `spelunka-48u`
   - `epic-spelunky-conversion` for `spelunka-r54`
+
+## Database conventions
+
+- Use singular, lowercase `snake_case` names for every physical database table, such as `performance_session` and `performance_sample`.
+- Apply this convention to all databases and migrations maintained by this project.
+- A `performance_session` is one measured run of the game. Each `performance_sample` is a measurement window belonging to one session.
+- Preserve existing records when renaming database objects; use in-place migrations instead of dropping and recreating tables.

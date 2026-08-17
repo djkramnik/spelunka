@@ -12,7 +12,7 @@
     - [x] Exercise the game manually and inspect the DevTools measurements.
       - [x] Identify which metrics are useful, noisy, or missing.
       - [x] Estimate the overhead introduced by the instrumentation.
-    - [ ] Design durable logging from the observed measurements.
+    - [x] Design durable logging from the observed measurements.
       - [x] Decide the structured log format and retained raw samples.
       - [x] Add an explicit flag for enabling performance collection.
       - [x] Add a local server endpoint for receiving browser metrics.

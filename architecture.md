@@ -583,3 +583,35 @@ doing before render-loop or allocation improvements.
 Every comparison should retain correctness checks as well as timings. A faster
 collision pass is not an improvement if it misses contacts, changes stomp
 behavior, or makes level triggers unreliable.
+
+### 2026-08-16: Initial collected samples
+
+The first two stored browser sessions contain fourteen five-second samples.
+They were recorded in Chrome on a display producing animation frames at about
+120 Hz: the median frame interval is 8.3 ms and each window contains roughly
+600 animation frames. The simulation remains fixed at about 300 steps per
+window, so approximately half of the animation frames correctly execute zero
+simulation steps.
+
+The measured game is comfortably within its current frame budget. Complete
+fixed steps have medians around 0.8–1.2 ms and 95th percentiles around
+1.6–2.6 ms. Rendering is the largest measured component, generally around
+0.7–1.0 ms median and 1.3–2.4 ms at the 95th percentile. Update, collision,
+finalization, and remaining level work are all much smaller.
+
+The expected quadratic entity-collision workload is visible in the counters.
+As average entity count increases from roughly 7 to 23, directional collision
+candidates rise from about 47 to 512 per simulation step. Collision time still
+has a 95th percentile around 0.1–0.2 ms at these entity counts, so the all-pairs
+pass is not yet a runtime bottleneck even though its scaling risk is real.
+
+Frame pacing is stable after startup. The later samples contain no frames over
+16.67 ms and no catch-up frames. The first window of the first session contains
+one 41.8 ms frame and one three-step catch-up, which currently looks like a
+startup outlier rather than sustained pressure.
+
+The first sample in each session is not directly comparable with later samples.
+It contains about 300 fixed steps but only 178–179 level subsystem samples
+because the timed wait scene occupies roughly two seconds before the level
+starts. Repeatable performance workloads should either exclude this mixed
+window or identify startup and gameplay phases explicitly.
