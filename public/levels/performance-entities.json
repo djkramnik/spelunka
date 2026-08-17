@@ -1,0 +1,87 @@
+{
+    "spriteSheet": "overworld",
+    "musicSheet": "overworld",
+    "patternSheet": "overworld-pattern",
+    "playerSpawn": [0, 192],
+
+    "layers": [
+        {
+            "tiles": [
+                {
+                    "name": "sky",
+                    "ranges": [
+                        [0, 212, 0, 13]
+                    ]
+                },
+                {
+                    "name": "ground",
+                    "type": "ground",
+                    "ranges": [
+                        [0, 212, 13, 2]
+                    ]
+                },
+                {
+                    "name": "bricks",
+                    "type": "brick",
+                    "ranges": [
+                        [0, 212, 4, 1],
+                        [0, 1, 0, 4],
+                        [211, 1, 0, 4]
+                    ]
+                }
+            ]
+        }
+    ],
+
+    "entities": [
+        {"name": "koopa", "pos": [80, 40]},
+        {"name": "koopa", "pos": [160, 40]},
+        {"name": "koopa", "pos": [240, 40]},
+        {"name": "koopa", "pos": [320, 40]},
+        {"name": "koopa", "pos": [400, 40]},
+        {"name": "koopa", "pos": [480, 40]},
+        {"name": "koopa", "pos": [560, 40]},
+        {"name": "koopa", "pos": [640, 40]},
+        {"name": "koopa", "pos": [720, 40]},
+        {"name": "koopa", "pos": [800, 40]},
+        {"name": "koopa", "pos": [880, 40]},
+        {"name": "koopa", "pos": [960, 40]},
+        {"name": "koopa", "pos": [1040, 40]},
+        {"name": "koopa", "pos": [1120, 40]},
+        {"name": "koopa", "pos": [1200, 40]},
+        {"name": "koopa", "pos": [1280, 40]},
+        {"name": "koopa", "pos": [1360, 40]},
+        {"name": "koopa", "pos": [1440, 40]},
+        {"name": "koopa", "pos": [1520, 40]},
+        {"name": "koopa", "pos": [1600, 40]},
+        {"name": "koopa", "pos": [1680, 40]},
+        {"name": "koopa", "pos": [1760, 40]},
+        {"name": "koopa", "pos": [1840, 40]},
+        {"name": "koopa", "pos": [1920, 40]},
+        {"name": "koopa", "pos": [2000, 40]},
+        {"name": "koopa", "pos": [2080, 40]},
+        {"name": "koopa", "pos": [2160, 40]},
+        {"name": "koopa", "pos": [2240, 40]},
+        {"name": "koopa", "pos": [2320, 40]},
+        {"name": "koopa", "pos": [2400, 40]},
+        {"name": "koopa", "pos": [2480, 40]},
+        {"name": "koopa", "pos": [2560, 40]},
+        {"name": "koopa", "pos": [2640, 40]},
+        {"name": "koopa", "pos": [2720, 40]},
+        {"name": "koopa", "pos": [2800, 40]},
+        {"name": "koopa", "pos": [2880, 40]},
+        {"name": "koopa", "pos": [2960, 40]},
+        {"name": "koopa", "pos": [3040, 40]},
+        {"name": "koopa", "pos": [3120, 40]},
+        {"name": "koopa", "pos": [3200, 40]},
+        {"name": "koopa", "pos": [3280, 40]}
+    ],
+
+    "triggers": [
+        {
+            "type": "goto",
+            "name": "performance-entities",
+            "pos": [3312, 144]
+        }
+    ]
+}

@@ -641,9 +641,12 @@ windows. It keeps Mario's rightward movement direction active with turbo
 enabled for the full run. The workload applies those states directly rather
 than dispatching browser keyboard events, so focus and browser synthetic-input
 policy cannot change the test. This exercises the normal movement, tile and
-entity collision, rendering, and hazard paths. When Mario dies, the benchmark
-creates a new Mario and loads a fresh level 1-1 inside the existing scene runner.
+entity collision and rendering paths. Performance-enabled runs load the
+212-tile `performance-entities` level: Mario runs on flat ground while 41
+koopas walk on a full-width brick bridge at row 4, beyond turbo-jump reach.
+Bridge end walls keep the koopas from falling into Mario's lane. A goto trigger
+near the right edge reloads the same level inside the existing scene runner.
 The timer and `PerformanceMetrics` instance remain alive, so level-loading time
-and all attempts retain one session ID. More than one recorded attempt is the
+and every loop retain one session ID. More than one completed level load is the
 completion check. Sequence 1 remains the startup/warm-up sample and sequences
 2–8 are the measured gameplay windows.

@@ -124,6 +124,7 @@ export const LevelSpecSchema = z.object({
     spriteSheet: NameSchema,
     musicSheet: NameSchema,
     patternSheet: NameSchema,
+    playerSpawn: PositionSchema.default([0, 0]),
     layers: z.array(z.object({
         tiles: z.array(TileSpecSchema),
     })),

@@ -59,12 +59,16 @@ a selected historical commit.
 Open `http://127.0.0.1:5173/?perf=1&benchmark=run-right` for a longer gameplay
 workload. It holds right with turbo enabled for eight five-second windows
 (40 seconds total), exercising movement, tile and entity collision checks, and
-the hazards in the first section of level 1-1. The first window is retained as
-warm-up. Controls are applied directly to Mario so the run does not depend on
-window focus or synthetic keyboard events. When Mario dies, the harness creates
-a new Mario and reloads a fresh level 1-1 without recreating the timer or
-performance session. A completed run reports more than one `workloadAttempts`
-in `window.performanceBenchmark`.
+the high-entity performance level. The first window is retained as warm-up.
+Controls are applied directly to Mario so the run does not depend on window
+focus or synthetic keyboard events. The level loops through a normal goto
+trigger without recreating the timer or performance session. A completed run
+reports more than one `workloadLevelLoads` in `window.performanceBenchmark`.
+
+Any runtime started with `?perf=1` loads `performance-entities` instead of
+`1-1`. It has the same 212-tile width and flat ground as 1-1. A solid brick
+bridge at row 4 holds 41 koopas, spaced every five tiles and contained by end
+walls so they remain vertically isolated from Mario.
 
 Inspect a saved run with
 `npm run performance:benchmark:show -- run-right [full-git-commit]`.

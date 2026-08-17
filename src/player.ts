@@ -1,11 +1,19 @@
 import Entity from './Entity.js';
+import type {Vec2} from './math.js';
 import Player from './traits/Player.js';
 import PlayerController from './traits/PlayerController.js';
 
-export function createPlayerEnv(playerEntity: Entity): Entity {
+export function createPlayerEnv(
+    playerEntity: Entity,
+    checkpoint?: Vec2,
+): Entity {
     const playerEnvironment = new Entity();
     const playerController = new PlayerController();
-    playerController.checkpoint.set(64, 64);
+    if (checkpoint) {
+        playerController.checkpoint.copy(checkpoint);
+    } else {
+        playerController.checkpoint.set(64, 64);
+    }
     playerController.setPlayer(playerEntity);
     playerEnvironment.addTrait(playerController);
     return playerEnvironment;

@@ -8,6 +8,7 @@ import Scene from './Scene.js';
 import type {GameContext} from './Scene.js';
 import TileCollider from './TileCollider.js';
 import {findPlayers} from './player.js';
+import {Vec2} from './math.js';
 
 type LevelTrigger = LevelSpec['triggers'][number];
 
@@ -29,6 +30,7 @@ export default class Level extends Scene<Camera> {
     name = '';
     gravity = 1500;
     totalTime = 0;
+    readonly playerSpawn = new Vec2(0, 0);
 
     readonly camera = new Camera();
     readonly music = new MusicController();

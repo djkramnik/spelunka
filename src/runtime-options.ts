@@ -7,6 +7,7 @@ const RUN_RIGHT_WARMUP_SAMPLES = 1;
 
 export interface RuntimeOptions {
     performanceEnabled: boolean;
+    initialLevelName: string;
     collisionDebugEnabled: boolean;
     audioEnabled: boolean;
     autoStart: boolean;
@@ -54,6 +55,7 @@ export function parseRuntimeOptions(
 
     return {
         performanceEnabled,
+        initialLevelName: performanceEnabled ? 'performance-entities' : '1-1',
         collisionDebugEnabled: searchParams.get('debug') === 'collision',
         audioEnabled: benchmark === undefined,
         autoStart: benchmark !== undefined,

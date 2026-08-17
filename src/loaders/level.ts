@@ -141,6 +141,7 @@ export function createLevelLoader(
 
         const level = new Level();
         level.name = name;
+        level.playerSpawn.set(...levelSpec.playerSpawn);
         level.music.setPlayer(musicPlayer);
 
         setupBackgrounds(levelSpec, level, backgroundSprites, patterns);

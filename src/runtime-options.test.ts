@@ -8,6 +8,7 @@ const options = parseRuntimeOptions(
 
 if (
     !options.performanceEnabled
+    || options.initialLevelName !== 'performance-entities'
     || !options.autoStart
     || options.inputEnabled
     || options.audioEnabled
@@ -28,6 +29,7 @@ const runRightOptions = parseRuntimeOptions(
 );
 if (
     runRightOptions.benchmark?.name !== 'run-right'
+    || runRightOptions.initialLevelName !== 'performance-entities'
     || runRightOptions.benchmark.sampleCount !== 8
     || runRightOptions.benchmark.warmupSamples !== 1
     || runRightOptions.inputEnabled
@@ -44,6 +46,7 @@ const debugOptions = parseRuntimeOptions(
 );
 if (
     !debugOptions.collisionDebugEnabled
+    || debugOptions.initialLevelName !== '1-1'
     || debugOptions.autoStart
     || !debugOptions.audioEnabled
 ) {

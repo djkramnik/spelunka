@@ -36,7 +36,7 @@ declare global {
             gitCommit: string;
             status: 'running' | 'complete' | 'failed';
             completedAt?: string;
-            workloadAttempts?: number;
+            workloadLevelLoads?: number;
         };
     }
 }
@@ -73,6 +73,7 @@ async function main(
         musicEnabled: runtimeOptions.audioEnabled,
     });
     const sceneRunner = new SceneRunner();
+    let benchmarkLevelLoads = 0;
 
     let mario = entityFactory.mario();
     makePlayer(mario, 'MARIO');
@@ -104,6 +105,12 @@ async function main(
         sceneRunner.runNext();
 
         const level = await loadLevel(name, () => loadingProgress.advance());
+        if (
+            runtimeOptions.benchmark?.name === 'run-right'
+            && name === runtimeOptions.initialLevelName
+        ) {
+            benchmarkLevelLoads++;
+        }
 
         level.events.listen(Level.EVENT_TRIGGER, (
             spec: LevelSpec['triggers'][number],
@@ -119,10 +126,13 @@ async function main(
         const playerProgressLayer = createPlayerProgressLayer(font, level);
         const dashboardLayer = createDashboardLayer(font, level);
 
-        mario.pos.set(0, 0);
+        mario.pos.copy(level.playerSpawn);
         level.entities.add(mario);
 
-        const playerEnvironment = createPlayerEnv(mario);
+        const playerEnvironment = createPlayerEnv(
+            mario,
+            runtimeOptions.performanceEnabled ? level.playerSpawn : undefined,
+        );
         level.entities.add(playerEnvironment);
 
         const waitScreen = new TimedScene();
@@ -151,9 +161,6 @@ async function main(
     }
 
     let timer: Timer | null = null;
-    let benchmarkWorkloadAttempts = runtimeOptions.benchmark?.name === 'run-right'
-        ? 1
-        : 0;
     let benchmarkRestartPending = false;
     const performanceMetrics = new PerformanceMetrics({
         enabled: runtimeOptions.performanceEnabled,
@@ -164,20 +171,20 @@ async function main(
             onComplete: (summary: PerformanceSummary): void => {
                 timer?.stop();
                 const workloadComplete = runtimeOptions.benchmark?.name !== 'run-right'
-                    || benchmarkWorkloadAttempts > 1;
+                    || benchmarkLevelLoads > 1;
                 window.performanceBenchmark = {
                     name: runtimeOptions.benchmark?.name ?? 'idle-start',
                     gitCommit: runtimeOptions.benchmark?.gitCommit ?? __GIT_COMMIT__,
                     status: workloadComplete ? 'complete' : 'failed',
                     completedAt: summary.capturedAt,
-                    workloadAttempts: benchmarkWorkloadAttempts,
+                    workloadLevelLoads: benchmarkLevelLoads,
                 };
                 if (workloadComplete) {
                     console.info(
                         `[performance] benchmark complete for ${summary.benchmark?.gitCommit}`,
                     );
                 } else {
-                    console.error('[performance] benchmark completed without a restart');
+                    console.error('[performance] benchmark did not complete a level loop');
                 }
             },
         } : {}),
@@ -201,9 +208,8 @@ async function main(
         applyBenchmarkWorkload(benchmark, nextMario);
         mario = nextMario;
         window.mario = nextMario;
-        benchmarkWorkloadAttempts++;
 
-        await runLevel('1-1');
+        await runLevel(runtimeOptions.initialLevelName);
         benchmarkRestartPending = false;
     };
 
@@ -222,7 +228,7 @@ async function main(
                     name: runtimeOptions.benchmark?.name ?? 'run-right',
                     gitCommit: runtimeOptions.benchmark?.gitCommit ?? __GIT_COMMIT__,
                     status: 'failed',
-                    workloadAttempts: benchmarkWorkloadAttempts,
+                    workloadLevelLoads: benchmarkLevelLoads,
                 };
                 console.error('[performance] unable to restart benchmark attempt', error);
             });
@@ -231,7 +237,7 @@ async function main(
     };
     timer.start();
 
-    await runLevel('1-1', true);
+    await runLevel(runtimeOptions.initialLevelName, true);
 }
 
 async function bootstrap(): Promise<void> {
