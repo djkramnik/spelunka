@@ -8,6 +8,7 @@
   - `epic-typescript-conversion` for `spelunka-v0j`
   - `epic-performance-evaluation` for `spelunka-b2u`
   - `epic-performance-measures` for `spelunka-b2u.2`
+  - `epic-performance-enhancements` for `spelunka-clu`
   - `epic-complete-level-roadmap` for `spelunka-48u`
   - `epic-spelunky-conversion` for `spelunka-r54`
   - `epic-hotfix` for `spelunka-ncf`
