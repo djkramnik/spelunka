@@ -154,7 +154,7 @@ export function createLevelLoader(
         ]);
 
         const level = new Level();
-        level.name = name;
+        level.name = levelSpec.name ?? name;
         level.setDimensions(...levelSpec.size);
         level.playerSpawn.set(...levelSpec.playerSpawn);
         level.music.setPlayer(musicPlayer);

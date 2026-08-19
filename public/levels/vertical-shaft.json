@@ -1,0 +1,42 @@
+{
+    "name": "THE SHAFT",
+    "spriteSheet": "underworld",
+    "musicSheet": "underworld",
+    "patternSheet": "overworld-pattern",
+    "size": [16, 75],
+    "playerSpawn": [64, 64],
+
+    "layers": [
+        {
+            "tiles": [
+                {
+                    "name": "sky",
+                    "ranges": [
+                        [0, 16, 0, 75]
+                    ]
+                },
+                {
+                    "name": "ground",
+                    "type": "ground",
+                    "ranges": [
+                        [0, 16, 0],
+                        [0, 1, 1, 73],
+                        [15, 1, 1, 73],
+                        [0, 16, 74]
+                    ]
+                }
+            ]
+        }
+    ],
+
+    "entities": [],
+
+    "triggers": [
+        {
+            "type": "teleport",
+            "pos": [224, 1168],
+            "size": [16, 16],
+            "destination": [64, 64]
+        }
+    ]
+}

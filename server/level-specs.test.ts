@@ -13,11 +13,39 @@ assert.ok(levelFiles.length > 0, 'Expected at least one level definition');
 for (const levelFile of levelFiles) {
     const levelUrl = new URL(levelFile, levelsDirectory);
     const level = LevelSpecSchema.parse(JSON.parse(await readFile(levelUrl, 'utf8')));
+    const expectedSize = levelFile === 'vertical-shaft.json'
+        ? [16, 75]
+        : [212, 15];
     assert.deepEqual(
         level.size,
-        [212, 15],
-        `Unexpected dimensions for existing level ${levelFile}`,
+        expectedSize,
+        `Unexpected dimensions for level ${levelFile}`,
     );
 }
 
-console.log(`Validated explicit dimensions for ${levelFiles.length} existing levels`);
+const shaftUrl = new URL('vertical-shaft.json', levelsDirectory);
+const shaft = LevelSpecSchema.parse(JSON.parse(await readFile(shaftUrl, 'utf8')));
+assert.equal(shaft.name, 'THE SHAFT');
+assert.deepEqual(shaft.playerSpawn, [64, 64]);
+assert.deepEqual(shaft.triggers, [{
+    type: 'teleport',
+    pos: [224, 1168],
+    size: [16, 16],
+    destination: [64, 64],
+}]);
+
+const shaftGround = shaft.layers
+    .flatMap(layer => layer.tiles)
+    .find(tile => 'name' in tile && tile.name === 'ground');
+assert.deepEqual(shaftGround, {
+    name: 'ground',
+    type: 'ground',
+    ranges: [
+        [0, 16, 0],
+        [0, 1, 1, 73],
+        [15, 1, 1, 73],
+        [0, 16, 74],
+    ],
+});
+
+console.log(`Validated dimensions and The Shaft layout for ${levelFiles.length} levels`);

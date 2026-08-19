@@ -135,6 +135,7 @@ const LevelTriggerSchema = z.discriminatedUnion('type', [
 ]);
 
 export const LevelSpecSchema = z.object({
+    name: NameSchema.optional(),
     spriteSheet: NameSchema,
     musicSheet: NameSchema,
     patternSheet: NameSchema,
