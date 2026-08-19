@@ -6,6 +6,7 @@ import {LevelSpecSchema} from '../src/loaders/schemas.js';
 const levelUrl = new URL('../public/levels/performance-entities.json', import.meta.url);
 const level = LevelSpecSchema.parse(JSON.parse(await readFile(levelUrl, 'utf8')));
 
+assert.deepEqual(level.size, [212, 15]);
 assert.deepEqual(level.playerSpawn, [0, 192]);
 assert.equal(level.entities.length, 123);
 assert.deepEqual(

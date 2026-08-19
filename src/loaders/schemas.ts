@@ -2,8 +2,10 @@ import {z} from 'zod';
 
 const CoordinateSchema = z.number().finite();
 const PositiveNumberSchema = z.number().positive();
+const PositiveIntegerSchema = z.number().int().positive();
 const NameSchema = z.string().min(1);
 const PositionSchema = z.tuple([CoordinateSchema, CoordinateSchema]);
+const LevelSizeSchema = z.tuple([PositiveIntegerSchema, PositiveIntegerSchema]);
 
 export type TileRange =
     | [number, number]
@@ -124,6 +126,7 @@ export const LevelSpecSchema = z.object({
     spriteSheet: NameSchema,
     musicSheet: NameSchema,
     patternSheet: NameSchema,
+    size: LevelSizeSchema,
     playerSpawn: PositionSchema.default([0, 0]),
     layers: z.array(z.object({
         tiles: z.array(TileSpecSchema),

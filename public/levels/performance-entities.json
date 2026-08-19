@@ -2,6 +2,7 @@
     "spriteSheet": "overworld",
     "musicSheet": "overworld",
     "patternSheet": "overworld-pattern",
+    "size": [212, 15],
     "playerSpawn": [0, 192],
 
     "layers": [

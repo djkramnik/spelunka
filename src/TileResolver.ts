@@ -1,5 +1,7 @@
 import {Matrix} from './math.js';
 
+export const TILE_SIZE = 16;
+
 export interface TileMatch<Tile> {
     tile: Tile;
     indexX: number;
@@ -18,7 +20,7 @@ export interface TileSearchResult<Tile> {
 export default class TileResolver<Tile> {
     constructor(
         readonly matrix: Matrix<Tile>,
-        readonly tileSize = 16,
+        readonly tileSize = TILE_SIZE,
     ) {}
 
     toIndex(position: number): number {

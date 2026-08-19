@@ -2,6 +2,7 @@
     "spriteSheet": "underworld",
     "musicSheet": "underworld",
     "patternSheet": "overworld-pattern",
+    "size": [212, 15],
 
     "layers": [
         {

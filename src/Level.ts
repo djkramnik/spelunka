@@ -7,6 +7,7 @@ import MusicController from './MusicController.js';
 import Scene from './Scene.js';
 import type {GameContext} from './Scene.js';
 import TileCollider from './TileCollider.js';
+import {TILE_SIZE} from './TileResolver.js';
 import {findPlayers} from './player.js';
 import {Vec2} from './math.js';
 
@@ -20,8 +21,10 @@ const EVENT_TRIGGER = new EventKey<[
 
 function focusPlayer(level: Level): void {
     for (const player of findPlayers(level.entities)) {
-        level.camera.pos.x = Math.max(0, player.pos.x - 100);
+        level.camera.pos.x = player.pos.x - 100;
     }
+
+    level.camera.clampTo(level.size);
 }
 
 export default class Level extends Scene<Camera> {
@@ -30,6 +33,8 @@ export default class Level extends Scene<Camera> {
     name = '';
     gravity = 1500;
     totalTime = 0;
+    readonly dimensions = new Vec2(0, 0);
+    readonly size = new Vec2(0, 0);
     readonly playerSpawn = new Vec2(0, 0);
 
     readonly camera = new Camera();
@@ -37,6 +42,15 @@ export default class Level extends Scene<Camera> {
     readonly entities = new Set<Entity>();
     readonly entityCollider = new EntityCollider(this.entities);
     readonly tileCollider = new TileCollider();
+
+    setDimensions(widthInTiles: number, heightInTiles: number): void {
+        this.dimensions.set(widthInTiles, heightInTiles);
+        this.size.set(
+            widthInTiles * TILE_SIZE,
+            heightInTiles * TILE_SIZE,
+        );
+        this.camera.clampTo(this.size);
+    }
 
     override draw(gameContext: GameContext): void {
         this.comp.draw(gameContext.videoContext, this.camera);
