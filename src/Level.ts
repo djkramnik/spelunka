@@ -19,9 +19,25 @@ const EVENT_TRIGGER = new EventKey<[
     touches: ReadonlySet<Entity>,
 ]>('trigger');
 
-function focusPlayer(level: Level): void {
+const VERTICAL_CAMERA_TOP_MARGIN = 64;
+const VERTICAL_CAMERA_BOTTOM_MARGIN = TILE_SIZE;
+
+export function focusPlayer(level: Level): void {
     for (const player of findPlayers(level.entities)) {
         level.camera.pos.x = player.pos.x - 100;
+
+        const cameraTop = level.camera.pos.y + VERTICAL_CAMERA_TOP_MARGIN;
+        const cameraBottom = level.camera.pos.y
+            + level.camera.size.y
+            - VERTICAL_CAMERA_BOTTOM_MARGIN;
+
+        if (player.bounds.top < cameraTop) {
+            level.camera.pos.y = player.bounds.top - VERTICAL_CAMERA_TOP_MARGIN;
+        } else if (player.bounds.bottom > cameraBottom) {
+            level.camera.pos.y = player.bounds.bottom
+                - level.camera.size.y
+                + VERTICAL_CAMERA_BOTTOM_MARGIN;
+        }
     }
 
     level.camera.clampTo(level.size);
@@ -53,6 +69,13 @@ export default class Level extends Scene<Camera> {
     }
 
     override draw(gameContext: GameContext): void {
+        const {videoContext} = gameContext;
+        videoContext.clearRect(
+            0,
+            0,
+            videoContext.canvas.width,
+            videoContext.canvas.height,
+        );
         this.comp.draw(gameContext.videoContext, this.camera);
     }
 

@@ -21,15 +21,15 @@ const baseLevelSpec = {
 
 const parsedLevel = LevelSpecSchema.parse({
     ...baseLevelSpec,
-    size: [16, 28],
+    size: [16, 30],
 });
-assertEqual(parsedLevel.size, [16, 28], 'Parsed level size');
+assertEqual(parsedLevel.size, [16, 30], 'Parsed level size');
 
 for (const size of [
-    [0, 28],
+    [0, 30],
     [16, 0],
-    [-1, 28],
-    [16.5, 28],
+    [-1, 30],
+    [16.5, 30],
 ]) {
     if (LevelSpecSchema.safeParse({...baseLevelSpec, size}).success) {
         throw new Error(`Expected invalid level size to be rejected: ${size.join('x')}`);
@@ -40,12 +40,12 @@ const verticalLevel = new Level();
 verticalLevel.setDimensions(...parsedLevel.size);
 assertEqual(
     [verticalLevel.dimensions.x, verticalLevel.dimensions.y],
-    [16, 28],
+    [16, 30],
     'Runtime level dimensions',
 );
 assertEqual(
     [verticalLevel.size.x, verticalLevel.size.y],
-    [256, 448],
+    [256, 480],
     'Runtime level pixel size',
 );
 
@@ -53,7 +53,7 @@ verticalLevel.camera.pos.set(100, 500);
 verticalLevel.camera.clampTo(verticalLevel.size);
 assertEqual(
     [verticalLevel.camera.pos.x, verticalLevel.camera.pos.y],
-    [0, 224],
+    [0, 240],
     'Maximum camera position',
 );
 
@@ -71,7 +71,7 @@ existingLevel.camera.pos.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)
 existingLevel.camera.clampTo(existingLevel.size);
 assertEqual(
     [existingLevel.camera.pos.x, existingLevel.camera.pos.y],
-    [3136, 16],
+    [3136, 0],
     'Existing level camera bounds',
 );
 

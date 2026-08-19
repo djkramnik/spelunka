@@ -1,4 +1,4 @@
-import Camera from '../Camera.js';
+import Camera, {VIEWPORT_HEIGHT, VIEWPORT_WIDTH} from '../Camera.js';
 import {requireCamera} from '../Compositor.js';
 import type {RenderLayer} from '../Compositor.js';
 import type Level from '../Level.js';
@@ -14,55 +14,62 @@ export function createBackgroundLayer(
 ): RenderLayer<Camera> {
     const resolver = new TileResolver(tiles);
     const buffer = document.createElement('canvas');
-    buffer.width = 256 + 16;
-    buffer.height = 240;
+    buffer.width = VIEWPORT_WIDTH + resolver.tileSize;
+    buffer.height = VIEWPORT_HEIGHT + resolver.tileSize;
 
     const bufferContext = buffer.getContext('2d');
     if (!bufferContext) {
         throw new Error('Unable to create background buffer context');
     }
 
-    const redraw = (startIndex: number, endIndex: number): void => {
+    const redraw = (
+        startX: number,
+        endX: number,
+        startY: number,
+        endY: number,
+    ): void => {
         bufferContext.clearRect(0, 0, buffer.width, buffer.height);
 
-        for (let x = startIndex; x <= endIndex; ++x) {
-            const column = tiles.grid[x];
-            if (!column) {
-                continue;
-            }
-
-            column.forEach((tile, y) => {
+        for (let x = startX; x <= endX; ++x) {
+            for (let y = startY; y <= endY; ++y) {
+                const tile = tiles.get(x, y);
+                if (!tile) {
+                    continue;
+                }
                 if (sprites.animations.has(tile.name)) {
                     sprites.drawAnim(
                         tile.name,
                         bufferContext,
-                        x - startIndex,
-                        y,
+                        x - startX,
+                        y - startY,
                         level.totalTime,
                     );
                 } else {
                     sprites.drawTile(
                         tile.name,
                         bufferContext,
-                        x - startIndex,
-                        y,
+                        x - startX,
+                        y - startY,
                     );
                 }
-            });
+            }
         }
     };
 
     return function drawBackgroundLayer(context, camera): void {
         const view = requireCamera(camera);
         const drawWidth = resolver.toIndex(view.size.x);
-        const drawFrom = resolver.toIndex(view.pos.x);
-        const drawTo = drawFrom + drawWidth;
-        redraw(drawFrom, drawTo);
+        const drawHeight = resolver.toIndex(view.size.y);
+        const drawFromX = resolver.toIndex(view.pos.x);
+        const drawFromY = resolver.toIndex(view.pos.y);
+        const drawToX = drawFromX + drawWidth;
+        const drawToY = drawFromY + drawHeight;
+        redraw(drawFromX, drawToX, drawFromY, drawToY);
 
         context.drawImage(
             buffer,
-            Math.floor(-view.pos.x % 16),
-            Math.floor(-view.pos.y),
+            Math.floor(-view.pos.x % resolver.tileSize),
+            Math.floor(-view.pos.y % resolver.tileSize),
         );
     };
 }
