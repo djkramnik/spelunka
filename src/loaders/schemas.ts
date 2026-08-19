@@ -122,6 +122,18 @@ const GotoTriggerSchema = z.object({
     pos: PositionSchema,
 });
 
+const TeleportTriggerSchema = z.object({
+    type: z.literal('teleport'),
+    pos: PositionSchema,
+    size: z.tuple([PositiveNumberSchema, PositiveNumberSchema]),
+    destination: PositionSchema,
+});
+
+const LevelTriggerSchema = z.discriminatedUnion('type', [
+    GotoTriggerSchema,
+    TeleportTriggerSchema,
+]);
+
 export const LevelSpecSchema = z.object({
     spriteSheet: NameSchema,
     musicSheet: NameSchema,
@@ -132,7 +144,7 @@ export const LevelSpecSchema = z.object({
         tiles: z.array(TileSpecSchema),
     })),
     entities: z.array(LevelEntitySchema),
-    triggers: z.array(GotoTriggerSchema).default([]),
+    triggers: z.array(LevelTriggerSchema).default([]),
 });
 
 export type NamedTileSpec = z.infer<typeof NamedTileSpecSchema>;

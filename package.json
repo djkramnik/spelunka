@@ -13,7 +13,7 @@
     "build": "npm run prisma:generate && vite build",
     "preview": "vite preview --host 127.0.0.1",
     "typecheck": "npm run prisma:generate && tsc --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "test": "npm run prisma:generate && tsx src/EntityCollider.test.ts && tsx src/traits/Stomper.test.ts && tsx src/runtime-options.test.ts && tsx src/benchmark-workloads.test.ts && tsx src/level-bounds.test.ts && tsx src/layers/background.test.ts && tsx src/vertical-camera.test.ts && tsx server/level-specs.test.ts && tsx server/performance-level.test.ts && node --import tsx --test server/routes/performance.test.ts",
+    "test": "npm run prisma:generate && tsx src/EntityCollider.test.ts && tsx src/traits/Stomper.test.ts && tsx src/traits/Trigger.test.ts && tsx src/runtime-options.test.ts && tsx src/benchmark-workloads.test.ts && tsx src/level-bounds.test.ts && tsx src/layers/background.test.ts && tsx src/vertical-camera.test.ts && tsx server/level-specs.test.ts && tsx server/performance-level.test.ts && node --import tsx --test server/routes/performance.test.ts",
     "performance:latest": "tsx server/scripts/latest-performance-samples.ts",
     "performance:benchmark": "tsx server/scripts/run-performance-benchmark.ts",
     "performance:benchmark:show": "tsx server/scripts/show-performance-benchmark.ts",

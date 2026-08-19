@@ -21,6 +21,7 @@ import type {
     TileSpec,
 } from './schemas.js';
 import {loadSpriteSheet} from './sprite.js';
+import {findPlayers} from '../player.js';
 
 type ProgressCallback = () => void;
 
@@ -97,17 +98,30 @@ function setupEntities(
     level.comp.layers.push(createSpriteLayer(level.entities));
 }
 
-function setupTriggers(levelSpec: LevelSpec, level: Level): void {
+export function setupTriggers(levelSpec: LevelSpec, level: Level): void {
     for (const triggerSpec of levelSpec.triggers) {
         const trigger = new Trigger();
 
-        trigger.conditions.push((entity, touches) => {
-            level.events.emit(Level.EVENT_TRIGGER, triggerSpec, entity, touches);
-        });
+        if (triggerSpec.type === 'goto') {
+            trigger.conditions.push((entity, touches) => {
+                level.events.emit(Level.EVENT_TRIGGER, triggerSpec, entity, touches);
+            });
+        } else {
+            trigger.conditions.push((_entity, touches) => {
+                for (const player of findPlayers(touches)) {
+                    player.pos.set(...triggerSpec.destination);
+                    player.vel.set(0, 0);
+                }
+            });
+        }
 
         const entity = new Entity();
         entity.addTrait(trigger);
-        entity.size.set(64, 64);
+        if (triggerSpec.type === 'teleport') {
+            entity.size.set(...triggerSpec.size);
+        } else {
+            entity.size.set(64, 64);
+        }
         entity.pos.set(triggerSpec.pos[0], triggerSpec.pos[1]);
         level.entities.add(entity);
     }

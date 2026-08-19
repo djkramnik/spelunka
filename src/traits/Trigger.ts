@@ -12,6 +12,7 @@ export type TriggerCondition = (
 
 export default class Trigger extends Trait {
     private readonly touches = new Set<Entity>();
+    private readonly previousTouches = new Set<Entity>();
     readonly conditions: TriggerCondition[] = [];
 
     override collides(_us: Entity, them: Entity): void {
@@ -19,11 +20,23 @@ export default class Trigger extends Trait {
     }
 
     override update(entity: Entity, gameContext: GameContext, level: Level): void {
-        if (this.touches.size > 0) {
-            for (const condition of this.conditions) {
-                condition(entity, this.touches, gameContext, level);
+        const entered = new Set<Entity>();
+        for (const touchedEntity of this.touches) {
+            if (!this.previousTouches.has(touchedEntity)) {
+                entered.add(touchedEntity);
             }
-            this.touches.clear();
         }
+
+        if (entered.size > 0) {
+            for (const condition of this.conditions) {
+                condition(entity, entered, gameContext, level);
+            }
+        }
+
+        this.previousTouches.clear();
+        for (const touchedEntity of this.touches) {
+            this.previousTouches.add(touchedEntity);
+        }
+        this.touches.clear();
     }
 }

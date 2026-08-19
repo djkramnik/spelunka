@@ -117,6 +117,9 @@ async function main(
             _trigger: Entity,
             touches: ReadonlySet<Entity>,
         ) => {
+            if (spec.type !== 'goto') {
+                return;
+            }
             for (const _player of findPlayers(touches)) {
                 void runLevel(spec.name);
                 return;

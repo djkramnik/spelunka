@@ -264,6 +264,12 @@
             "type": "goto",
             "name": "1-2",
             "pos": [64, 64]
+        },
+        {
+            "type": "teleport",
+            "pos": [592, 192],
+            "size": [16, 16],
+            "destination": [0, 0]
         }
     ]
 }
