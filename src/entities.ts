@@ -9,6 +9,8 @@ import {loadKoopa} from './entities/Koopa.js';
 import type {KoopaFactory} from './entities/Koopa.js';
 import {loadMario} from './entities/Mario.js';
 import type {MarioFactory} from './entities/Mario.js';
+import {loadRedShell} from './entities/RedShell.js';
+import type {RedShellFactory} from './entities/RedShell.js';
 
 type ProgressCallback = () => void;
 
@@ -19,6 +21,7 @@ export interface EntityFactories {
     koopa: KoopaFactory;
     bullet: BulletFactory;
     cannon: CannonFactory;
+    redShell: RedShellFactory;
 }
 
 export async function loadEntities(
@@ -31,13 +34,14 @@ export async function loadEntities(
         return factory;
     };
 
-    const [mario, goomba, koopa, bullet, cannon] = await Promise.all([
+    const [mario, goomba, koopa, bullet, cannon, redShell] = await Promise.all([
         track(loadMario(audioContext)),
         track(loadGoomba()),
         track(loadKoopa()),
         track(loadBullet()),
         track(loadCannon(audioContext)),
+        track(loadRedShell()),
     ]);
 
-    return {mario, goomba, koopa, bullet, cannon};
+    return {mario, goomba, koopa, bullet, cannon, redShell};
 }

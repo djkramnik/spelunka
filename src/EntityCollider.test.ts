@@ -19,6 +19,9 @@ const overlapping = entity('overlapping', 8, 0);
 const verticallySeparated = entity('vertically-separated', 8, 32);
 const horizontallySeparated = entity('horizontally-separated', 100, 0);
 
+first.zIndex = 100;
+overlapping.zIndex = -100;
+
 const collider = new EntityCollider(new Set([
     first,
     overlapping,

@@ -17,9 +17,15 @@ export function createSpriteLayer(
         throw new Error('Unable to create sprite buffer context');
     }
 
+    const renderQueue: Entity[] = [];
+
     return function drawSpriteLayer(context, camera): void {
         const view = requireCamera(camera);
-        entities.forEach(entity => {
+        renderQueue.length = 0;
+        entities.forEach(entity => renderQueue.push(entity));
+        renderQueue.sort((a, b) => a.zIndex - b.zIndex);
+
+        renderQueue.forEach(entity => {
             spriteBufferContext.clearRect(0, 0, width, height);
             entity.draw(spriteBufferContext);
 

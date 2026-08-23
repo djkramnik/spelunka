@@ -4,6 +4,7 @@ import type {KeyState} from '../KeyboardState.js';
 import {loadAudioBoard} from '../loaders/audio.js';
 import {loadSpriteSheet} from '../loaders/sprite.js';
 import SpriteSheet from '../SpriteSheet.js';
+import Carrier from '../traits/Carrier.js';
 import Go from '../traits/Go.js';
 import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
@@ -15,6 +16,7 @@ const SLOW_DRAG = 1 / 1000;
 const FAST_DRAG = 1 / 5000;
 
 export type Mario = Entity & {
+    pickup(): Entity | null;
     turbo(state: boolean | KeyState): void;
 };
 
@@ -67,6 +69,7 @@ function createMarioFactory(
             this.addTrait(new Jump());
             this.addTrait(new Killable());
             this.addTrait(new Stomper());
+            this.addTrait(new Carrier());
 
             this.traits.get(Killable).removeAfter = 0;
             this.turbo(false);
@@ -74,6 +77,10 @@ function createMarioFactory(
 
         turbo(turboOn: boolean | KeyState): void {
             this.traits.get(Go).dragFactor = turboOn ? FAST_DRAG : SLOW_DRAG;
+        }
+
+        pickup(): Entity | null {
+            return this.traits.get(Carrier).pickup(this);
         }
 
         override draw(context: CanvasRenderingContext2D): void {

@@ -15,7 +15,9 @@ for (const levelFile of levelFiles) {
     const level = LevelSpecSchema.parse(JSON.parse(await readFile(levelUrl, 'utf8')));
     const expectedSize = levelFile === 'vertical-shaft.json'
         ? [16, 75]
-        : [212, 15];
+        : levelFile === 'room.json'
+            ? [32, 15]
+            : [212, 15];
     assert.deepEqual(
         level.size,
         expectedSize,
@@ -48,4 +50,26 @@ assert.deepEqual(shaftGround, {
     ],
 });
 
-console.log(`Validated dimensions and The Shaft layout for ${levelFiles.length} levels`);
+const roomUrl = new URL('room.json', levelsDirectory);
+const room = LevelSpecSchema.parse(JSON.parse(await readFile(roomUrl, 'utf8')));
+assert.equal(room.name, 'THE ROOM');
+assert.deepEqual(room.size, [32, 15]);
+assert.deepEqual(room.playerSpawn, [16, 208]);
+assert.deepEqual(room.entities, [{name: 'redShell', pos: [64, 200]}]);
+assert.deepEqual(room.triggers, []);
+
+const roomGround = room.layers
+    .flatMap(layer => layer.tiles)
+    .find(tile => 'name' in tile && tile.name === 'ground');
+assert.deepEqual(roomGround, {
+    name: 'ground',
+    type: 'ground',
+    ranges: [
+        [0, 32, 0],
+        [0, 1, 1, 13],
+        [31, 1, 1, 13],
+        [0, 32, 14],
+    ],
+});
+
+console.log(`Validated dimensions, The Shaft, and The Room for ${levelFiles.length} levels`);

@@ -75,4 +75,14 @@ assertEqual(
     'Existing level camera bounds',
 );
 
+const roomLevel = new Level();
+roomLevel.setDimensions(32, 15);
+roomLevel.camera.pos.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+roomLevel.camera.clampTo(roomLevel.size);
+assertEqual(
+    [roomLevel.camera.pos.x, roomLevel.camera.pos.y],
+    [256, 0],
+    'The Room camera bounds',
+);
+
 console.log('Level dimensions and camera bounds regression passed');

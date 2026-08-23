@@ -173,12 +173,12 @@ Asset loading occurs in two phases.
 Before the click-to-start screen appears, the game loads `/img/font.png` and
 turns it into an 8-pixel bitmap font used for on-canvas text.
 
-After the click, the startup progress bar tracks nine logical tasks:
+After the click, the startup progress bar tracks ten logical tasks:
 
-- Five entity factories are loaded in parallel: Mario, Goomba, Koopa, Bullet,
-  and Cannon. These load sprite-sheet JSON and images where needed. Mario and
-  Cannon also load sound-effect manifests, fetch their Ogg files, and decode
-  them into Web Audio buffers.
+- Six entity factories are loaded in parallel: Mario, Goomba, Koopa, Bullet,
+  Cannon, and Red Shell. These load sprite-sheet JSON and images where needed.
+  Mario and Cannon also load sound-effect manifests, fetch their Ogg files,
+  and decode them into Web Audio buffers.
 - Four tasks belong to the initial level: its level JSON, background
   sprite-sheet, music manifest, and reusable tile-pattern JSON. After the level
   JSON identifies those dependencies, the last three load in parallel.
@@ -227,6 +227,8 @@ After startup, `setupKeyboard()` adds `keydown` and `keyup` listeners to
   input.
 - `KeyZ`: start a jump on press and cancel or shorten it on release.
 - `KeyX`: enable turbo movement while held and disable it on release.
+- `KeyD`: pick up an eligible overlapping entity on press. Release does not
+  drop or throw a carried entity.
 
 Keyboard state is tracked by physical `KeyboardEvent.code`, rather than the
 character produced by a keyboard layout. For mapped controls, the handler
@@ -254,6 +256,10 @@ When a scene completes, the runner pauses it and advances to the next scene.
 During a level update, entities update their traits, entity collisions are
 checked, entity state is finalized, and the camera follows the player. The
 level's compositor then draws its ordered render layers into the same canvas.
+Within the entity sprite layer, a stable render queue draws lower `zIndex`
+values first and higher values last. Entities with equal values retain their
+level insertion order; this visual ordering does not change simulation or
+collision traversal.
 
 ## Physics and character movement
 
@@ -442,6 +448,9 @@ The principal reactions are:
 
 - Mario's `Stomper` queues an upward bounce when he is moving downward faster
   than a killable entity, queues the stomp sound, and emits a scoring event.
+- Mario's `Carrier` records overlapping `Pickable` entities as pickup
+  candidates. An explicit pickup action attaches at most one candidate; the
+  red shell opts into this behavior without reacting to collision by itself.
 - Goomba behavior either dies when approached from above or kills Mario on a
   non-stomp collision.
 - Koopa behavior switches between walking, hiding, and fast-shell states, with
@@ -456,6 +465,15 @@ rather than applied while the pair iteration is in progress. After all entity
 collision checks, `Level.update()` calls `finalize()` on each entity. That
 process executes its queued one-shot tasks and clears its per-frame event
 buffer, avoiding most mutation during collision traversal.
+
+Pickup candidates are cleared during Mario's next update before the following
+collision pass repopulates current overlaps, so eligibility expires after
+separation. Once attached, `Carrier` synchronizes the held entity during
+Mario's update and `Pickable` repeats that synchronization during finalization,
+after every entity has updated. This covers either entity and trait update
+order and leaves the shell at an `(8 * heading, -8)` offset with zero velocity
+and a `zIndex` one above Mario. `Go.heading` is `+1` while facing right and
+`-1` while facing left.
 
 ### Collision findings
 

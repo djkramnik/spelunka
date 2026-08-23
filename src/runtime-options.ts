@@ -55,7 +55,7 @@ export function parseRuntimeOptions(
 
     return {
         performanceEnabled,
-        initialLevelName: performanceEnabled ? 'performance-entities' : 'vertical-shaft',
+        initialLevelName: performanceEnabled ? 'performance-entities' : 'room',
         collisionDebugEnabled: searchParams.get('debug') === 'collision',
         audioEnabled: benchmark === undefined,
         autoStart: benchmark !== undefined,

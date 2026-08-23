@@ -58,6 +58,7 @@ export default class Entity {
 
     readonly traits = new TraitMap();
     lifetime = 0;
+    zIndex = 0;
 
     addTrait(trait: Trait): void {
         this.traits.set(trait);

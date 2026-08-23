@@ -1,0 +1,40 @@
+{
+    "name": "THE ROOM",
+    "spriteSheet": "underworld",
+    "musicSheet": "underworld",
+    "patternSheet": "overworld-pattern",
+    "size": [32, 15],
+    "playerSpawn": [16, 208],
+
+    "layers": [
+        {
+            "tiles": [
+                {
+                    "name": "sky",
+                    "ranges": [
+                        [0, 32, 0, 15]
+                    ]
+                },
+                {
+                    "name": "ground",
+                    "type": "ground",
+                    "ranges": [
+                        [0, 32, 0],
+                        [0, 1, 1, 13],
+                        [31, 1, 1, 13],
+                        [0, 32, 14]
+                    ]
+                }
+            ]
+        }
+    ],
+
+    "entities": [
+        {
+            "name": "redShell",
+            "pos": [64, 200]
+        }
+    ],
+
+    "triggers": []
+}

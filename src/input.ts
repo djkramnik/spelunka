@@ -11,6 +11,7 @@ interface InputTraits {
 
 interface KeyboardControlledEntity {
     traits: InputTraits;
+    pickup(): void;
     turbo(state: KeyState): void;
 }
 
@@ -30,6 +31,14 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
 
     input.addMapping('KeyX', keyState => {
         router.route(entity => entity.turbo(keyState));
+    });
+
+    input.addMapping('KeyD', keyState => {
+        if (keyState) {
+            router.route(entity => {
+                entity.pickup();
+            });
+        }
     });
 
     input.addMapping('ArrowRight', keyState => {

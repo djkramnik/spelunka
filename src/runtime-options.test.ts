@@ -46,7 +46,7 @@ const debugOptions = parseRuntimeOptions(
 );
 if (
     !debugOptions.collisionDebugEnabled
-    || debugOptions.initialLevelName !== 'vertical-shaft'
+    || debugOptions.initialLevelName !== 'room'
     || debugOptions.autoStart
     || !debugOptions.audioEnabled
 ) {
