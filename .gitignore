@@ -3,6 +3,9 @@ dist/
 server/generated/
 .env
 
+# Local source material used for implementation reference
+/reference/spelunky-classic/
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db

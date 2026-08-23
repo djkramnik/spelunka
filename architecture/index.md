@@ -1,5 +1,9 @@
 # Architecture
 
+## Behavior references
+
+- [Spelunky Classic throwing behavior](throwing.md)
+
 ## Interactive review
 
 ### 2026-08-11
