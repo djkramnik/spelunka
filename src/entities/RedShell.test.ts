@@ -6,12 +6,13 @@ import {makePlayer} from '../player.js';
 import type {GameContext} from '../Scene.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
+import Carrier from '../traits/Carrier.js';
 import Killable from '../traits/Killable.js';
 import Physics from '../traits/Physics.js';
 import Pickable from '../traits/Pickable.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
-import {createRedShellFactory} from './RedShell.js';
+import {createRedShellFactory, RedShellBehavior} from './RedShell.js';
 
 function assertEqual<Value>(
     actual: Value,
@@ -36,6 +37,7 @@ assertEqual([shell.offset.x, shell.offset.y], [0, 8], 'Red shell bounds offset')
 assertEqual(shell.traits.has(Pickable), true, 'Red shell pickup capability');
 assertEqual(shell.traits.has(Physics), true, 'Red shell free-item physics');
 assertEqual(shell.traits.has(Solid), true, 'Red shell solid-tile collision');
+assertEqual(shell.traits.has(RedShellBehavior), true, 'Red shell collision behavior');
 assertEqual(
     [
         shell.traits.get(Solid).wallRebound,
@@ -52,7 +54,7 @@ assertEqual(drawCalls, ['idle'], 'Red shell sprite frame');
 const mario = new Entity();
 mario.size.set(14, 16);
 mario.pos.set(64, 208);
-mario.vel.set(30, 40);
+mario.vel.set(30, 0);
 const player = makePlayer(mario, 'MARIO');
 mario.addTrait(new Killable());
 mario.addTrait(new Stomper());
@@ -66,11 +68,289 @@ shell.finalize();
 
 assertEqual(collisionResult, {candidateChecks: 1, overlaps: 2}, 'Collision result');
 assertEqual([mario.pos.x, mario.pos.y], [64, 208], 'Mario position');
-assertEqual([mario.vel.x, mario.vel.y], [30, 40], 'Mario velocity');
+assertEqual([mario.vel.x, mario.vel.y], [30, 0], 'Mario velocity');
 assertEqual(mario.traits.get(Killable).dead, false, 'Mario alive state');
 assertEqual(player.score, 0, 'Mario score');
 assertEqual([shell.pos.x, shell.pos.y], [64, 200], 'Red shell position');
 assertEqual([shell.vel.x, shell.vel.y], [0, 0], 'Red shell velocity');
+
+interface ShellCollisionResult {
+    mario: Entity;
+    shell: Entity;
+    stomper: Stomper;
+}
+
+function collideMarioWithShell(
+    shellVelocityX: number,
+    marioVelocityY = 0,
+    marioY = marioVelocityY > 0 ? 193 : 208,
+): ShellCollisionResult {
+    const collisionMario = new Entity();
+    const stomper = new Stomper();
+    collisionMario.size.set(14, 16);
+    collisionMario.pos.set(64, marioY);
+    collisionMario.vel.y = marioVelocityY;
+    collisionMario.addTrait(new Killable());
+    collisionMario.addTrait(stomper);
+
+    const collisionShell = createRedShellFactory(sprite)();
+    collisionShell.pos.set(64, 200);
+    collisionShell.vel.x = shellVelocityX;
+
+    new EntityCollider(new Set([collisionMario, collisionShell])).check();
+    collisionMario.finalize();
+    collisionShell.finalize();
+
+    return {mario: collisionMario, shell: collisionShell, stomper};
+}
+
+const shellBehavior = shell.traits.get(RedShellBehavior);
+assertEqual(
+    [
+        shellBehavior.dangerousHorizontalSpeed,
+        shellBehavior.stompDownwardSpeed,
+        shellBehavior.stompRegionDepth,
+    ],
+    [240, 200, 8],
+    'Red shell danger and stomp response tuning',
+);
+
+const stationaryImpact = collideMarioWithShell(0);
+assertEqual(
+    stationaryImpact.mario.traits.get(Killable).dead,
+    false,
+    'Stationary shell does not kill Mario',
+);
+
+const slowImpact = collideMarioWithShell(
+    shellBehavior.dangerousHorizontalSpeed - 1,
+);
+assertEqual(
+    slowImpact.mario.traits.get(Killable).dead,
+    false,
+    'Below-threshold shell does not kill Mario',
+);
+
+const sideFallImpact = collideMarioWithShell(0, 25, 208);
+assertEqual(
+    sideFallImpact.mario.vel.y,
+    25,
+    'Downward side contact does not bounce Mario',
+);
+
+const outsideTopRegion = collideMarioWithShell(0, 300, 201);
+assertEqual(
+    outsideTopRegion.mario.vel.y,
+    300,
+    'Contact below top stomp region does not bounce Mario',
+);
+
+const topRegionBoundary = collideMarioWithShell(0, 300, 200);
+assertEqual(
+    topRegionBoundary.mario.vel.y,
+    -topRegionBoundary.stomper.bounceSpeed,
+    'Contact at top stomp-region boundary bounces Mario',
+);
+
+const pickupMario = new Entity();
+const pickupCarrier = new Carrier();
+pickupMario.size.set(14, 16);
+pickupMario.pos.set(64, 208);
+pickupMario.vel.y = 25;
+pickupMario.addTrait(new Killable());
+pickupMario.addTrait(new Stomper());
+pickupMario.addTrait(pickupCarrier);
+const sidePickupShell = createRedShellFactory(sprite)();
+sidePickupShell.pos.set(64, 200);
+new EntityCollider(new Set([pickupMario, sidePickupShell])).check();
+assertEqual(
+    pickupCarrier.pickup(pickupMario) === sidePickupShell,
+    true,
+    'Side-contact shell remains eligible for pickup',
+);
+pickupMario.finalize();
+sidePickupShell.finalize();
+assertEqual(
+    pickupMario.vel.y,
+    25,
+    'Side pickup does not queue a stomp bounce',
+);
+
+const rightDangerousImpact = collideMarioWithShell(
+    shellBehavior.dangerousHorizontalSpeed,
+);
+assertEqual(
+    rightDangerousImpact.mario.traits.get(Killable).dead,
+    true,
+    'Right-moving shell kills Mario at threshold',
+);
+
+const leftDangerousImpact = collideMarioWithShell(
+    -shellBehavior.dangerousHorizontalSpeed,
+);
+assertEqual(
+    leftDangerousImpact.mario.traits.get(Killable).dead,
+    true,
+    'Left-moving shell kills Mario at threshold',
+);
+
+const stompImpact = collideMarioWithShell(
+    shellBehavior.dangerousHorizontalSpeed * 2,
+    300,
+);
+assertEqual(
+    stompImpact.mario.traits.get(Killable).dead,
+    false,
+    'Stomp takes precedence over fast-shell damage',
+);
+assertEqual(
+    stompImpact.mario.vel.y,
+    -stompImpact.stomper.bounceSpeed,
+    'Mario keeps normal stomp bounce',
+);
+assertEqual(
+    [stompImpact.shell.vel.x, stompImpact.shell.vel.y],
+    [0, shellBehavior.stompDownwardSpeed],
+    'Stomp stops horizontal shell motion and pushes it downward',
+);
+
+const carryingMario = new Entity();
+const carryingStomper = new Stomper();
+carryingMario.size.set(14, 16);
+carryingMario.pos.set(64, 208);
+carryingMario.vel.y = 300;
+carryingMario.addTrait(new Killable());
+carryingMario.addTrait(carryingStomper);
+const carriedCollisionShell = createRedShellFactory(sprite)();
+assertEqual(
+    carriedCollisionShell.traits.get(Pickable).attach(
+        carriedCollisionShell,
+        carryingMario,
+    ),
+    true,
+    'Collision test shell is carried',
+);
+new EntityCollider(new Set([carryingMario, carriedCollisionShell])).check();
+carryingMario.finalize();
+carriedCollisionShell.finalize();
+assertEqual(
+    carryingMario.vel.y,
+    300,
+    'Mario does not bounce off his carried shell',
+);
+assertEqual(
+    carryingMario.traits.get(Killable).dead,
+    false,
+    'Carried shell cannot hurt Mario',
+);
+
+function createShellCollisionTarget(): Entity {
+    const target = new Entity();
+    target.size.set(14, 16);
+    target.addTrait(new Killable());
+    target.addTrait(new Stomper());
+    return target;
+}
+
+const airborneThrower = createShellCollisionTarget();
+airborneThrower.pos.set(64, 208);
+airborneThrower.vel.set(0, -300);
+const newlyThrownShell = createRedShellFactory(sprite)();
+const newlyThrownPickable = newlyThrownShell.traits.get(Pickable);
+assertEqual(
+    newlyThrownPickable.throwerGraceUpdates,
+    10,
+    'Newly thrown item protects its thrower for ten collision updates',
+);
+assertEqual(
+    newlyThrownPickable.attach(newlyThrownShell, airborneThrower),
+    true,
+    'Airborne Mario can carry grace-period test shell',
+);
+assertEqual(
+    newlyThrownPickable.release(newlyThrownShell, airborneThrower),
+    true,
+    'Airborne Mario releases grace-period test shell',
+);
+assertEqual(
+    newlyThrownPickable.isThrowerProtected(airborneThrower),
+    true,
+    'Release starts thrower protection',
+);
+newlyThrownShell.collides(airborneThrower);
+airborneThrower.finalize();
+newlyThrownShell.finalize();
+assertEqual(
+    airborneThrower.traits.get(Killable).dead,
+    false,
+    'A newly thrown shell cannot kill airborne Mario during release overlap',
+);
+assertEqual(
+    airborneThrower.vel.y,
+    -300,
+    'Grace-period contact does not trigger a shell stomp response',
+);
+
+const otherTarget = createShellCollisionTarget();
+otherTarget.pos.copy(airborneThrower.pos);
+newlyThrownShell.collides(otherTarget);
+otherTarget.finalize();
+assertEqual(
+    otherTarget.traits.get(Killable).dead,
+    true,
+    'Thrower protection does not make the shell harmless to other targets',
+);
+
+newlyThrownShell.vel.x *= -1;
+newlyThrownShell.collides(airborneThrower);
+airborneThrower.finalize();
+assertEqual(
+    airborneThrower.traits.get(Killable).dead,
+    false,
+    'A shell returning at lethal speed remains safe during thrower grace',
+);
+
+for (let update = 1;
+    update < newlyThrownPickable.throwerGraceUpdates;
+    update++) {
+    newlyThrownShell.finalize();
+}
+assertEqual(
+    newlyThrownPickable.isThrowerProtected(airborneThrower),
+    false,
+    'Thrower protection expires after ten collision updates',
+);
+airborneThrower.vel.y = 0;
+newlyThrownShell.collides(airborneThrower);
+airborneThrower.finalize();
+assertEqual(
+    airborneThrower.traits.get(Killable).dead,
+    true,
+    'The shell can hurt its thrower after grace expires',
+);
+
+const repickedShell = createRedShellFactory(sprite)();
+const repickedPickable = repickedShell.traits.get(Pickable);
+const repeatThrower = new Entity();
+repickedPickable.attach(repickedShell, repeatThrower);
+repickedPickable.release(repickedShell, repeatThrower);
+assertEqual(
+    repickedPickable.isThrowerProtected(repeatThrower),
+    true,
+    'Each release starts fresh thrower protection',
+);
+repickedPickable.attach(repickedShell, repeatThrower);
+assertEqual(
+    repickedPickable.isThrowerProtected(repeatThrower),
+    false,
+    'Picking a shell up clears stale thrower protection',
+);
+repickedPickable.release(repickedShell, repeatThrower);
+assertEqual(
+    repickedPickable.isThrowerProtected(repeatThrower),
+    true,
+    'A later release starts a new grace-period lifecycle',
+);
 
 const gameContext = {
     deltaTime: 1 / 60,

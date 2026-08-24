@@ -15,6 +15,17 @@ export default class Stomper extends Trait {
         us.vel.y = -this.bounceSpeed;
     }
 
+    tryStomp(us: Entity, them: Entity): boolean {
+        if (us.vel.y <= them.vel.y) {
+            return false;
+        }
+
+        this.queue(() => this.bounce(us, them));
+        us.sounds.add('stomp');
+        us.events.emit(Stomper.EVENT_STOMP, us, them);
+        return true;
+    }
+
     override collides(us: Entity, them: Entity): void {
         if (!them.traits.has(Killable)) {
             return;
@@ -25,10 +36,6 @@ export default class Stomper extends Trait {
             return;
         }
 
-        if (us.vel.y > them.vel.y) {
-            this.queue(() => this.bounce(us, them));
-            us.sounds.add('stomp');
-            us.events.emit(Stomper.EVENT_STOMP, us, them);
-        }
+        this.tryStomp(us, them);
     }
 }

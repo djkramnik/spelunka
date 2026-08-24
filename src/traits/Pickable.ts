@@ -6,6 +6,7 @@ import Physics from './Physics.js';
 const CARRIED_Z_INDEX_OFFSET = 1;
 const DEFAULT_HORIZONTAL_THROW_SPEED = 480;
 const DEFAULT_UPWARD_THROW_SPEED = -180;
+const DEFAULT_THROWER_GRACE_UPDATES = 10;
 
 export default class Pickable extends Trait {
     readonly carryOffset = new Vec2(8, -8);
@@ -13,9 +14,12 @@ export default class Pickable extends Trait {
         DEFAULT_HORIZONTAL_THROW_SPEED,
         DEFAULT_UPWARD_THROW_SPEED,
     );
+    throwerGraceUpdates = DEFAULT_THROWER_GRACE_UPDATES;
     carrier: Entity | null = null;
     private carryDirection = 1;
     private uncarriedZIndex = 0;
+    private recentThrower: Entity | null = null;
+    private throwerGraceUpdatesRemaining = 0;
 
     private setPhysicsEnabled(entity: Entity, enabled: boolean): void {
         if (entity.traits.has(Physics)) {
@@ -28,6 +32,8 @@ export default class Pickable extends Trait {
             return false;
         }
 
+        this.recentThrower = null;
+        this.throwerGraceUpdatesRemaining = 0;
         this.carrier = carrier;
         this.uncarriedZIndex = entity.zIndex;
         this.setPhysicsEnabled(entity, false);
@@ -42,6 +48,8 @@ export default class Pickable extends Trait {
 
         this.carryDirection = direction < 0 ? -1 : 1;
         this.carrier = null;
+        this.recentThrower = carrier;
+        this.throwerGraceUpdatesRemaining = this.throwerGraceUpdates;
         this.setPhysicsEnabled(entity, true);
         entity.vel.set(
             carrier.vel.x + this.throwVelocity.x * this.carryDirection,
@@ -49,6 +57,11 @@ export default class Pickable extends Trait {
         );
         entity.zIndex = this.uncarriedZIndex;
         return true;
+    }
+
+    isThrowerProtected(candidate: Entity): boolean {
+        return this.recentThrower === candidate
+            && this.throwerGraceUpdatesRemaining > 0;
     }
 
     followCarrier(entity: Entity, direction = this.carryDirection): void {
@@ -69,5 +82,12 @@ export default class Pickable extends Trait {
     override finalize(entity: Entity): void {
         super.finalize(entity);
         this.followCarrier(entity);
+
+        if (this.carrier === null && this.throwerGraceUpdatesRemaining > 0) {
+            this.throwerGraceUpdatesRemaining--;
+            if (this.throwerGraceUpdatesRemaining === 0) {
+                this.recentThrower = null;
+            }
+        }
     }
 }
