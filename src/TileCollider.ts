@@ -62,9 +62,13 @@ export default class TileCollider {
             );
             gameContext.performanceMetrics.recordTileCandidates(candidateCount);
 
-            matches.forEach(match => {
+            const initialVelocity = entity.vel.x;
+            for (const match of matches) {
                 this.handle(0, entity, match, resolver, gameContext, level);
-            });
+                if (entity.vel.x !== initialVelocity) {
+                    return;
+                }
+            }
         }
     }
 
@@ -87,9 +91,13 @@ export default class TileCollider {
             );
             gameContext.performanceMetrics.recordTileCandidates(candidateCount);
 
-            matches.forEach(match => {
+            const initialVelocity = entity.vel.y;
+            for (const match of matches) {
                 this.handle(1, entity, match, resolver, gameContext, level);
-            });
+                if (entity.vel.y !== initialVelocity) {
+                    return;
+                }
+            }
         }
     }
 

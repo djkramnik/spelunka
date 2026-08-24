@@ -17,11 +17,16 @@ export function createRedShellFactory(
 ): RedShellFactory {
     return function createRedShell(): Entity {
         const redShell = new Entity();
+        const solid = new Solid();
+        solid.wallRebound = 0.5;
+        solid.floorRebound = 0.5;
+        solid.ceilingRebound = 0.8;
+
         redShell.size.set(16, 16);
         redShell.offset.y = 8;
         redShell.addTrait(new Pickable());
         redShell.addTrait(new Physics());
-        redShell.addTrait(new Solid());
+        redShell.addTrait(solid);
         redShell.draw = context => sprite.draw('idle', context, 0, 0);
 
         return redShell;

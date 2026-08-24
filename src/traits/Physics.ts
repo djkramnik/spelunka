@@ -20,24 +20,26 @@ export default class Physics extends Trait {
 
         const {deltaTime} = gameContext;
 
+        const initialXVelocity = entity.vel.x;
         const xDistance = entity.vel.x * deltaTime;
         const xSteps = stepCount(xDistance);
         const xStep = xDistance / xSteps;
         for (let step = 0; step < xSteps; ++step) {
             entity.pos.x += xStep;
             level.tileCollider.checkX(entity, gameContext, level);
-            if (entity.vel.x === 0) {
+            if (entity.vel.x !== initialXVelocity) {
                 break;
             }
         }
 
+        const initialYVelocity = entity.vel.y;
         const yDistance = entity.vel.y * deltaTime;
         const ySteps = stepCount(yDistance);
         const yStep = yDistance / ySteps;
         for (let step = 0; step < ySteps; ++step) {
             entity.pos.y += yStep;
             level.tileCollider.checkY(entity, gameContext, level);
-            if (entity.vel.y === 0) {
+            if (entity.vel.y !== initialYVelocity) {
                 break;
             }
         }

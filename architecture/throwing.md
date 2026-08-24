@@ -111,6 +111,8 @@ The work is tracked as a flat dependency chain beneath the conversion epic:
 - `spelunka-r54.16`: release the carried item and launch it with D;
 - `spelunka-r54.17`: apply gravity and prevent terrain penetration;
 - `spelunka-r54.18`: add diminishing terrain rebounds;
+- `spelunka-r54.21`: make sufficiently fast red shells dangerous to Mario and
+  define the stomp response;
 - `spelunka-r54.19`: add floor friction and stable settling; and
 - `spelunka-r54.20`: support repeated throw and re-pickup cycles, including
   thrower grace-period state.

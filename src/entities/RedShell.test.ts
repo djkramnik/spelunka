@@ -36,6 +36,15 @@ assertEqual([shell.offset.x, shell.offset.y], [0, 8], 'Red shell bounds offset')
 assertEqual(shell.traits.has(Pickable), true, 'Red shell pickup capability');
 assertEqual(shell.traits.has(Physics), true, 'Red shell free-item physics');
 assertEqual(shell.traits.has(Solid), true, 'Red shell solid-tile collision');
+assertEqual(
+    [
+        shell.traits.get(Solid).wallRebound,
+        shell.traits.get(Solid).floorRebound,
+        shell.traits.get(Solid).ceilingRebound,
+    ],
+    [0.5, 0.5, 0.8],
+    'Red shell diminishing rebound factors',
+);
 
 shell.draw({} as CanvasRenderingContext2D);
 assertEqual(drawCalls, ['idle'], 'Red shell sprite frame');
@@ -140,36 +149,74 @@ function createMovingShell(
     return movingShell;
 }
 
-const rightImpact = createMovingShell(32, 40, 2400, 0);
+const rightImpact = createMovingShell(32, 40, 2400, 90);
 rightImpact.update(gameContext, createCollisionLevel(5, 3));
 assertEqual(
-    [rightImpact.pos.x, rightImpact.vel.x],
-    [64, 0],
-    'Fast shell stops at right wall without tunneling',
+    [rightImpact.pos.x, rightImpact.vel.x, rightImpact.vel.y],
+    [64, -1200, 90],
+    'Fast shell rebounds from right wall without changing vertical velocity',
 );
 
 const leftImpact = createMovingShell(64, 40, -2400, 0);
 leftImpact.update(gameContext, createCollisionLevel(2, 3));
 assertEqual(
     [leftImpact.pos.x, leftImpact.vel.x],
-    [48, 0],
-    'Fast shell stops at left wall without tunneling',
+    [48, 1200],
+    'Fast shell rebounds from left wall without tunneling',
 );
 
-const floorImpact = createMovingShell(64, 32, 0, 2400);
+const floorImpact = createMovingShell(64, 32, 120, 2400);
 floorImpact.update(gameContext, createCollisionLevel(4, 5));
 assertEqual(
-    [floorImpact.pos.y, floorImpact.vel.y],
-    [56, 0],
-    'Fast shell stops at floor without tunneling',
+    [floorImpact.pos.y, floorImpact.vel.x, floorImpact.vel.y],
+    [56, 120, -1200],
+    'Fast shell rebounds from floor without changing horizontal velocity',
 );
 
 const ceilingImpact = createMovingShell(64, 64, 0, -2400);
 ceilingImpact.update(gameContext, createCollisionLevel(4, 2));
 assertEqual(
     [ceilingImpact.pos.y, ceilingImpact.vel.y],
-    [40, 0],
-    'Fast shell stops at ceiling without tunneling',
+    [40, 1920],
+    'Fast shell rebounds from ceiling without tunneling',
+);
+
+const lowSpeedImpact = createMovingShell(64, 56, 0, 6);
+lowSpeedImpact.update(gameContext, createCollisionLevel(4, 5));
+assertEqual(
+    [lowSpeedImpact.pos.y, lowSpeedImpact.vel.y],
+    [56, -3],
+    'Low-speed floor impact loses energy without penetrating',
+);
+
+const corridor = new Level();
+corridor.gravity = 0;
+const corridorTiles = new Matrix<CollisionTile>();
+corridorTiles.set(4, 1, {type: 'ground'});
+corridorTiles.set(4, 5, {type: 'ground'});
+corridor.tileCollider.addGrid(corridorTiles);
+
+const repeatedBounce = createMovingShell(64, 32, 0, 2400);
+repeatedBounce.update(gameContext, corridor);
+assertEqual(
+    [repeatedBounce.pos.y, repeatedBounce.vel.y],
+    [56, -1200],
+    'First floor rebound loses half its speed',
+);
+repeatedBounce.update(gameContext, corridor);
+repeatedBounce.update(gameContext, corridor);
+assertEqual(
+    [repeatedBounce.pos.y, repeatedBounce.vel.y],
+    [24, 960],
+    'Ceiling rebound loses further speed',
+);
+repeatedBounce.update(gameContext, corridor);
+repeatedBounce.update(gameContext, corridor);
+repeatedBounce.update(gameContext, corridor);
+assertEqual(
+    [repeatedBounce.pos.y, repeatedBounce.vel.y],
+    [56, -480],
+    'Repeated floor rebound continues losing speed',
 );
 
 console.log('Pickup-capable red shell physics and collision regression passed');
