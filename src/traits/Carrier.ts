@@ -49,6 +49,34 @@ export default class Carrier extends Trait {
         return null;
     }
 
+    throw(carrier: Entity): Entity | null {
+        if (this.carried === null) {
+            return null;
+        }
+
+        const carried = this.carried;
+        const pickable = carried.traits.get(Pickable);
+        if (!pickable.release(
+            carried,
+            carrier,
+            this.getCarryDirection(carrier),
+        )) {
+            return null;
+        }
+
+        this.carried = null;
+        this.candidates.clear();
+        return carried;
+    }
+
+    pickupOrThrow(carrier: Entity): Entity | null {
+        if (this.carried !== null) {
+            return this.throw(carrier);
+        }
+
+        return this.pickup(carrier);
+    }
+
     override update(
         carrier: Entity,
         _gameContext: GameContext,

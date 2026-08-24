@@ -79,22 +79,41 @@ ordinary red-shell case.
 
 ## Proposed first red-shell slice
 
-For `spelunka-r54.14`, the smallest behavior that preserves the recognizable
-Spelunky feel is:
+The smallest behavior that preserves the recognizable Spelunky feel is:
 
 1. Pressing D with empty hands continues to attempt a pickup.
 2. Pressing D while carrying the red shell releases it immediately.
 3. The shell travels in Mario's facing direction, inherits Mario's horizontal
    movement, and begins with a small upward lift.
 4. The shell stops tracking Mario as soon as it is released.
-5. Gravity, terrain collision, rebound, friction, and settling apply after the
-   release, and the resting shell can be picked up again.
-6. A short post-release grace period prevents an immediate collision with
+5. After release, gravity pulls the shell downward and floors, walls, and
+   ceilings prevent it from passing through terrain.
+6. Terrain impacts use diminishing rebounds rather than hard stops: the shell
+   bounces off walls and floors, floor friction reduces its horizontal speed,
+   and small remaining movement eventually settles to zero.
+7. A resting shell remains eligible to be picked up again.
+8. A short post-release grace period prevents an immediate collision with
    Mario.
 
 Up/down throw modifiers, heavy-item tuning, the Pitcher's Mitt, item damage,
 breakable items, and weapon-specific actions should remain separate follow-up
 work. They add breadth but are not required to prove the pickup-carry-throw loop.
+
+These are separate pieces of implementation work in this project. The current
+red shell only has pickup behavior. Existing physics and solid-terrain behavior
+can provide gravity and prevent terrain penetration, but solid collisions
+currently stop movement outright. Diminishing rebounds and floor friction must
+therefore be added deliberately, and should be verified independently from the
+initial release velocity and carrier detachment.
+
+The work is tracked as a flat dependency chain beneath the conversion epic:
+
+- `spelunka-r54.16`: release the carried item and launch it with D;
+- `spelunka-r54.17`: apply gravity and prevent terrain penetration;
+- `spelunka-r54.18`: add diminishing terrain rebounds;
+- `spelunka-r54.19`: add floor friction and stable settling; and
+- `spelunka-r54.20`: support repeated throw and re-pickup cycles, including
+  thrower grace-period state.
 
 ## Source observations
 

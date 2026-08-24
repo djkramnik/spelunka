@@ -1,7 +1,9 @@
 import Entity from '../Entity.js';
 import {loadSpriteSheet} from '../loaders/sprite.js';
 import SpriteSheet from '../SpriteSheet.js';
+import Physics from '../traits/Physics.js';
 import Pickable from '../traits/Pickable.js';
+import Solid from '../traits/Solid.js';
 
 export type RedShellFactory = () => Entity;
 
@@ -18,6 +20,8 @@ export function createRedShellFactory(
         redShell.size.set(16, 16);
         redShell.offset.y = 8;
         redShell.addTrait(new Pickable());
+        redShell.addTrait(new Physics());
+        redShell.addTrait(new Solid());
         redShell.draw = context => sprite.draw('idle', context, 0, 0);
 
         return redShell;

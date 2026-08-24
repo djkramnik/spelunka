@@ -11,7 +11,13 @@ function stepCount(distance: number): number {
 }
 
 export default class Physics extends Trait {
+    enabled = true;
+
     override update(entity: Entity, gameContext: GameContext, level: Level): void {
+        if (!this.enabled) {
+            return;
+        }
+
         const {deltaTime} = gameContext;
 
         const xDistance = entity.vel.x * deltaTime;

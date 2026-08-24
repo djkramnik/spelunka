@@ -17,6 +17,7 @@ const FAST_DRAG = 1 / 5000;
 
 export type Mario = Entity & {
     pickup(): Entity | null;
+    pickupOrThrow(): Entity | null;
     turbo(state: boolean | KeyState): void;
 };
 
@@ -81,6 +82,10 @@ function createMarioFactory(
 
         pickup(): Entity | null {
             return this.traits.get(Carrier).pickup(this);
+        }
+
+        pickupOrThrow(): Entity | null {
+            return this.traits.get(Carrier).pickupOrThrow(this);
         }
 
         override draw(context: CanvasRenderingContext2D): void {

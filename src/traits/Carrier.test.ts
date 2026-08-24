@@ -43,6 +43,7 @@ mario.pos.set(40, 80);
 mario.zIndex = 3;
 shell.pos.set(44, 80);
 shell.vel.set(90, -120);
+shell.zIndex = 2;
 
 assertEqual(carrier.pickup(mario), null, 'Pickup without collision eligibility');
 
@@ -84,6 +85,53 @@ assertEqual([shell.vel.x, shell.vel.y], [0, 0], 'Final carry velocity neutraliza
 movement.heading = 1;
 carrier.update(mario, gameContext, level);
 assertEqual([shell.pos.x, shell.pos.y], [128, 152], 'Return to right-facing position');
+
+mario.vel.set(35, 0);
+const releasePosition = [shell.pos.x, shell.pos.y];
+assertEqual(carrier.throw(mario) === shell, true, 'Right-facing throw releases shell');
+assertEqual(carrier.carried, null, 'Throw clears carrier ownership');
+assertEqual(pickable.carrier, null, 'Throw clears pickable ownership');
+assertEqual(
+    [shell.vel.x, shell.vel.y],
+    [35 + pickable.throwVelocity.x, pickable.throwVelocity.y],
+    'Right-facing throw velocity inherits carrier momentum',
+);
+assertEqual(shell.zIndex, 2, 'Throw restores uncarried z-index');
+
+mario.pos.set(200, 200);
+carrier.update(mario, gameContext, level);
+pickable.finalize(shell);
+assertEqual(
+    [shell.pos.x, shell.pos.y],
+    releasePosition,
+    'Released shell no longer follows carrier',
+);
+
+const leftMovement = new Go();
+leftMovement.heading = -1;
+const [leftMario, leftCarrier] = createCarrier(leftMovement);
+const [leftShell, leftPickable] = createPickable();
+leftMario.vel.x = -25;
+leftCarrier.update(leftMario, gameContext, level);
+leftCarrier.collides(leftMario, leftShell);
+assertEqual(
+    leftCarrier.pickupOrThrow(leftMario) === leftShell,
+    true,
+    'Pickup-or-throw picks up while empty',
+);
+assertEqual(
+    leftCarrier.pickupOrThrow(leftMario) === leftShell,
+    true,
+    'Pickup-or-throw releases while carrying',
+);
+assertEqual(
+    [leftShell.vel.x, leftShell.vel.y],
+    [-25 - leftPickable.throwVelocity.x, leftPickable.throwVelocity.y],
+    'Left-facing throw velocity inherits carrier momentum',
+);
+assertEqual(leftCarrier.carried, null, 'Left throw clears carrier ownership');
+assertEqual(leftPickable.carrier, null, 'Left throw clears pickable ownership');
+assertEqual(leftCarrier.throw(leftMario), null, 'Throw while empty has no effect');
 
 const [defaultCarrierEntity, defaultCarrier] = createCarrier();
 const [defaultShell] = createPickable();
