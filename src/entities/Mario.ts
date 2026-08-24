@@ -32,7 +32,7 @@ export async function loadMario(audioContext: AudioContext): Promise<MarioFactor
     return createMarioFactory(sprite, audio);
 }
 
-function createMarioFactory(
+export function createMarioFactory(
     sprite: SpriteSheet,
     audio: AudioBoard,
 ): MarioFactory {

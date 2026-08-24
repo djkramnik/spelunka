@@ -55,7 +55,10 @@ const room = LevelSpecSchema.parse(JSON.parse(await readFile(roomUrl, 'utf8')));
 assert.equal(room.name, 'THE ROOM');
 assert.deepEqual(room.size, [32, 15]);
 assert.deepEqual(room.playerSpawn, [16, 208]);
-assert.deepEqual(room.entities, [{name: 'redShell', pos: [64, 200]}]);
+assert.deepEqual(room.entities, [
+    {name: 'redShell', pos: [64, 200]},
+    {name: 'goomba', pos: [480, 208]},
+]);
 assert.deepEqual(room.triggers, []);
 
 const roomGround = room.layers

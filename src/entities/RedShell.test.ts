@@ -12,6 +12,9 @@ import Physics from '../traits/Physics.js';
 import Pickable from '../traits/Pickable.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
+import {createBulletFactory} from './Bullet.js';
+import {createGoombaFactory} from './Goomba.js';
+import {createKoopaFactory} from './Koopa.js';
 import {createRedShellFactory, RedShellBehavior} from './RedShell.js';
 
 function assertEqual<Value>(
@@ -43,9 +46,12 @@ assertEqual(
         shell.traits.get(Solid).wallRebound,
         shell.traits.get(Solid).floorRebound,
         shell.traits.get(Solid).ceilingRebound,
+        shell.traits.get(Solid).floorFriction,
+        shell.traits.get(Solid).horizontalSettleSpeed,
+        shell.traits.get(Solid).verticalSettleSpeed,
     ],
-    [0.5, 0.5, 0.8],
-    'Red shell diminishing rebound factors',
+    [0.5, 0.5, 0.8, 0.3, 6, 60],
+    'Red shell rebound, friction, and settling tuning',
 );
 
 shell.draw({} as CanvasRenderingContext2D);
@@ -113,6 +119,84 @@ assertEqual(
     ],
     [240, 200, 8],
     'Red shell danger and stomp response tuning',
+);
+
+const enemySprite = {
+    draw: (): void => {},
+    getAnimation: (): (() => string) => (): string => 'walk',
+} as unknown as SpriteSheet;
+
+type EnemyFactory = () => Entity;
+
+function collideEnemyWithShell(
+    createEnemy: EnemyFactory,
+    shellVelocityX: number,
+    carried = false,
+): Entity {
+    const enemy = createEnemy();
+    const projectileShell = createRedShellFactory(sprite)();
+    projectileShell.vel.x = shellVelocityX;
+
+    if (carried) {
+        projectileShell.traits.get(Pickable).attach(
+            projectileShell,
+            new Entity(),
+        );
+    }
+
+    projectileShell.collides(enemy);
+    enemy.finalize();
+    projectileShell.finalize();
+    return enemy;
+}
+
+const enemyCases: readonly [name: string, createEnemy: EnemyFactory][] = [
+    ['Bullet', createBulletFactory(enemySprite)],
+    ['Goomba', createGoombaFactory(enemySprite)],
+    ['Koopa', createKoopaFactory(enemySprite)],
+];
+
+for (const [name, createEnemy] of enemyCases) {
+    const hitEnemy = collideEnemyWithShell(
+        createEnemy,
+        shellBehavior.dangerousHorizontalSpeed,
+    );
+    assertEqual(
+        hitEnemy.traits.get(Killable).dead,
+        true,
+        `Fast thrown shell kills ${name}`,
+    );
+}
+
+const stationaryEnemy = collideEnemyWithShell(
+    createGoombaFactory(enemySprite),
+    0,
+);
+assertEqual(
+    stationaryEnemy.traits.get(Killable).dead,
+    false,
+    'Stationary shell does not kill enemy targets',
+);
+
+const slowEnemy = collideEnemyWithShell(
+    createGoombaFactory(enemySprite),
+    shellBehavior.dangerousHorizontalSpeed - 1,
+);
+assertEqual(
+    slowEnemy.traits.get(Killable).dead,
+    false,
+    'Below-threshold shell does not kill enemy targets',
+);
+
+const carriedShellEnemy = collideEnemyWithShell(
+    createGoombaFactory(enemySprite),
+    shellBehavior.dangerousHorizontalSpeed,
+    true,
+);
+assertEqual(
+    carriedShellEnemy.traits.get(Killable).dead,
+    false,
+    'Carried shell does not kill enemy targets',
 );
 
 const stationaryImpact = collideMarioWithShell(0);
@@ -449,8 +533,8 @@ const floorImpact = createMovingShell(64, 32, 120, 2400);
 floorImpact.update(gameContext, createCollisionLevel(4, 5));
 assertEqual(
     [floorImpact.pos.y, floorImpact.vel.x, floorImpact.vel.y],
-    [56, 120, -1200],
-    'Fast shell rebounds from floor without changing horizontal velocity',
+    [56, 36, -1200],
+    'Fast shell rebounds from floor and loses horizontal velocity',
 );
 
 const ceilingImpact = createMovingShell(64, 64, 0, -2400);
@@ -461,12 +545,20 @@ assertEqual(
     'Fast shell rebounds from ceiling without tunneling',
 );
 
-const lowSpeedImpact = createMovingShell(64, 56, 0, 6);
+const lowSpeedImpact = createMovingShell(64, 56, 5, 6);
 lowSpeedImpact.update(gameContext, createCollisionLevel(4, 5));
 assertEqual(
-    [lowSpeedImpact.pos.y, lowSpeedImpact.vel.y],
-    [56, -3],
-    'Low-speed floor impact loses energy without penetrating',
+    [lowSpeedImpact.pos.y, lowSpeedImpact.vel.x, lowSpeedImpact.vel.y],
+    [56, 0, 0],
+    'Low-speed floor impact settles both velocity components',
+);
+
+const airborneMotion = createMovingShell(64, 32, 120, 0);
+airborneMotion.update(gameContext, new Level());
+assertEqual(
+    [airborneMotion.pos.x, airborneMotion.vel.x],
+    [66, 120],
+    'Floor friction does not affect an airborne shell',
 );
 
 const corridor = new Level();
@@ -476,12 +568,12 @@ corridorTiles.set(4, 1, {type: 'ground'});
 corridorTiles.set(4, 5, {type: 'ground'});
 corridor.tileCollider.addGrid(corridorTiles);
 
-const repeatedBounce = createMovingShell(64, 32, 0, 2400);
+const repeatedBounce = createMovingShell(64, 32, 30, 2400);
 repeatedBounce.update(gameContext, corridor);
 assertEqual(
-    [repeatedBounce.pos.y, repeatedBounce.vel.y],
-    [56, -1200],
-    'First floor rebound loses half its speed',
+    [repeatedBounce.pos.y, repeatedBounce.vel.x, repeatedBounce.vel.y],
+    [56, 9, -1200],
+    'First floor rebound and slide lose energy',
 );
 repeatedBounce.update(gameContext, corridor);
 repeatedBounce.update(gameContext, corridor);
@@ -494,9 +586,37 @@ repeatedBounce.update(gameContext, corridor);
 repeatedBounce.update(gameContext, corridor);
 repeatedBounce.update(gameContext, corridor);
 assertEqual(
-    [repeatedBounce.pos.y, repeatedBounce.vel.y],
-    [56, -480],
-    'Repeated floor rebound continues losing speed',
+    [
+        repeatedBounce.pos.y,
+        Math.round(repeatedBounce.vel.x * 10) / 10,
+        repeatedBounce.vel.y,
+    ],
+    [56, 2.7, -480],
+    'Repeated floor contact continues reducing both velocity components',
+);
+
+const restingLevel = createCollisionLevel(4, 5);
+restingLevel.gravity = 600;
+const restingShell = createMovingShell(64, 56, 5, 10);
+restingShell.update(gameContext, restingLevel);
+assertEqual(
+    [restingShell.pos.y, restingShell.vel.x, restingShell.vel.y],
+    [56, 0, 0],
+    'Shell settles on a floor under gravity',
+);
+const restingPosition = [restingShell.pos.x, restingShell.pos.y];
+for (let update = 0; update < 120; update++) {
+    restingShell.update(gameContext, restingLevel);
+}
+assertEqual(
+    [restingShell.pos.x, restingShell.pos.y],
+    restingPosition,
+    'Settled shell remains positionally stable over subsequent updates',
+);
+assertEqual(
+    [restingShell.vel.x, restingShell.vel.y],
+    [0, 0],
+    'Settled shell remains at exactly zero velocity',
 );
 
 console.log('Pickup-capable red shell physics and collision regression passed');

@@ -33,6 +33,10 @@
         {
             "name": "redShell",
             "pos": [64, 200]
+        },
+        {
+            "name": "goomba",
+            "pos": [480, 208]
         }
     ],
 

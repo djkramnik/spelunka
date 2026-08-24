@@ -11,6 +11,9 @@ import Stomper from '../traits/Stomper.js';
 const DEFAULT_DANGEROUS_HORIZONTAL_SPEED = 240;
 const DEFAULT_STOMP_DOWNWARD_SPEED = 200;
 const DEFAULT_STOMP_REGION_DEPTH = 8;
+const DEFAULT_FLOOR_FRICTION = 0.3;
+const DEFAULT_HORIZONTAL_SETTLE_SPEED = 6;
+const DEFAULT_VERTICAL_SETTLE_SPEED = 60;
 
 export class RedShellBehavior extends Trait {
     dangerousHorizontalSpeed = DEFAULT_DANGEROUS_HORIZONTAL_SPEED;
@@ -25,8 +28,7 @@ export class RedShellBehavior extends Trait {
     }
 
     override collides(shell: Entity, candidate: Entity): void {
-        if (!candidate.traits.has(Stomper)
-            || !candidate.traits.has(Killable)) {
+        if (!candidate.traits.has(Killable)) {
             return;
         }
 
@@ -36,7 +38,8 @@ export class RedShellBehavior extends Trait {
             return;
         }
 
-        if (this.isTopContact(shell, candidate)
+        if (candidate.traits.has(Stomper)
+            && this.isTopContact(shell, candidate)
             && candidate.traits.get(Stomper).tryStomp(candidate, shell)) {
             this.queue(() => {
                 shell.vel.x = 0;
@@ -67,6 +70,9 @@ export function createRedShellFactory(
         solid.wallRebound = 0.5;
         solid.floorRebound = 0.5;
         solid.ceilingRebound = 0.8;
+        solid.floorFriction = DEFAULT_FLOOR_FRICTION;
+        solid.horizontalSettleSpeed = DEFAULT_HORIZONTAL_SETTLE_SPEED;
+        solid.verticalSettleSpeed = DEFAULT_VERTICAL_SETTLE_SPEED;
 
         redShell.size.set(16, 16);
         redShell.offset.y = 8;

@@ -112,7 +112,7 @@ class Behavior extends Trait {
     }
 }
 
-function createKoopaFactory(sprite: SpriteSheet): KoopaFactory {
+export function createKoopaFactory(sprite: SpriteSheet): KoopaFactory {
     const walkAnimation = sprite.getAnimation('walk');
     const wakeAnimation = sprite.getAnimation('wake');
 

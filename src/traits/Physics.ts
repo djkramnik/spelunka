@@ -12,6 +12,7 @@ function stepCount(distance: number): number {
 
 export default class Physics extends Trait {
     enabled = true;
+    grounded = false;
 
     override update(entity: Entity, gameContext: GameContext, level: Level): void {
         if (!this.enabled) {
@@ -19,6 +20,12 @@ export default class Physics extends Trait {
         }
 
         const {deltaTime} = gameContext;
+        const startsGrounded = this.grounded && entity.vel.y === 0;
+        this.grounded = false;
+
+        if (startsGrounded) {
+            entity.vel.y += level.gravity * deltaTime;
+        }
 
         const initialXVelocity = entity.vel.x;
         const xDistance = entity.vel.x * deltaTime;
@@ -44,6 +51,8 @@ export default class Physics extends Trait {
             }
         }
 
-        entity.vel.y += level.gravity * deltaTime;
+        if (!startsGrounded && !this.grounded) {
+            entity.vel.y += level.gravity * deltaTime;
+        }
     }
 }

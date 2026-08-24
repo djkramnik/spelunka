@@ -42,7 +42,7 @@ class Behavior extends Trait {
     }
 }
 
-function createBulletFactory(sprite: SpriteSheet): BulletFactory {
+export function createBulletFactory(sprite: SpriteSheet): BulletFactory {
     function drawBullet(
         this: Entity,
         context: CanvasRenderingContext2D,

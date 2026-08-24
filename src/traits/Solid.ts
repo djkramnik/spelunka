@@ -3,12 +3,16 @@ import type Entity from '../Entity.js';
 import Trait from '../Trait.js';
 import type {CollisionTile} from '../TileCollider.js';
 import type {TileMatch} from '../TileResolver.js';
+import Physics from './Physics.js';
 
 export default class Solid extends Trait {
     obstructs = true;
     wallRebound = 0;
     floorRebound = 0;
     ceilingRebound = 0;
+    floorFriction = 1;
+    horizontalSettleSpeed = 0;
+    verticalSettleSpeed = 0;
 
     override obstruct(
         entity: Entity,
@@ -22,6 +26,19 @@ export default class Solid extends Trait {
         if (side === Sides.BOTTOM) {
             entity.bounds.bottom = match.y1;
             entity.vel.y *= -this.floorRebound;
+            if (Math.abs(entity.vel.y) < this.verticalSettleSpeed) {
+                entity.vel.y = 0;
+            }
+
+            if (Math.abs(entity.vel.x) < this.horizontalSettleSpeed) {
+                entity.vel.x = 0;
+            } else {
+                entity.vel.x *= this.floorFriction;
+            }
+
+            if (entity.vel.y === 0 && entity.traits.has(Physics)) {
+                entity.traits.get(Physics).grounded = true;
+            }
         } else if (side === Sides.TOP) {
             entity.bounds.top = match.y2;
             entity.vel.y *= -this.ceilingRebound;

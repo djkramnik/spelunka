@@ -32,7 +32,7 @@ class Behavior extends Trait {
     }
 }
 
-function createGoombaFactory(sprite: SpriteSheet): GoombaFactory {
+export function createGoombaFactory(sprite: SpriteSheet): GoombaFactory {
     const walkAnimation = sprite.getAnimation('walk');
 
     function routeAnimation(goomba: Entity): string {
