@@ -2,8 +2,17 @@ import type {Animation} from './anim.js';
 
 type SpriteBuffers = [HTMLCanvasElement, HTMLCanvasElement];
 
+interface SpriteFrame {
+    readonly buffers: SpriteBuffers;
+    readonly width: number;
+    readonly height: number;
+    readonly pivotX: number;
+    readonly pivotY: number;
+    readonly scale: number;
+}
+
 export default class SpriteSheet {
-    readonly tiles = new Map<string, SpriteBuffers>();
+    readonly tiles = new Map<string, SpriteFrame>();
     readonly animations = new Map<string, Animation>();
 
     constructor(
@@ -30,6 +39,8 @@ export default class SpriteSheet {
         y: number,
         width: number,
         height: number,
+        pivot: readonly [number, number] = [width / 2, height],
+        scale = 1,
     ): void {
         const createBuffer = (flip: boolean): HTMLCanvasElement => {
             const buffer = document.createElement('canvas');
@@ -66,7 +77,14 @@ export default class SpriteSheet {
             createBuffer(true),
         ];
 
-        this.tiles.set(name, buffers);
+        this.tiles.set(name, {
+            buffers,
+            width,
+            height,
+            pivotX: pivot[0],
+            pivotY: pivot[1],
+            scale,
+        });
     }
 
     defineTile(name: string, x: number, y: number): void {
@@ -87,12 +105,42 @@ export default class SpriteSheet {
         y: number,
         flip = false,
     ): void {
-        const buffers = this.tiles.get(name);
-        if (!buffers) {
+        const frame = this.tiles.get(name);
+        if (!frame) {
             throw new Error(`Unknown sprite: ${name}`);
         }
 
-        context.drawImage(buffers[flip ? 1 : 0], x, y);
+        context.drawImage(
+            frame.buffers[flip ? 1 : 0],
+            x,
+            y,
+            frame.width * frame.scale,
+            frame.height * frame.scale,
+        );
+    }
+
+    drawFrame(
+        name: string,
+        context: CanvasRenderingContext2D,
+        pivotX: number,
+        pivotY: number,
+        flip = false,
+    ): void {
+        const frame = this.tiles.get(name);
+        if (!frame) {
+            throw new Error(`Unknown sprite: ${name}`);
+        }
+
+        const sourcePivotX = flip
+            ? frame.width - frame.pivotX
+            : frame.pivotX;
+        context.drawImage(
+            frame.buffers[flip ? 1 : 0],
+            pivotX - sourcePivotX * frame.scale,
+            pivotY - frame.pivotY * frame.scale,
+            frame.width * frame.scale,
+            frame.height * frame.scale,
+        );
     }
 
     drawAnim(

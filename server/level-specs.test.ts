@@ -17,6 +17,8 @@ for (const levelFile of levelFiles) {
         ? [16, 75]
         : levelFile === 'room.json'
             ? [32, 15]
+            : levelFile === 'tutorial-1-scale.json'
+                ? [42, 19]
             : [212, 15];
     assert.deepEqual(
         level.size,
@@ -75,4 +77,90 @@ assert.deepEqual(roomGround, {
     ],
 });
 
-console.log(`Validated dimensions, The Shaft, and The Room for ${levelFiles.length} levels`);
+const tutorialUrl = new URL('tutorial-1-scale.json', levelsDirectory);
+const tutorial = LevelSpecSchema.parse(JSON.parse(await readFile(tutorialUrl, 'utf8')));
+assert.equal(tutorial.name, 'SPELUNKY CLASSIC TUTORIAL');
+assert.deepEqual(tutorial.size, [42, 19]);
+// Classic's player uses an 8px centered sprite origin at [24, 72]. Our
+// entities use top-left positions, so [16, 64] preserves the same bounds.
+assert.deepEqual(tutorial.playerSpawn, [16, 64]);
+assert.deepEqual(tutorial.entities, []);
+assert.deepEqual(tutorial.triggers, [{
+    type: 'teleport',
+    pos: [48, 240],
+    size: [16, 16],
+    destination: [16, 64],
+}]);
+
+const tutorialTiles = tutorial.layers.flatMap(layer => layer.tiles);
+const tutorialGround = tutorialTiles.find(tile => (
+    'name' in tile
+    && tile.name === 'ground'
+    && tile.type === 'ground'
+));
+assert.ok(tutorialGround && 'ranges' in tutorialGround);
+
+const tutorialSolidTiles = new Set<string>();
+for (const range of tutorialGround.ranges) {
+    let xStart: number;
+    let xLength: number;
+    let yStart: number;
+    let yLength: number;
+    if (range.length === 4) {
+        [xStart, xLength, yStart, yLength] = range;
+    } else if (range.length === 3) {
+        [xStart, xLength, yStart] = range;
+        yLength = 1;
+    } else {
+        [xStart, yStart] = range;
+        xLength = 1;
+        yLength = 1;
+    }
+    for (let x = xStart; x < xStart + xLength; ++x) {
+        for (let y = yStart; y < yStart + yLength; ++y) {
+            tutorialSolidTiles.add(`${x},${y}`);
+        }
+    }
+}
+assert.equal(
+    tutorialSolidTiles.size,
+    357,
+    'Classic tutorial should preserve its terrain except for six lower-route openings',
+);
+
+const classicTutorialUrl = new URL(
+    '../reference/spelunky-classic/extracted/Rooms/rTutorial.xml',
+    import.meta.url,
+);
+const classicTutorialXml = await readFile(classicTutorialUrl, 'utf8');
+const classicSolidTiles = new Set<string>();
+const classicSolidPattern = /<instance\b[^>]*>\s*<object>(?:oBrick|oHardBlock)<\/object>\s*<position x="(\d+)" y="(\d+)"\/>/g;
+for (const match of classicTutorialXml.matchAll(classicSolidPattern)) {
+    const [, pixelX, pixelY] = match;
+    assert.ok(pixelX !== undefined && pixelY !== undefined);
+    assert.equal(Number(pixelX) % 16, 0);
+    assert.equal(Number(pixelY) % 16, 0);
+    classicSolidTiles.add(`${Number(pixelX) / 16},${Number(pixelY) / 16}`);
+}
+const openedLowerRouteTiles = new Set([
+    '12,12',
+    '12,13',
+    '26,12',
+    '27,12',
+    '28,12',
+    '29,12',
+]);
+for (const tile of openedLowerRouteTiles) {
+    assert.ok(!tutorialSolidTiles.has(tile), `Expected lower-route tile ${tile} to be open`);
+}
+assert.deepEqual(
+    [...tutorialSolidTiles, ...openedLowerRouteTiles].sort(),
+    [...classicSolidTiles].sort(),
+    'Runtime terrain plus the deliberate lower-route openings should match the Classic source',
+);
+assert.ok(
+    tutorial.size[0] > 20,
+    'Classic tutorial should scroll beyond the 20-tile viewport',
+);
+
+console.log(`Validated dimensions and scale-reference geometry for ${levelFiles.length} levels`);

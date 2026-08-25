@@ -26,83 +26,68 @@ function assertIdentityOrder(
 }
 
 const drawEvents: string[] = [];
-const bufferContext = {
-    clearRect: (): void => {},
-} as unknown as CanvasRenderingContext2D;
-const buffer = {
-    width: 0,
-    height: 0,
-    getContext: (): CanvasRenderingContext2D => bufferContext,
-} as unknown as HTMLCanvasElement;
-const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document');
-
-Object.defineProperty(globalThis, 'document', {
-    configurable: true,
-    value: {
-        createElement: (): HTMLCanvasElement => buffer,
-    },
-});
-
-try {
-    const entity = (name: string): Entity => {
-        const result = new Entity();
-        result.draw = (): void => {
-            drawEvents.push(name);
-        };
-        return result;
+const entity = (name: string): Entity => {
+    const result = new Entity();
+    result.draw = (): void => {
+        drawEvents.push(name);
     };
+    return result;
+};
 
-    const mario = entity('mario');
-    const shell = entity('shell');
-    const equalPriority = entity('equal-priority');
-    const entities = new Set([mario, shell, equalPriority]);
-    const drawSprites = createSpriteLayer(entities);
-    const screenContext = {
-        drawImage: (): void => {},
-    } as unknown as CanvasRenderingContext2D;
-    const camera = new Camera();
+const mario = entity('mario');
+const shell = entity('shell');
+const equalPriority = entity('equal-priority');
+const entities = new Set([mario, shell, equalPriority]);
+const drawSprites = createSpriteLayer(entities);
+const translations: Array<[number, number]> = [];
+const screenContext = {
+    save: (): void => {},
+    translate: (x: number, y: number): void => {
+        translations.push([x, y]);
+    },
+    restore: (): void => {},
+} as unknown as CanvasRenderingContext2D;
+const camera = new Camera();
 
-    assertEqual(
-        [mario.zIndex, shell.zIndex, equalPriority.zIndex],
-        [0, 0, 0],
-        'Default entity z-index',
-    );
+assertEqual(
+    [mario.zIndex, shell.zIndex, equalPriority.zIndex],
+    [0, 0, 0],
+    'Default entity z-index',
+);
 
-    drawSprites(screenContext, camera);
-    assertEqual(
-        drawEvents,
-        ['mario', 'shell', 'equal-priority'],
-        'Equal z-index preserves insertion order',
-    );
+drawSprites(screenContext, camera);
+assertEqual(
+    drawEvents,
+    ['mario', 'shell', 'equal-priority'],
+    'Equal z-index preserves insertion order',
+);
 
-    drawEvents.length = 0;
-    shell.zIndex = 1;
-    drawSprites(screenContext, camera);
-    assertEqual(
-        drawEvents,
-        ['mario', 'equal-priority', 'shell'],
-        'Higher z-index draws after Mario',
-    );
+drawEvents.length = 0;
+shell.zIndex = 1;
+drawSprites(screenContext, camera);
+assertEqual(
+    drawEvents,
+    ['mario', 'equal-priority', 'shell'],
+    'Higher z-index draws after Mario',
+);
 
-    drawEvents.length = 0;
-    shell.zIndex = -1;
-    drawSprites(screenContext, camera);
-    assertEqual(
-        drawEvents,
-        ['shell', 'mario', 'equal-priority'],
-        'Runtime z-index change applies on the next draw',
-    );
-    assertIdentityOrder(
-        [...entities],
-        [mario, shell, equalPriority],
-        'Sprite sorting does not mutate entity membership order',
-    );
-} finally {
-    if (originalDocument) {
-        Object.defineProperty(globalThis, 'document', originalDocument);
-    } else {
-        Reflect.deleteProperty(globalThis, 'document');
-    }
-}
+drawEvents.length = 0;
+shell.zIndex = -1;
+drawSprites(screenContext, camera);
+assertEqual(
+    drawEvents,
+    ['shell', 'mario', 'equal-priority'],
+    'Runtime z-index change applies on the next draw',
+);
+assertIdentityOrder(
+    [...entities],
+    [mario, shell, equalPriority],
+    'Sprite sorting does not mutate entity membership order',
+);
+assertEqual(
+    translations,
+    Array.from({length: 9}, () => [0, 0]),
+    'Entities draw directly at their camera-relative position without clipping',
+);
 
 console.log('Entity sprite z-index regression passed');

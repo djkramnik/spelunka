@@ -19,7 +19,14 @@ export default class Pickable extends Trait {
     private carryDirection = 1;
     private uncarriedZIndex = 0;
     private recentThrower: Entity | null = null;
+    private throwDirection = 0;
     private throwerGraceUpdatesRemaining = 0;
+
+    private clearThrowerProtection(): void {
+        this.recentThrower = null;
+        this.throwDirection = 0;
+        this.throwerGraceUpdatesRemaining = 0;
+    }
 
     private setPhysicsEnabled(entity: Entity, enabled: boolean): void {
         if (entity.traits.has(Physics)) {
@@ -32,8 +39,7 @@ export default class Pickable extends Trait {
             return false;
         }
 
-        this.recentThrower = null;
-        this.throwerGraceUpdatesRemaining = 0;
+        this.clearThrowerProtection();
         this.carrier = carrier;
         this.uncarriedZIndex = entity.zIndex;
         this.setPhysicsEnabled(entity, false);
@@ -55,13 +61,24 @@ export default class Pickable extends Trait {
             carrier.vel.x + this.throwVelocity.x * this.carryDirection,
             this.throwVelocity.y,
         );
+        this.throwDirection = Math.sign(entity.vel.x) || this.carryDirection;
         entity.zIndex = this.uncarriedZIndex;
         return true;
     }
 
-    isThrowerProtected(candidate: Entity): boolean {
-        return this.recentThrower === candidate
-            && this.throwerGraceUpdatesRemaining > 0;
+    isThrowerProtected(entity: Entity, candidate: Entity): boolean {
+        if (this.recentThrower !== candidate
+            || this.throwerGraceUpdatesRemaining <= 0) {
+            return false;
+        }
+
+        const motionDirection = Math.sign(entity.vel.x);
+        if (motionDirection !== 0 && motionDirection !== this.throwDirection) {
+            this.clearThrowerProtection();
+            return false;
+        }
+
+        return true;
     }
 
     followCarrier(entity: Entity, direction = this.carryDirection): void {
@@ -86,7 +103,7 @@ export default class Pickable extends Trait {
         if (this.carrier === null && this.throwerGraceUpdatesRemaining > 0) {
             this.throwerGraceUpdatesRemaining--;
             if (this.throwerGraceUpdatesRemaining === 0) {
-                this.recentThrower = null;
+                this.clearThrowerProtection();
             }
         }
     }

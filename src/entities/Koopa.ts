@@ -137,7 +137,13 @@ export function createKoopaFactory(sprite: SpriteSheet): KoopaFactory {
         this: Entity,
         context: CanvasRenderingContext2D,
     ): void {
-        sprite.draw(routeAnimation(this), context, 0, 0, this.vel.x < 0);
+        sprite.drawFrame(
+            routeAnimation(this),
+            context,
+            this.size.x / 2,
+            this.size.y + this.offset.y,
+            this.vel.x < 0,
+        );
     }
 
     return function createKoopa(): Entity {

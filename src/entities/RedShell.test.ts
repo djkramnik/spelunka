@@ -29,7 +29,7 @@ function assertEqual<Value>(
 
 const drawCalls: string[] = [];
 const sprite = {
-    draw: (name: string): void => {
+    drawFrame: (name: string): void => {
         drawCalls.push(name);
     },
 } as unknown as SpriteSheet;
@@ -122,7 +122,7 @@ assertEqual(
 );
 
 const enemySprite = {
-    draw: (): void => {},
+    drawFrame: (): void => {},
     getAnimation: (): (() => string) => (): string => 'walk',
 } as unknown as SpriteSheet;
 
@@ -357,7 +357,7 @@ assertEqual(
     'Airborne Mario releases grace-period test shell',
 );
 assertEqual(
-    newlyThrownPickable.isThrowerProtected(airborneThrower),
+    newlyThrownPickable.isThrowerProtected(newlyThrownShell, airborneThrower),
     true,
     'Release starts thrower protection',
 );
@@ -390,22 +390,32 @@ newlyThrownShell.collides(airborneThrower);
 airborneThrower.finalize();
 assertEqual(
     airborneThrower.traits.get(Killable).dead,
-    false,
-    'A shell returning at lethal speed remains safe during thrower grace',
+    true,
+    'Direction reversal ends grace before a shell returns to its thrower',
 );
+assertEqual(
+    newlyThrownPickable.isThrowerProtected(newlyThrownShell, airborneThrower),
+    false,
+    'Direction reversal permanently clears thrower protection',
+);
+airborneThrower.traits.get(Killable).revive();
 
-for (let update = 1;
-    update < newlyThrownPickable.throwerGraceUpdates;
+const expiringShell = createRedShellFactory(sprite)();
+const expiringPickable = expiringShell.traits.get(Pickable);
+expiringPickable.attach(expiringShell, airborneThrower);
+expiringPickable.release(expiringShell, airborneThrower);
+for (let update = 0;
+    update < expiringPickable.throwerGraceUpdates;
     update++) {
-    newlyThrownShell.finalize();
+    expiringShell.finalize();
 }
 assertEqual(
-    newlyThrownPickable.isThrowerProtected(airborneThrower),
+    expiringPickable.isThrowerProtected(expiringShell, airborneThrower),
     false,
-    'Thrower protection expires after ten collision updates',
+    'Same-direction thrower protection still expires after ten updates',
 );
 airborneThrower.vel.y = 0;
-newlyThrownShell.collides(airborneThrower);
+expiringShell.collides(airborneThrower);
 airborneThrower.finalize();
 assertEqual(
     airborneThrower.traits.get(Killable).dead,
@@ -419,19 +429,19 @@ const repeatThrower = new Entity();
 repickedPickable.attach(repickedShell, repeatThrower);
 repickedPickable.release(repickedShell, repeatThrower);
 assertEqual(
-    repickedPickable.isThrowerProtected(repeatThrower),
+    repickedPickable.isThrowerProtected(repickedShell, repeatThrower),
     true,
     'Each release starts fresh thrower protection',
 );
 repickedPickable.attach(repickedShell, repeatThrower);
 assertEqual(
-    repickedPickable.isThrowerProtected(repeatThrower),
+    repickedPickable.isThrowerProtected(repickedShell, repeatThrower),
     false,
     'Picking a shell up clears stale thrower protection',
 );
 repickedPickable.release(repickedShell, repeatThrower);
 assertEqual(
-    repickedPickable.isThrowerProtected(repeatThrower),
+    repickedPickable.isThrowerProtected(repickedShell, repeatThrower),
     true,
     'A later release starts a new grace-period lifecycle',
 );
@@ -519,6 +529,97 @@ assertEqual(
     [rightImpact.pos.x, rightImpact.vel.x, rightImpact.vel.y],
     [64, -1200, 90],
     'Fast shell rebounds from right wall without changing vertical velocity',
+);
+
+const wallBounceThrower = new Entity();
+wallBounceThrower.pos.set(24, 48);
+wallBounceThrower.vel.x = -80;
+const wallBounceFallingShell = createRedShellFactory(sprite)();
+const wallBouncePickable = wallBounceFallingShell.traits.get(Pickable);
+assertEqual(
+    wallBouncePickable.attach(
+        wallBounceFallingShell,
+        wallBounceThrower,
+    ),
+    true,
+    'Wall-bounce reproduction shell attaches before throw',
+);
+assertEqual(
+    wallBouncePickable.release(
+        wallBounceFallingShell,
+        wallBounceThrower,
+    ),
+    true,
+    'Wall-bounce reproduction starts with a real throw',
+);
+assertEqual(
+    [wallBounceFallingShell.vel.x, wallBounceFallingShell.vel.y],
+    [400, -180],
+    'Opposing thrower movement lowers the shell launch speed',
+);
+wallBounceFallingShell.update(gameContext, createCollisionLevel(3, 3));
+assertEqual(
+    [wallBounceFallingShell.pos.x, wallBounceFallingShell.vel.x],
+    [32, -200],
+    'Thrown shell rebounds below its horizontal danger threshold',
+);
+const wallBounceGoomba = createGoombaFactory(enemySprite)();
+wallBounceGoomba.pos.set(32, 60);
+wallBounceFallingShell.vel.y = 100;
+new EntityCollider(new Set([
+    wallBounceGoomba,
+    wallBounceFallingShell,
+])).check();
+wallBounceGoomba.finalize();
+wallBounceFallingShell.finalize();
+assertEqual(
+    wallBounceGoomba.traits.get(Killable).dead,
+    true,
+    'Falling shell squashes Goomba after wall rebound slows horizontal motion',
+);
+
+const closeWallThrower = createShellCollisionTarget();
+closeWallThrower.pos.set(32, 40);
+const closeWallShell = createRedShellFactory(sprite)();
+const closeWallPickable = closeWallShell.traits.get(Pickable);
+assertEqual(
+    closeWallPickable.attach(closeWallShell, closeWallThrower),
+    true,
+    'Close-wall reproduction shell attaches before throw',
+);
+assertEqual(
+    closeWallPickable.release(closeWallShell, closeWallThrower),
+    true,
+    'Close-wall reproduction starts with a real throw',
+);
+const closeWallLevel = createCollisionLevel(4, 3);
+new EntityCollider(new Set([closeWallThrower, closeWallShell])).check();
+closeWallThrower.finalize();
+closeWallShell.finalize();
+assertEqual(
+    closeWallThrower.traits.get(Killable).dead,
+    false,
+    'Initial same-direction release overlap remains protected',
+);
+for (let update = 0; update < 2; update++) {
+    closeWallShell.update(gameContext, closeWallLevel);
+    new EntityCollider(new Set([closeWallThrower, closeWallShell])).check();
+    closeWallThrower.finalize();
+    closeWallShell.finalize();
+}
+assertEqual(
+    [closeWallShell.vel.x, closeWallThrower.traits.get(Killable).dead],
+    [-240, false],
+    'Nearby wall reverses the shell while Mario remains safe before its return',
+);
+closeWallShell.update(gameContext, closeWallLevel);
+new EntityCollider(new Set([closeWallThrower, closeWallShell])).check();
+closeWallThrower.finalize();
+closeWallShell.finalize();
+assertEqual(
+    closeWallThrower.traits.get(Killable).dead,
+    true,
+    'Wall-rebounded shell collides with Mario instead of clipping through',
 );
 
 const leftImpact = createMovingShell(64, 40, -2400, 0);

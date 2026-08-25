@@ -23,6 +23,8 @@ export async function loadSpriteSheet(name: string): Promise<SpriteSheet> {
             frameSpec.rect[1],
             frameSpec.rect[2],
             frameSpec.rect[3],
+            frameSpec.pivot,
+            sheetSpec.frameScale,
         );
     });
 

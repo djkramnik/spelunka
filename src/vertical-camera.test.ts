@@ -31,15 +31,15 @@ assertEqual(
 
 mario.pos.y = 240;
 focusPlayer(level);
-assertEqual(level.camera.pos.y, 32, 'Camera follows sustained descent');
+assertEqual(level.camera.pos.y, 92, 'Camera follows sustained descent');
 
 mario.pos.y = 195;
 focusPlayer(level);
-assertEqual(level.camera.pos.y, 32, 'Jump inside dead zone leaves camera still');
+assertEqual(level.camera.pos.y, 92, 'Jump inside dead zone leaves camera still');
 
 mario.pos.y = 448;
 focusPlayer(level);
-assertEqual(level.camera.pos.y, 240, 'Camera clamps at level floor');
+assertEqual(level.camera.pos.y, 300, 'Camera clamps at level floor');
 
 mario.pos.y = 240;
 focusPlayer(level);
@@ -66,21 +66,21 @@ existingLevel.entities.add(existingMario);
 focusPlayer(existingLevel);
 assertEqual(
     existingLevel.camera.pos.y,
-    0,
-    'Existing level remains vertically aligned while Mario stands on the ground',
+    44,
+    'Widescreen camera follows Mario to the ground in an existing level',
 );
 
 existingMario.pos.y = 400;
 focusPlayer(existingLevel);
 assertEqual(
     existingLevel.camera.pos.y,
-    0,
-    'A canvas-height level remains vertically fixed when Mario falls out of bounds',
+    60,
+    'Widescreen camera clamps at the bottom of an existing level',
 );
 
 const drawEvents: string[] = [];
 const videoContext = {
-    canvas: {width: 256, height: 240},
+    canvas: {width: 320, height: 180},
     clearRect: (x: number, y: number, width: number, height: number): void => {
         drawEvents.push(`clear:${x},${y},${width},${height}`);
     },
@@ -89,7 +89,7 @@ existingLevel.comp.layers.push(() => drawEvents.push('layer'));
 existingLevel.draw({videoContext} as GameContext);
 assertEqual(
     drawEvents,
-    ['clear:0,0,256,240', 'layer'],
+    ['clear:0,0,320,180', 'layer'],
     'Level clears stale pixels before drawing camera layers',
 );
 

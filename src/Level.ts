@@ -8,6 +8,7 @@ import Scene from './Scene.js';
 import type {GameContext} from './Scene.js';
 import TileCollider from './TileCollider.js';
 import {TILE_SIZE} from './TileResolver.js';
+import {LOGICAL_HEIGHT, LOGICAL_WIDTH} from './Renderer.js';
 import {findPlayers} from './player.js';
 import {Vec2} from './math.js';
 
@@ -73,8 +74,8 @@ export default class Level extends Scene<Camera> {
         videoContext.clearRect(
             0,
             0,
-            videoContext.canvas.width,
-            videoContext.canvas.height,
+            LOGICAL_WIDTH,
+            LOGICAL_HEIGHT,
         );
         this.comp.draw(gameContext.videoContext, this.camera);
     }

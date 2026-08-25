@@ -1,41 +1,56 @@
 {
-    "imageURL": "/img/characters.gif",
+    "imageURL": "/img/spelunker-expanded.png",
+    "frameScale": 0.25,
 
     "frames": [
-        {
-            "name": "idle",
-            "rect": [276, 44, 16, 16]
-        },
-        {
-            "name": "run-1",
-            "rect": [290, 44, 16, 16]
-        },
-        {
-            "name": "run-2",
-            "rect": [304, 43, 16, 16]
-        },
-        {
-            "name": "run-3",
-            "rect": [321, 44, 16, 16]
-        },
-        {
-            "name": "break",
-            "rect": [337, 44, 16, 16]
-        },
-        {
-            "name": "jump",
-            "rect": [355, 44, 16, 16]
-        }
+        {"name": "idle", "rect": [0, 0, 80, 80], "pivot": [40, 75]},
+
+        {"name": "walk-1", "rect": [80, 0, 80, 80], "pivot": [40, 75]},
+        {"name": "walk-2", "rect": [160, 0, 80, 80], "pivot": [40, 75]},
+        {"name": "walk-3", "rect": [240, 0, 80, 80], "pivot": [40, 75]},
+
+        {"name": "run-1", "rect": [0, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "run-2", "rect": [80, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "run-3", "rect": [160, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "run-4", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+
+        {"name": "break", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "skid", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "jump", "rect": [160, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "fall", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+
+        {"name": "carry-idle", "rect": [0, 0, 80, 80], "pivot": [40, 75]},
+        {"name": "carry-run-1", "rect": [0, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "carry-run-2", "rect": [80, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "carry-run-3", "rect": [160, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "carry-run-4", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "carry-jump", "rect": [160, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "carry-fall", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+
+        {"name": "throw", "rect": [0, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "reaction-stunned", "rect": [160, 0, 80, 80], "pivot": [40, 75]},
+        {"name": "reaction-dead", "rect": [240, 80, 80, 80], "pivot": [40, 75]}
     ],
 
     "animations": [
         {
+            "name": "walk",
+            "frameLen": 8,
+            "frames": ["walk-1", "walk-2", "walk-3"]
+        },
+        {
             "name": "run",
             "frameLen": 6,
+            "frames": ["run-1", "run-2", "run-3", "run-4"]
+        },
+        {
+            "name": "carry-run",
+            "frameLen": 6,
             "frames": [
-                "run-1",
-                "run-2",
-                "run-3"
+                "carry-run-1",
+                "carry-run-2",
+                "carry-run-3",
+                "carry-run-4"
             ]
         }
     ]

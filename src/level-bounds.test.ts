@@ -53,7 +53,7 @@ verticalLevel.camera.pos.set(100, 500);
 verticalLevel.camera.clampTo(verticalLevel.size);
 assertEqual(
     [verticalLevel.camera.pos.x, verticalLevel.camera.pos.y],
-    [0, 240],
+    [0, 300],
     'Maximum camera position',
 );
 
@@ -71,7 +71,7 @@ existingLevel.camera.pos.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY)
 existingLevel.camera.clampTo(existingLevel.size);
 assertEqual(
     [existingLevel.camera.pos.x, existingLevel.camera.pos.y],
-    [3136, 0],
+    [3072, 60],
     'Existing level camera bounds',
 );
 
@@ -81,7 +81,7 @@ roomLevel.camera.pos.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
 roomLevel.camera.clampTo(roomLevel.size);
 assertEqual(
     [roomLevel.camera.pos.x, roomLevel.camera.pos.y],
-    [256, 0],
+    [192, 60],
     'The Room camera bounds',
 );
 

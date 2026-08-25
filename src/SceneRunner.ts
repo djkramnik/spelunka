@@ -31,6 +31,7 @@ export default class SceneRunner {
             currentScene.update(gameContext);
             gameContext.performanceMetrics.measure('render', () => {
                 currentScene.draw(gameContext);
+                gameContext.present();
             });
         }
     }

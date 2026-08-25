@@ -47,7 +47,12 @@ export function createGoombaFactory(sprite: SpriteSheet): GoombaFactory {
         this: Entity,
         context: CanvasRenderingContext2D,
     ): void {
-        sprite.draw(routeAnimation(this), context, 0, 0);
+        sprite.drawFrame(
+            routeAnimation(this),
+            context,
+            this.size.x / 2,
+            this.size.y,
+        );
     }
 
     return function createGoomba(): Entity {

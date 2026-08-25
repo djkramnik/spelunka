@@ -68,6 +68,7 @@ const SpriteFrameSchema = z.object({
         PositiveNumberSchema,
         PositiveNumberSchema,
     ]),
+    pivot: PositionSchema.optional(),
 });
 
 const SpriteAnimationSchema = z.object({
@@ -78,6 +79,7 @@ const SpriteAnimationSchema = z.object({
 
 export const SpriteSheetSchema = z.object({
     imageURL: z.string().min(1),
+    frameScale: PositiveNumberSchema.default(1),
     tileW: PositiveNumberSchema.optional(),
     tileH: PositiveNumberSchema.optional(),
     tiles: z.array(SpriteTileSchema).default([]),

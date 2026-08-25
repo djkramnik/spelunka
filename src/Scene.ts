@@ -13,6 +13,7 @@ export interface GameContext {
     deltaTime: number;
     entityFactory: EntityFactory;
     performanceMetrics: PerformanceMetrics;
+    present(): void;
 }
 
 export default class Scene<Camera = undefined> {

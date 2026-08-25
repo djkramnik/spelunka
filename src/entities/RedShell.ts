@@ -27,6 +27,14 @@ export class RedShellBehavior extends Trait {
             && overlapDepth <= this.stompRegionDepth;
     }
 
+    private isFallingOnto(shell: Entity, candidate: Entity): boolean {
+        const overlapDepth = shell.bounds.bottom - candidate.bounds.top;
+        return shell.vel.y > candidate.vel.y
+            && shell.bounds.top < candidate.bounds.top
+            && overlapDepth > 0
+            && overlapDepth <= this.stompRegionDepth;
+    }
+
     override collides(shell: Entity, candidate: Entity): void {
         if (!candidate.traits.has(Killable)) {
             return;
@@ -34,7 +42,7 @@ export class RedShellBehavior extends Trait {
 
         const pickable = shell.traits.get(Pickable);
         if (pickable.carrier !== null
-            || pickable.isThrowerProtected(candidate)) {
+            || pickable.isThrowerProtected(shell, candidate)) {
             return;
         }
 
@@ -45,6 +53,11 @@ export class RedShellBehavior extends Trait {
                 shell.vel.x = 0;
                 shell.vel.y = this.stompDownwardSpeed;
             });
+            return;
+        }
+
+        if (this.isFallingOnto(shell, candidate)) {
+            candidate.traits.get(Killable).kill();
             return;
         }
 
@@ -80,7 +93,12 @@ export function createRedShellFactory(
         redShell.addTrait(new Physics());
         redShell.addTrait(solid);
         redShell.addTrait(new RedShellBehavior());
-        redShell.draw = context => sprite.draw('idle', context, 0, 0);
+        redShell.draw = context => sprite.drawFrame(
+            'idle',
+            context,
+            redShell.size.x / 2,
+            redShell.size.y,
+        );
 
         return redShell;
     };

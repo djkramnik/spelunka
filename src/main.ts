@@ -17,6 +17,7 @@ import {Font, loadFont} from './loaders/font.js';
 import type {LevelSpec} from './loaders/schemas.js';
 import LoadingProgress from './loading-progress.js';
 import PerformanceMetrics from './PerformanceMetrics.js';
+import Renderer from './Renderer.js';
 import {createPlayerEnv, findPlayers, makePlayer} from './player.js';
 import {parseRuntimeOptions} from './runtime-options.js';
 import type {RuntimeOptions} from './runtime-options.js';
@@ -45,24 +46,23 @@ const INITIAL_LOAD_TASKS = 10;
 const LEVEL_LOAD_TASKS = 4;
 
 async function main(
-    canvas: HTMLCanvasElement,
+    renderer: Renderer,
     font: Font,
     runtimeOptions: RuntimeOptions,
 ): Promise<void> {
-    const videoContext = canvas.getContext('2d');
-    if (!videoContext) {
-        throw new Error('Unable to create the game canvas context');
-    }
+    const videoContext = renderer.context;
 
     const audioContext = new AudioContext();
     const loadingProgress = new LoadingProgress();
 
     loadingProgress.reset(INITIAL_LOAD_TASKS, 'Loading game');
     loadingProgress.draw(videoContext);
+    renderer.present();
 
     const advanceLoadingProgress = (): void => {
         loadingProgress.advance();
         loadingProgress.draw(videoContext);
+        renderer.present();
     };
 
     const entityFactory = await loadEntities(
@@ -198,6 +198,7 @@ async function main(
         entityFactory,
         deltaTime: 0,
         performanceMetrics,
+        present: () => renderer.present(),
     };
 
     const restartBenchmarkAttempt = async (): Promise<void> => {
@@ -253,18 +254,17 @@ async function bootstrap(): Promise<void> {
         throw new Error('Game canvas #screen was not found');
     }
 
-    const videoContext = canvas.getContext('2d');
-    if (!videoContext) {
-        throw new Error('Unable to create the game canvas context');
-    }
+    const renderer = new Renderer(canvas);
+    const {context: videoContext} = renderer;
 
     const font = await loadFont();
     createColorLayer('#000')(videoContext);
     createTextLayer(font, 'CLICK TO START')(videoContext);
+    renderer.present();
 
     const start = (): void => {
         window.removeEventListener('click', start);
-        void main(canvas, font, runtimeOptions).catch(error => {
+        void main(renderer, font, runtimeOptions).catch(error => {
             console.error('Unable to start game', error);
         });
     };

@@ -55,8 +55,8 @@ try {
     const tile = (name: string): NamedTileSpec => ({name, ranges: [[0, 0]]});
     tiles.set(0, 13, tile('above-view'));
     tiles.set(0, 14, tile('view-top'));
-    tiles.set(0, 29, tile('view-bottom-buffer'));
-    tiles.set(0, 30, tile('below-view'));
+    tiles.set(0, 25, tile('view-bottom-buffer'));
+    tiles.set(0, 26, tile('below-view'));
 
     const level = new Level();
     const camera = new Camera();
@@ -66,10 +66,10 @@ try {
 
     assertEqual(tileDraws, [
         {name: 'view-top', x: 0, y: 0},
-        {name: 'view-bottom-buffer', x: 0, y: 15},
+        {name: 'view-bottom-buffer', x: 0, y: 11},
     ], 'Camera-relative tile rows');
     assertEqual(screenDraws, [{x: 0, y: -8}], 'Sub-tile camera offset');
-    assertEqual([buffer.width, buffer.height], [272, 256], 'Background buffer size');
+    assertEqual([buffer.width, buffer.height], [336, 196], 'Background buffer size');
 } finally {
     if (originalDocument) {
         Object.defineProperty(globalThis, 'document', originalDocument);

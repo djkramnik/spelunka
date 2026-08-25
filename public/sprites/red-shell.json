@@ -1,10 +1,12 @@
 {
     "imageURL": "/img/characters.gif",
+    "frameScale": 0.75,
 
     "frames": [
         {
             "name": "idle",
-            "rect": [29, 206, 16, 24]
+            "rect": [29, 206, 16, 24],
+            "pivot": [8, 14]
         }
     ]
 }

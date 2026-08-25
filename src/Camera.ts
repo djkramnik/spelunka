@@ -1,7 +1,8 @@
 import {Vec2} from './math.js';
+import {LOGICAL_HEIGHT, LOGICAL_WIDTH} from './Renderer.js';
 
-export const VIEWPORT_WIDTH = 256;
-export const VIEWPORT_HEIGHT = 240;
+export const VIEWPORT_WIDTH = LOGICAL_WIDTH;
+export const VIEWPORT_HEIGHT = LOGICAL_HEIGHT;
 
 export default class Camera {
     readonly pos = new Vec2(0, 0);

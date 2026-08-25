@@ -1,18 +1,22 @@
 {
     "imageURL": "/img/characters.gif",
+    "frameScale": 0.75,
 
     "frames": [
         {
             "name": "walk-1",
-            "rect": [296, 187, 16, 16]
+            "rect": [296, 187, 16, 16],
+            "pivot": [8, 16]
         },
         {
             "name": "walk-2",
-            "rect": [315, 187, 16, 16]
+            "rect": [315, 187, 16, 16],
+            "pivot": [8, 16]
         },
         {
             "name": "flat",
-            "rect": [277, 187, 16, 16]
+            "rect": [277, 187, 16, 16],
+            "pivot": [8, 8]
         }
     ],
 

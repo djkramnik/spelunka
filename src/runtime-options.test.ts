@@ -46,7 +46,7 @@ const debugOptions = parseRuntimeOptions(
 );
 if (
     !debugOptions.collisionDebugEnabled
-    || debugOptions.initialLevelName !== 'room'
+    || debugOptions.initialLevelName !== 'tutorial-1-scale'
     || debugOptions.autoStart
     || !debugOptions.audioEnabled
 ) {
@@ -62,3 +62,32 @@ try {
 if (!rejectedBenchmarkWithoutMetrics) {
     throw new Error('Benchmark mode must require explicit performance collection');
 }
+
+const tutorialOptions = parseRuntimeOptions(
+    new URLSearchParams('level=tutorial-1-scale&debug=collision'),
+    commit,
+);
+if (
+    tutorialOptions.initialLevelName !== 'tutorial-1-scale'
+    || !tutorialOptions.collisionDebugEnabled
+    || tutorialOptions.performanceEnabled
+) {
+    throw new Error('Tutorial scale-reference level was not selected directly');
+}
+
+for (const search of [
+    'level=../room',
+    'level=tutorial-1-scale&perf=1',
+]) {
+    let rejected = false;
+    try {
+        parseRuntimeOptions(new URLSearchParams(search), commit);
+    } catch {
+        rejected = true;
+    }
+    if (!rejected) {
+        throw new Error(`Unsafe level selection was accepted: ${search}`);
+    }
+}
+
+console.log('Direct level selection regression passed');

@@ -22,7 +22,7 @@ function assertEqual<Value>(
 }
 
 const sprite = {
-    draw: (): void => {},
+    drawFrame: (): void => {},
     getAnimation: (): (() => string) => (): string => 'idle',
 } as unknown as SpriteSheet;
 
@@ -103,7 +103,7 @@ assertEqual(
     'Throw clears both sides of the carrier relationship',
 );
 assertEqual(
-    pickable.isThrowerProtected(mario),
+    pickable.isThrowerProtected(shell, mario),
     true,
     'First throw starts thrower grace',
 );
@@ -126,7 +126,7 @@ assertEqual(
     'Re-pickup clears residual shell motion',
 );
 assertEqual(
-    pickable.isThrowerProtected(mario),
+    pickable.isThrowerProtected(shell, mario),
     false,
     'Re-pickup clears stale thrower grace',
 );
@@ -137,7 +137,7 @@ assertEqual(
     'Mario throws the shell for a second cycle',
 );
 assertEqual(
-    pickable.isThrowerProtected(mario),
+    pickable.isThrowerProtected(shell, mario),
     true,
     'Second throw starts a fresh grace period',
 );
@@ -154,7 +154,7 @@ assertEqual(
     'Thrown shell reaches exact rest before settled re-pickup',
 );
 assertEqual(
-    pickable.isThrowerProtected(mario),
+    pickable.isThrowerProtected(shell, mario),
     false,
     'Thrower grace expires while the second throw runs',
 );

@@ -21,6 +21,17 @@ export function parseRuntimeOptions(
 ): RuntimeOptions {
     const performanceEnabled = searchParams.get('perf') === '1';
     const benchmarkName = searchParams.get('benchmark');
+    const requestedLevelName = searchParams.get('level');
+
+    if (
+        requestedLevelName !== null
+        && !/^[a-z0-9](?:[a-z0-9-]{0,62})$/.test(requestedLevelName)
+    ) {
+        throw new Error(`Invalid level name: ${requestedLevelName}`);
+    }
+    if (requestedLevelName && performanceEnabled) {
+        throw new Error('Custom levels cannot be combined with ?perf=1');
+    }
 
     if (
         benchmarkName !== null
@@ -55,7 +66,8 @@ export function parseRuntimeOptions(
 
     return {
         performanceEnabled,
-        initialLevelName: performanceEnabled ? 'performance-entities' : 'room',
+        initialLevelName: requestedLevelName
+            ?? (performanceEnabled ? 'performance-entities' : 'tutorial-1-scale'),
         collisionDebugEnabled: searchParams.get('debug') === 'collision',
         audioEnabled: benchmark === undefined,
         autoStart: benchmark !== undefined,

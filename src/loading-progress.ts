@@ -1,3 +1,5 @@
+import {LOGICAL_HEIGHT, LOGICAL_WIDTH} from './Renderer.js';
+
 const BAR_WIDTH = 160;
 const BAR_HEIGHT = 12;
 
@@ -22,8 +24,8 @@ export default class LoadingProgress {
 
     draw(context: CanvasRenderingContext2D): void {
         const progress = this.completed / this.total;
-        const x = Math.floor((context.canvas.width - BAR_WIDTH) / 2);
-        const y = Math.floor(context.canvas.height / 2) + 16;
+        const x = Math.floor((LOGICAL_WIDTH - BAR_WIDTH) / 2);
+        const y = Math.floor(LOGICAL_HEIGHT / 2) + 16;
         const inset = 2;
         const fillWidth = Math.floor((BAR_WIDTH - inset * 2) * progress);
 
@@ -31,7 +33,7 @@ export default class LoadingProgress {
         context.imageSmoothingEnabled = false;
 
         context.fillStyle = '#000';
-        context.fillRect(0, y - 22, context.canvas.width, BAR_HEIGHT + 32);
+        context.fillRect(0, y - 22, LOGICAL_WIDTH, BAR_HEIGHT + 32);
 
         context.font = '10px monospace';
         context.textAlign = 'center';
@@ -39,7 +41,7 @@ export default class LoadingProgress {
         context.fillStyle = '#fff';
         context.fillText(
             `${this.label} ${Math.round(progress * 100)}%`,
-            Math.floor(context.canvas.width / 2),
+            Math.floor(LOGICAL_WIDTH / 2),
             y - 18,
         );
 
