@@ -10,16 +10,17 @@ const levelFiles = (await readdir(levelsDirectory))
 
 assert.ok(levelFiles.length > 0, 'Expected at least one level definition');
 
+const specialLevelSizes = new Map<string, readonly [number, number]>([
+    ['vertical-shaft.json', [16, 75]],
+    ['room.json', [32, 15]],
+    ['tutorial-1-scale.json', [42, 19]],
+    ['spelunky-hd-entities.json', [32, 15]],
+]);
+
 for (const levelFile of levelFiles) {
     const levelUrl = new URL(levelFile, levelsDirectory);
     const level = LevelSpecSchema.parse(JSON.parse(await readFile(levelUrl, 'utf8')));
-    const expectedSize = levelFile === 'vertical-shaft.json'
-        ? [16, 75]
-        : levelFile === 'room.json'
-            ? [32, 15]
-            : levelFile === 'tutorial-1-scale.json'
-                ? [42, 19]
-            : [212, 15];
+    const expectedSize = specialLevelSizes.get(levelFile) ?? [212, 15];
     assert.deepEqual(
         level.size,
         expectedSize,

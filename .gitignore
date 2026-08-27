@@ -6,6 +6,11 @@ server/generated/
 # Local source material used for implementation reference
 /reference/spelunky-classic/
 
+# User-owned Spelunky HD sources and locally generated derivatives
+/.local/spelunky-hd/
+/public/generated/spelunky-hd/
+/public/sprites/generated/spelunky-hd/
+
 # Beads / Dolt files (added by bd init)
 .dolt/
 *.db

@@ -64,15 +64,15 @@ if (!rejectedBenchmarkWithoutMetrics) {
 }
 
 const tutorialOptions = parseRuntimeOptions(
-    new URLSearchParams('level=tutorial-1-scale&debug=collision'),
+    new URLSearchParams('level=spelunky-hd-entities&debug=collision'),
     commit,
 );
 if (
-    tutorialOptions.initialLevelName !== 'tutorial-1-scale'
+    tutorialOptions.initialLevelName !== 'spelunky-hd-entities'
     || !tutorialOptions.collisionDebugEnabled
     || tutorialOptions.performanceEnabled
 ) {
-    throw new Error('Tutorial scale-reference level was not selected directly');
+    throw new Error('Spelunky HD entity prototype was not selected directly');
 }
 
 for (const search of [

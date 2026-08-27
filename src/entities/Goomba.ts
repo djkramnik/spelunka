@@ -10,9 +10,12 @@ import Stomper from '../traits/Stomper.js';
 
 export type GoombaFactory = () => Entity;
 
-export async function loadGoomba(): Promise<GoombaFactory> {
-    const sprite = await loadSpriteSheet('goomba');
-    return createGoombaFactory(sprite);
+export async function loadGoomba(
+    spriteName = 'generated/spelunky-hd/snake',
+    facesMovement = true,
+): Promise<GoombaFactory> {
+    const sprite = await loadSpriteSheet(spriteName);
+    return createGoombaFactory(sprite, facesMovement);
 }
 
 class Behavior extends Trait {
@@ -32,7 +35,10 @@ class Behavior extends Trait {
     }
 }
 
-export function createGoombaFactory(sprite: SpriteSheet): GoombaFactory {
+export function createGoombaFactory(
+    sprite: SpriteSheet,
+    facesMovement = false,
+): GoombaFactory {
     const walkAnimation = sprite.getAnimation('walk');
 
     function routeAnimation(goomba: Entity): string {
@@ -52,6 +58,7 @@ export function createGoombaFactory(sprite: SpriteSheet): GoombaFactory {
             context,
             this.size.x / 2,
             this.size.y,
+            facesMovement && this.traits.get(PendulumMove).speed < 0,
         );
     }
 

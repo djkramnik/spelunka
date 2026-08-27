@@ -53,9 +53,12 @@ export type Mario = Entity & {
 
 export type MarioFactory = () => Mario;
 
-export async function loadMario(audioContext: AudioContext): Promise<MarioFactory> {
+export async function loadMario(
+    audioContext: AudioContext,
+    spriteName = 'generated/spelunky-hd/player',
+): Promise<MarioFactory> {
     const [sprite, audio] = await Promise.all([
-        loadSpriteSheet('mario'),
+        loadSpriteSheet(spriteName),
         loadAudioBoard('mario', audioContext),
     ]);
 
