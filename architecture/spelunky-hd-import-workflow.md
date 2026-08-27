@@ -36,8 +36,8 @@ All outputs are ignored by Git:
   entries used by the player, enemy, terrain, and Mines background prototypes;
 - `.local/spelunky-hd/import-report.json` records input, selected-entry, and
   generated-output hashes plus the numeric player animation records;
-- `public/generated/spelunky-hd/player.png` is a deterministic 400x160 RGBA
-  sheet containing ten unique, unchanged 80x80 source cells; and
+- `public/generated/spelunky-hd/player.png` is a deterministic 400x560 RGBA
+  sheet containing 31 unique, unchanged 80x80 source cells; and
 - `public/sprites/generated/spelunky-hd/player.json` maps that sheet to every
   frame and animation name required by the current player loader;
 - `public/generated/spelunky-hd/snake.png` is a deterministic 240x80 RGBA

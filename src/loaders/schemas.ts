@@ -75,6 +75,7 @@ const SpriteAnimationSchema = z.object({
     name: NameSchema,
     frameLen: PositiveNumberSchema,
     frames: z.array(NameSchema).min(1),
+    loop: z.boolean().default(true),
 });
 
 export const SpriteSheetSchema = z.object({

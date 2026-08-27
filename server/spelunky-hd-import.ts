@@ -65,6 +65,8 @@ const OUTPUT_COLUMNS = 5;
 const PLAYER_PIVOT = [40, 72] as const;
 const ENEMY_PIVOT = [40, 72] as const;
 const TERRAIN_CELL_SIZE = 64;
+const HD_TICK_SECONDS = 1 / 60;
+const MOVEMENT_FRAME_DISTANCE = 3;
 
 const MINE_GROUND_SOURCES = [
     [0, 64],
@@ -73,26 +75,34 @@ const MINE_GROUND_SOURCES = [
     [64, 128],
 ] as const;
 
+const MOVEMENT_SOURCE_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const SKID_SOURCE_FRAMES = [36, 37, 38, 39, 40, 41, 42, 43] as const;
+const JUMP_SOURCE_FRAMES = [108, 109, 110, 111] as const;
+const FALL_SOURCE_FRAMES = [112, 113, 114, 115] as const;
+const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
+
+function namedFrames(
+    prefix: string,
+    sourceFrames: readonly number[],
+): ReadonlyArray<readonly [string, number]> {
+    return sourceFrames.map((sourceFrame, index) => [
+        `${prefix}-${index + 1}`,
+        sourceFrame,
+    ] as const);
+}
+
 const PLAYER_FRAME_SOURCES = [
-    ['idle', 0],
-    ['walk-1', 1],
-    ['walk-2', 3],
-    ['walk-3', 5],
-    ['run-1', 1],
-    ['run-2', 3],
-    ['run-3', 5],
-    ['run-4', 7],
-    ['skid', 36],
-    ['jump', 111],
-    ['fall', 115],
-    ['carry-idle', 0],
-    ['carry-run-1', 1],
-    ['carry-run-2', 3],
-    ['carry-run-3', 5],
-    ['carry-run-4', 7],
-    ['carry-jump', 111],
-    ['carry-fall', 115],
-    ['throw', 58],
+    ['idle', 0] as const,
+    ...namedFrames('walk', MOVEMENT_SOURCE_FRAMES),
+    ...namedFrames('run', MOVEMENT_SOURCE_FRAMES),
+    ...namedFrames('skid', SKID_SOURCE_FRAMES),
+    ...namedFrames('jump', JUMP_SOURCE_FRAMES),
+    ...namedFrames('fall', FALL_SOURCE_FRAMES),
+    ['carry-idle', 0] as const,
+    ...namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES),
+    ['carry-jump', 111] as const,
+    ['carry-fall', 115] as const,
+    ...namedFrames('throw', THROW_SOURCE_FRAMES),
     ['reaction-stunned', 9],
     ['reaction-dead', 9],
 ] as const;
@@ -419,23 +429,48 @@ function createPlayerAssets(sourceData: Buffer): {
         animations: [
             {
                 name: 'walk',
-                frameLen: 8,
-                frames: ['walk-1', 'walk-2', 'walk-3'],
+                frameLen: MOVEMENT_FRAME_DISTANCE,
+                frames: namedFrames('walk', MOVEMENT_SOURCE_FRAMES)
+                    .map(([name]) => name),
             },
             {
                 name: 'run',
-                frameLen: 6,
-                frames: ['run-1', 'run-2', 'run-3', 'run-4'],
+                frameLen: MOVEMENT_FRAME_DISTANCE,
+                frames: namedFrames('run', MOVEMENT_SOURCE_FRAMES)
+                    .map(([name]) => name),
+            },
+            {
+                name: 'skid',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('skid', SKID_SOURCE_FRAMES)
+                    .map(([name]) => name),
+            },
+            {
+                name: 'jump',
+                frameLen: 3 * HD_TICK_SECONDS,
+                frames: namedFrames('jump', JUMP_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'fall',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('fall', FALL_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
             },
             {
                 name: 'carry-run',
-                frameLen: 6,
-                frames: [
-                    'carry-run-1',
-                    'carry-run-2',
-                    'carry-run-3',
-                    'carry-run-4',
-                ],
+                frameLen: MOVEMENT_FRAME_DISTANCE,
+                frames: namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES)
+                    .map(([name]) => name),
+            },
+            {
+                name: 'throw',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('throw', THROW_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
             },
         ],
     };

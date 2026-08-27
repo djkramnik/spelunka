@@ -32,14 +32,15 @@ player collider at logical `[7, 16]`.
 | Spelunka state | Spelunky HD source frame | Notes |
 | --- | ---: | --- |
 | `idle` | 0 | Standing |
-| `walk-1..3` | 1, 3, 5 | Sampled from source movement animation 1, frames 1-8 |
-| `run-1..4` | 1, 3, 5, 7 | Same HD movement art at the existing faster run timing |
-| `skid` | 36 | First lost-balance frame; intentional visual approximation |
-| `jump` | 111 | Terminal rising pose from source animation 2 |
-| `fall` | 115 | Terminal falling pose from source animation 3 |
-| `throw` | 58 | Terminal throw pose from source animation 8 |
+| `walk-1..8` | 1-8 | Complete source movement animation 1 |
+| `run-1..8` | 1-8 | Same complete movement record, advanced faster by turbo distance |
+| `skid-1..8` | 36-43 | Complete source animation 18 while reversing direction |
+| `jump-1..4` | 108-111 | Complete non-looping source animation 2 |
+| `fall-1..4` | 112-115 | Complete non-looping source animation 3 |
+| `throw-1..5` | 54-58 | Complete non-looping source animation 8 |
 | `reaction-stunned`, `reaction-dead` | 9 | Shared source dead/stunned pose |
-| all `carry-*` states | matching base pose | Intentional fallback until a distinct carried-item mapping is justified |
+| `carry-idle`, `carry-run-1..8` | 0, 1-8 | Intentional matching base-pose fallback |
+| `carry-jump`, `carry-fall` | 111, 115 | Intentional terminal-pose fallback |
 
 Facing continues to use the existing player heading and `SpriteSheet` flip
 buffer. Existing focused player tests exercise idle, walk, run, skid, rise,

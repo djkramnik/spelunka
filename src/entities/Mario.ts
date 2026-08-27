@@ -16,7 +16,8 @@ import Stomper from '../traits/Stomper.js';
 
 const SLOW_DRAG = 1 / 1000;
 const FAST_DRAG = 1 / 5000;
-const THROW_FRAME_DURATION = 0.18;
+const HD_TICK_SECONDS = 1 / 60;
+const THROW_FRAME_DURATION = 5 * 4 * HD_TICK_SECONDS;
 const STUNNED_FRAME_DURATION = 0.2;
 
 export const PLAYER_FRAME_NAMES = [
@@ -24,26 +25,70 @@ export const PLAYER_FRAME_NAMES = [
     'walk-1',
     'walk-2',
     'walk-3',
+    'walk-4',
+    'walk-5',
+    'walk-6',
+    'walk-7',
+    'walk-8',
     'run-1',
     'run-2',
     'run-3',
     'run-4',
-    'skid',
-    'jump',
-    'fall',
+    'run-5',
+    'run-6',
+    'run-7',
+    'run-8',
+    'skid-1',
+    'skid-2',
+    'skid-3',
+    'skid-4',
+    'skid-5',
+    'skid-6',
+    'skid-7',
+    'skid-8',
+    'jump-1',
+    'jump-2',
+    'jump-3',
+    'jump-4',
+    'fall-1',
+    'fall-2',
+    'fall-3',
+    'fall-4',
     'carry-idle',
     'carry-run-1',
     'carry-run-2',
     'carry-run-3',
     'carry-run-4',
+    'carry-run-5',
+    'carry-run-6',
+    'carry-run-7',
+    'carry-run-8',
     'carry-jump',
     'carry-fall',
-    'throw',
+    'throw-1',
+    'throw-2',
+    'throw-3',
+    'throw-4',
+    'throw-5',
     'reaction-stunned',
     'reaction-dead',
 ] as const;
 
 export type PlayerFrameName = typeof PLAYER_FRAME_NAMES[number];
+
+type PlayerAnimationState =
+    | 'idle'
+    | 'walk'
+    | 'run'
+    | 'skid'
+    | 'jump'
+    | 'fall'
+    | 'carry-idle'
+    | 'carry-run'
+    | 'carry-jump'
+    | 'carry-fall'
+    | 'throw'
+    | 'dead';
 
 export type Mario = Entity & {
     pickup(): Entity | null;
@@ -55,10 +100,9 @@ export type MarioFactory = () => Mario;
 
 export async function loadMario(
     audioContext: AudioContext,
-    spriteName = 'generated/spelunky-hd/player',
 ): Promise<MarioFactory> {
     const [sprite, audio] = await Promise.all([
-        loadSpriteSheet(spriteName),
+        loadSpriteSheet('generated/spelunky-hd/player'),
         loadAudioBoard('mario', audioContext),
     ]);
 
@@ -71,18 +115,20 @@ export function createMarioFactory(
 ): MarioFactory {
     const walkAnimation = sprite.getAnimation('walk');
     const runAnimation = sprite.getAnimation('run');
+    const skidAnimation = sprite.getAnimation('skid');
+    const jumpAnimation = sprite.getAnimation('jump');
+    const fallAnimation = sprite.getAnimation('fall');
     const carryRunAnimation = sprite.getAnimation('carry-run');
+    const throwAnimation = sprite.getAnimation('throw');
 
-    function routeFrame(mario: MarioEntity): PlayerFrameName {
+    function routeAnimationState(mario: MarioEntity): PlayerAnimationState {
         const jump = mario.traits.get(Jump);
         const go = mario.traits.get(Go);
         const killable = mario.traits.get(Killable);
         const carrier = mario.traits.get(Carrier);
 
         if (killable.dead) {
-            return killable.deadTime < STUNNED_FRAME_DURATION
-                ? 'reaction-stunned'
-                : 'reaction-dead';
+            return 'dead';
         }
 
         if (mario.throwFrameTime > 0) {
@@ -95,7 +141,7 @@ export function createMarioFactory(
             }
 
             if (go.distance > 0) {
-                return carryRunAnimation(go.distance) as PlayerFrameName;
+                return 'carry-run';
             }
 
             return 'carry-idle';
@@ -111,16 +157,49 @@ export function createMarioFactory(
                 return 'skid';
             }
 
-            const animation = mario.running ? runAnimation : walkAnimation;
-            return animation(go.distance) as PlayerFrameName;
+            return mario.running ? 'run' : 'walk';
         }
 
         return 'idle';
     }
 
+    function routeFrame(mario: MarioEntity): PlayerFrameName {
+        const state = routeAnimationState(mario);
+        const stateTime = mario.animationState === state
+            ? mario.animationStateTime
+            : 0;
+        const go = mario.traits.get(Go);
+        const killable = mario.traits.get(Killable);
+
+        switch (state) {
+            case 'dead':
+                return killable.deadTime < STUNNED_FRAME_DURATION
+                    ? 'reaction-stunned'
+                    : 'reaction-dead';
+            case 'throw':
+                return throwAnimation(stateTime) as PlayerFrameName;
+            case 'carry-run':
+                return carryRunAnimation(go.distance) as PlayerFrameName;
+            case 'skid':
+                return skidAnimation(stateTime) as PlayerFrameName;
+            case 'jump':
+                return jumpAnimation(stateTime) as PlayerFrameName;
+            case 'fall':
+                return fallAnimation(stateTime) as PlayerFrameName;
+            case 'walk':
+                return walkAnimation(go.distance) as PlayerFrameName;
+            case 'run':
+                return runAnimation(go.distance) as PlayerFrameName;
+            default:
+                return state;
+        }
+    }
+
     class MarioEntity extends Entity {
         running = false;
         throwFrameTime = 0;
+        animationState: PlayerAnimationState = 'idle';
+        animationStateTime = 0;
 
         constructor() {
             super();
@@ -164,6 +243,13 @@ export function createMarioFactory(
                 0,
                 this.throwFrameTime - gameContext.deltaTime,
             );
+            const nextAnimationState = routeAnimationState(this);
+            if (nextAnimationState === this.animationState) {
+                this.animationStateTime += gameContext.deltaTime;
+            } else {
+                this.animationState = nextAnimationState;
+                this.animationStateTime = 0;
+            }
         }
 
         override draw(context: CanvasRenderingContext2D): void {

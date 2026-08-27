@@ -37,6 +37,7 @@ export async function loadSpriteSheet(name: string): Promise<SpriteSheet> {
         const animation = createAnim(
             animationSpec.frames,
             animationSpec.frameLen,
+            animationSpec.loop,
         );
         sprites.defineAnim(animationSpec.name, animation);
     });

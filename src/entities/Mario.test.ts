@@ -29,18 +29,28 @@ const draws: Array<{
 }> = [];
 const sprite = {
     getAnimation: (name: string) => {
-        if (name === 'walk') {
-            return createAnim(['walk-1', 'walk-2', 'walk-3'], 6);
+        const frameCounts: Readonly<Record<string, number>> = {
+            walk: 8,
+            run: 8,
+            skid: 8,
+            jump: 4,
+            fall: 4,
+            'carry-run': 8,
+            throw: 5,
+        };
+        const frameCount = frameCounts[name];
+        if (frameCount === undefined) {
+            throw new Error(`Unexpected animation: ${name}`);
         }
-        if (name === 'run') {
-            return createAnim(['run-1', 'run-2', 'run-3', 'run-4'], 6);
-        }
-        return createAnim([
-            'carry-run-1',
-            'carry-run-2',
-            'carry-run-3',
-            'carry-run-4',
-        ], 6);
+        const timed = ['skid', 'jump', 'fall', 'throw'].includes(name);
+        return createAnim(
+            Array.from(
+                {length: frameCount},
+                (_, index) => `${name}-${index + 1}`,
+            ),
+            timed ? 0.05 : 3,
+            !['jump', 'fall', 'throw'].includes(name),
+        );
     },
     drawFrame: (
         name: string,
@@ -68,26 +78,26 @@ const draw = (): string => {
 
 assertEqual(draw(), 'idle', 'Idle frame');
 go.distance = 7;
-assertEqual(draw(), 'walk-2', 'Walk animation frame');
+assertEqual(draw(), 'walk-3', 'Walk animation uses the dense source sequence');
 mario.turbo(true);
-assertEqual(draw(), 'run-2', 'Turbo run animation frame');
+assertEqual(draw(), 'run-3', 'Turbo run animation uses the dense source sequence');
 mario.turbo(false);
 go.dir = -1;
 mario.vel.x = 10;
-assertEqual(draw(), 'skid', 'Skid frame');
+assertEqual(draw(), 'skid-1', 'Skid animation starts at its first source frame');
 
 jump.ready = -1;
 mario.vel.y = -10;
-assertEqual(draw(), 'jump', 'Rising frame');
+assertEqual(draw(), 'jump-1', 'Rising animation starts at its first source frame');
 mario.vel.y = 10;
-assertEqual(draw(), 'fall', 'Falling frame');
+assertEqual(draw(), 'fall-1', 'Falling animation starts at its first source frame');
 
 carrier.carried = new Entity();
 jump.ready = 1;
 go.distance = 0;
 assertEqual(draw(), 'carry-idle', 'Carry idle frame');
 go.distance = 7;
-assertEqual(draw(), 'carry-run-2', 'Carry run animation frame');
+assertEqual(draw(), 'carry-run-3', 'Carry run fallback uses dense movement frames');
 jump.ready = -1;
 mario.vel.y = -10;
 assertEqual(draw(), 'carry-jump', 'Carry rising frame');
@@ -95,7 +105,44 @@ mario.vel.y = 10;
 assertEqual(draw(), 'carry-fall', 'Carry falling frame');
 
 (mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0.1;
-assertEqual(draw(), 'throw', 'Throw frame');
+assertEqual(draw(), 'throw-1', 'Throw animation starts at its first source frame');
+
+const animationClock = mario as typeof mario & {
+    animationState: string;
+    animationStateTime: number;
+};
+carrier.carried = null;
+(mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0;
+animationClock.animationState = 'jump';
+animationClock.animationStateTime = 0.11;
+mario.vel.y = -10;
+assertEqual(draw(), 'jump-3', 'Rising animation advances through source frames');
+animationClock.animationStateTime = 1;
+assertEqual(draw(), 'jump-4', 'Rising animation holds its terminal source frame');
+
+animationClock.animationState = 'fall';
+animationClock.animationStateTime = 0.11;
+mario.vel.y = 10;
+assertEqual(draw(), 'fall-3', 'Falling animation advances through source frames');
+animationClock.animationStateTime = 1;
+assertEqual(draw(), 'fall-4', 'Falling animation holds its terminal source frame');
+
+go.dir = -1;
+mario.vel.x = 10;
+go.distance = 7;
+jump.ready = 1;
+animationClock.animationState = 'skid';
+animationClock.animationStateTime = 0.11;
+assertEqual(draw(), 'skid-3', 'Skid animation advances through source frames');
+
+go.dir = 1;
+mario.vel.x = 0;
+go.distance = 0;
+(mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0.1;
+animationClock.animationState = 'throw';
+animationClock.animationStateTime = 1;
+assertEqual(draw(), 'throw-5', 'Throw animation holds its terminal source frame');
+
 killable.dead = true;
 killable.deadTime = 0;
 assertEqual(draw(), 'reaction-stunned', 'Initial reaction frame');
@@ -110,8 +157,8 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    21,
-    'The complete temporary player frame catalogue remains explicit',
+    51,
+    'The expanded HD player frame catalogue remains explicit',
 );
 
-console.log('Expanded temporary player animation regression passed');
+console.log('Expanded Spelunky HD player animation regression passed');

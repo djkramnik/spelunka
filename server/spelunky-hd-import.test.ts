@@ -253,11 +253,11 @@ try {
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 160]);
+    assert.deepEqual([generated.width, generated.height], [400, 560]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 21);
-    const jump = spec.frames.find(frame => frame.name === 'jump');
+    assert.equal(spec.frames.length, 51);
+    const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
     const [jumpX, jumpY] = jump.rect;
@@ -266,6 +266,41 @@ try {
         [...generated.data.subarray(jumpPixel, jumpPixel + 4)],
         [111, 222, 144, 111],
         'RGBA values, including partial alpha, survive the crop and repack',
+    );
+    const animation = (name: string) => {
+        const result = spec.animations.find(candidate => candidate.name === name);
+        assert.ok(result, `Missing generated player animation ${name}`);
+        return result;
+    };
+    assert.deepEqual(
+        animation('walk'),
+        {
+            name: 'walk',
+            frameLen: 3,
+            frames: Array.from({length: 8}, (_, index) => `walk-${index + 1}`),
+            loop: true,
+        },
+        'Movement uses all eight HD source frames over the existing stride distance',
+    );
+    assert.deepEqual(
+        animation('jump'),
+        {
+            name: 'jump',
+            frameLen: 0.05,
+            frames: ['jump-1', 'jump-2', 'jump-3', 'jump-4'],
+            loop: false,
+        },
+        'Rising animation uses the complete non-looping HD source record',
+    );
+    assert.deepEqual(
+        animation('throw'),
+        {
+            name: 'throw',
+            frameLen: 4 / 60,
+            frames: ['throw-1', 'throw-2', 'throw-3', 'throw-4', 'throw-5'],
+            loop: false,
+        },
+        'Throw animation uses the complete non-looping HD source record',
     );
 
     const copiedPlayer = readFileSync(join(

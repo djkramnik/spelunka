@@ -1,7 +1,31 @@
 import {readFileSync} from 'node:fs';
-import {PLAYER_FRAME_NAMES} from '../src/entities/Mario.js';
 import {SpriteSheetSchema} from '../src/loaders/schemas.js';
 import {OUTPUT_SCALE} from '../src/Renderer.js';
+
+const LEGACY_FRAME_NAMES = [
+    'idle',
+    'walk-1',
+    'walk-2',
+    'walk-3',
+    'run-1',
+    'run-2',
+    'run-3',
+    'run-4',
+    'break',
+    'skid',
+    'jump',
+    'fall',
+    'carry-idle',
+    'carry-run-1',
+    'carry-run-2',
+    'carry-run-3',
+    'carry-run-4',
+    'carry-jump',
+    'carry-fall',
+    'throw',
+    'reaction-stunned',
+    'reaction-dead',
+] as const;
 
 function assertEqual<Value>(
     actual: Value,
@@ -32,12 +56,12 @@ assertEqual(
 
 const frames = new Map(spec.frames.map(frame => [frame.name, frame]));
 assertEqual(
-    PLAYER_FRAME_NAMES.filter(name => !frames.has(name)),
+    LEGACY_FRAME_NAMES.filter(name => !frames.has(name)),
     [],
-    'Every routed player frame has artwork',
+    'Every declared legacy player frame has artwork',
 );
 
-for (const name of PLAYER_FRAME_NAMES) {
+for (const name of LEGACY_FRAME_NAMES) {
     const frame = frames.get(name);
     if (!frame) {
         throw new Error(`Missing validated frame: ${name}`);
@@ -73,4 +97,4 @@ assertEqual(
     'Run loop frames',
 );
 
-console.log('Spelunker sprite sheet metadata and frame catalogue passed');
+console.log('Legacy Spelunker sprite sheet metadata remains valid');
