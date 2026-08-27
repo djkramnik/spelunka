@@ -21,6 +21,19 @@ export async function loadSpriteSheet(name: string): Promise<SpriteSheet> {
         );
     });
 
+    sheetSpec.tileSets.forEach(tileSetSpec => {
+        const [width, height] = tileSetSpec.size;
+        for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+                sprites.defineTile(
+                    `${tileSetSpec.namePrefix}-${x}-${y}`,
+                    tileSetSpec.index[0] + x,
+                    tileSetSpec.index[1] + y,
+                );
+            }
+        }
+    });
+
     sheetSpec.frames.forEach(frameSpec => {
         sprites.define(
             frameSpec.name,

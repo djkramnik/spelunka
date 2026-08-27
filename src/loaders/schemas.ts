@@ -60,6 +60,12 @@ const SpriteTileSchema = z.object({
     index: z.tuple([CoordinateSchema, CoordinateSchema]),
 });
 
+const SpriteTileSetSchema = z.object({
+    namePrefix: NameSchema,
+    index: z.tuple([CoordinateSchema, CoordinateSchema]),
+    size: z.tuple([PositiveIntegerSchema, PositiveIntegerSchema]),
+});
+
 const SpriteFrameSchema = z.object({
     name: NameSchema,
     rect: z.tuple([
@@ -84,15 +90,16 @@ export const SpriteSheetSchema = z.object({
     tileW: PositiveNumberSchema.optional(),
     tileH: PositiveNumberSchema.optional(),
     tiles: z.array(SpriteTileSchema).default([]),
+    tileSets: z.array(SpriteTileSetSchema).default([]),
     frames: z.array(SpriteFrameSchema).default([]),
     animations: z.array(SpriteAnimationSchema).default([]),
 }).superRefine((sheet, context) => {
-    if (sheet.tiles.length > 0
+    if ((sheet.tiles.length > 0 || sheet.tileSets.length > 0)
         && (sheet.tileW === undefined || sheet.tileH === undefined)) {
         context.addIssue({
             code: 'custom',
             message: 'tileW and tileH are required when tiles are defined',
-            path: ['tiles'],
+            path: ['tileW'],
         });
     }
 });

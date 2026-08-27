@@ -90,8 +90,8 @@ function makeMonsterPng(): Buffer {
 
 function makeTerrainPng(): Buffer {
     const image = new PNG({
-        width: 128,
-        height: 192,
+        width: 512,
+        height: 512,
         colorType: 6,
         inputColorType: 6,
         bitDepth: 8,
@@ -103,6 +103,8 @@ function makeTerrainPng(): Buffer {
         [64, 64, [80, 90, 100, 110]],
         [0, 128, [120, 130, 140, 150]],
         [64, 128, [160, 170, 180, 190]],
+        [0, 256, [10, 20, 30, 40]],
+        [320, 0, [5, 15, 25, 35]],
     ] as const;
     for (const [cellX, cellY, color] of cells) {
         for (let y = 0; y < 64; y++) {
@@ -123,11 +125,33 @@ function makeTerrainPng(): Buffer {
 }
 
 function makeMineBackgroundJpeg(): Buffer {
-    const data = Buffer.alloc(64 * 64 * 4);
+    const data = Buffer.alloc(256 * 256 * 4);
     for (let offset = 0; offset < data.length; offset += 4) {
         data.set([24, 36, 48, 255], offset);
     }
-    return encodeJpeg({data, width: 64, height: 64}, 100).data;
+    return encodeJpeg({data, width: 256, height: 256}, 100).data;
+}
+
+function makeMineDecorationPng(): Buffer {
+    const image = new PNG({
+        width: 1024,
+        height: 512,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    image.data.fill(0);
+    image.data.set([12, 34, 56, 78], 0);
+    image.data.set([90, 80, 70, 60], (512 * 4));
+    return PNG.sync.write(image, {
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        filterType: 4,
+        deflateLevel: 9,
+        deflateStrategy: 3,
+    });
 }
 
 const animationText = [
@@ -152,15 +176,36 @@ assert.deepEqual(
     [64, 64, 0.25],
 );
 assert.deepEqual(
-    underworldSpec.tiles.map(tile => [tile.name, tile.index]),
+    underworldSpec.tileSets,
     [
-        ['ground', [0, 0]],
-        ['ground-1', [0, 0]],
-        ['ground-2', [1, 0]],
-        ['ground-3', [2, 0]],
-        ['ground-4', [3, 0]],
-        ['sky', [4, 0]],
+        {namePrefix: 'sky-fill', index: [8, 0], size: [4, 4]},
+        {namePrefix: 'sky-decor', index: [12, 0], size: [20, 12]},
     ],
+    'underworld metadata defines the opaque fill and viewport-sized decoration grids',
+);
+assert.deepEqual(
+    underworldSpec.tiles.slice(0, 6).map(tile => [tile.name, tile.index]),
+    [
+        ['ground', [0, 1]],
+        ['ground-1', [0, 1]],
+        ['ground-2', [1, 1]],
+        ['ground-3', [0, 2]],
+        ['ground-4', [1, 2]],
+        ['sky', [8, 0]],
+    ],
+);
+assert.deepEqual(
+    ['ground-2x2-1-top-left', 'ground-edge-top-1', 'ground-edge-left']
+        .map(name => {
+            const definition = underworldSpec.tiles.find(tile => tile.name === name);
+            return [definition?.name, definition?.index];
+        }),
+    [
+        ['ground-2x2-1-top-left', [0, 4]],
+        ['ground-edge-top-1', [5, 0]],
+        ['ground-edge-left', [7, 2]],
+    ],
+    'underworld metadata exposes connected chunks and transparent edge decals',
 );
 
 const root = mkdtempSync(join(tmpdir(), 'spelunka-hd-import-test-'));
@@ -204,7 +249,7 @@ try {
         {group: 'MONSTERS', name: 'monsters.png', data: makeMonsterPng()},
         {group: 'ALLTILES', name: 'alltiles.png', data: makeTerrainPng()},
         {group: 'ALLTILES', name: 'alltilesN.jpg', data: Buffer.from('normal fixture')},
-        {group: 'MINE', name: 'minesmallbg.png', data: Buffer.from('decoration fixture')},
+        {group: 'MINE', name: 'minesmallbg.png', data: makeMineDecorationPng()},
         {group: 'MINE', name: 'minebg.jpg', data: makeMineBackgroundJpeg()},
     ] as const;
 
@@ -335,7 +380,7 @@ try {
     );
 
     const terrainImage = PNG.sync.read(firstTerrainImage);
-    assert.deepEqual([terrainImage.width, terrainImage.height], [320, 64]);
+    assert.deepEqual([terrainImage.width, terrainImage.height], [2048, 768]);
     const expectedGroundColors = [
         [40, 50, 60, 70],
         [80, 90, 100, 110],
@@ -343,17 +388,53 @@ try {
         [160, 170, 180, 190],
     ];
     assert.deepEqual(
-        expectedGroundColors.map((_, index) => {
-            const offset = (index * 64) * 4;
+        ([[0, 64], [64, 64], [0, 128], [64, 128]] as const).map(([x, y]) => {
+            const offset = (y * terrainImage.width + x) * 4;
             return [...terrainImage.data.subarray(offset, offset + 4)];
         }),
         expectedGroundColors,
         'All four Mines earth variants preserve source RGBA pixels',
     );
     assert.deepEqual(
-        [...terrainImage.data.subarray(256 * 4, 256 * 4 + 4)],
+        [...terrainImage.data.subarray(512 * 4, 512 * 4 + 4)],
         [24, 36, 48, 255],
         'Opaque Mines JPEG fill is decoded into the terrain sheet',
+    );
+    const chunkPixel = (256 * terrainImage.width) * 4;
+    assert.deepEqual(
+        [...terrainImage.data.subarray(chunkPixel, chunkPixel + 4)],
+        [10, 20, 30, 40],
+        'Connected terrain chunk pixels preserve partial alpha',
+    );
+    const edgePixel = 320 * 4;
+    assert.deepEqual(
+        [...terrainImage.data.subarray(edgePixel, edgePixel + 4)],
+        [5, 15, 25, 35],
+        'Rocky edge pixels preserve partial alpha',
+    );
+    const decorationPixel = (64 * terrainImage.width + 768 + 64) * 4;
+    assert.deepEqual(
+        [...terrainImage.data.subarray(decorationPixel, decorationPixel + 4)],
+        [12, 34, 56, 78],
+        'Transparent Mines decorations preserve source RGBA in the assembly',
+    );
+    const secondDecorationPixel = (64 * terrainImage.width + 768 + 512) * 4;
+    assert.deepEqual(
+        [...terrainImage.data.subarray(
+            secondDecorationPixel,
+            secondDecorationPixel + 4,
+        )],
+        [90, 80, 70, 60],
+        'Multiple selected decoration crops retain partial alpha',
+    );
+    const emptyDecorationPixel = (32 * terrainImage.width + 768 + 32) * 4;
+    assert.deepEqual(
+        [...terrainImage.data.subarray(
+            emptyDecorationPixel,
+            emptyDecorationPixel + 4,
+        )],
+        [0, 0, 0, 0],
+        'Empty assembly cells stay transparent above the opaque fill layer',
     );
 
     await importSpelunkyHd({sourceRoot, outputRoot, profile});

@@ -44,8 +44,11 @@ All outputs are ignored by Git:
   sheet containing two movement cells and one defeated fallback; and
 - `public/sprites/generated/spelunky-hd/snake.json` maps that sheet to the
   existing enemy loader's `walk-1`, `walk-2`, and `flat` states; and
-- `public/generated/spelunky-hd/mines.png` contains four native-resolution
-  64x64 Mines earth blocks plus one opaque 64x64 Mines background tile.
+- `public/generated/spelunky-hd/mines.png` is a deterministic 2048x768 RGBA
+  sheet containing the upper-left 512x512 Mines terrain region, the full
+  256x256 opaque Mines fill, and a transparent 1280x768 background-decoration
+  assembly. The terrain region includes standalone blocks, connected chunks,
+  and transparent rocky edge decals.
 
 The generated player metadata is loadable with:
 

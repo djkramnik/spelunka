@@ -65,21 +65,30 @@ const OUTPUT_COLUMNS = 5;
 const PLAYER_PIVOT = [40, 72] as const;
 const ENEMY_PIVOT = [40, 72] as const;
 const TERRAIN_CELL_SIZE = 64;
+const MINE_TERRAIN_SIZE = 512;
+const MINE_BACKGROUND_FILL_SIZE = 256;
+const MINE_BACKGROUND_COLUMNS = 20;
+const MINE_BACKGROUND_ROWS = 12;
+const MINE_BACKGROUND_WIDTH = MINE_BACKGROUND_COLUMNS * TERRAIN_CELL_SIZE;
+const MINE_BACKGROUND_HEIGHT = MINE_BACKGROUND_ROWS * TERRAIN_CELL_SIZE;
+const MINE_FILL_OUTPUT_X = MINE_TERRAIN_SIZE;
+const MINE_DECOR_OUTPUT_X = MINE_FILL_OUTPUT_X + MINE_BACKGROUND_FILL_SIZE;
 const HD_TICK_SECONDS = 1 / 60;
 const MOVEMENT_FRAME_DISTANCE = 3;
-
-const MINE_GROUND_SOURCES = [
-    [0, 64],
-    [64, 64],
-    [0, 128],
-    [64, 128],
-] as const;
 
 const MOVEMENT_SOURCE_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const SKID_SOURCE_FRAMES = [36, 37, 38, 39, 40, 41, 42, 43] as const;
 const JUMP_SOURCE_FRAMES = [108, 109, 110, 111] as const;
 const FALL_SOURCE_FRAMES = [112, 113, 114, 115] as const;
 const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
+
+const MINE_BACKGROUND_DECORATIONS = [
+    {source: [0, 0], destination: [64, 64]},
+    {source: [512, 0], destination: [512, 64]},
+    {source: [768, 0], destination: [960, 64]},
+    {source: [512, 256], destination: [256, 448]},
+    {source: [768, 256], destination: [768, 448]},
+] as const;
 
 function namedFrames(
     prefix: string,
@@ -560,17 +569,12 @@ function createEnemyAssets(sourceData: Buffer): {
 function createTerrainImage(
     terrainSourceData: Buffer,
     backgroundSourceData: Buffer,
+    decorationSourceData: Buffer,
 ): Buffer {
     const terrain = PNG.sync.read(terrainSourceData, {skipRescale: true});
-    const requiredWidth = Math.max(
-        ...MINE_GROUND_SOURCES.map(([x]) => x + TERRAIN_CELL_SIZE),
-    );
-    const requiredHeight = Math.max(
-        ...MINE_GROUND_SOURCES.map(([, y]) => y + TERRAIN_CELL_SIZE),
-    );
-    if (terrain.width < requiredWidth || terrain.height < requiredHeight) {
+    if (terrain.width < MINE_TERRAIN_SIZE || terrain.height < MINE_TERRAIN_SIZE) {
         throw new Error(
-            `Unsupported terrain atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${terrain.width}x${terrain.height}`,
+            `Unsupported terrain atlas dimensions: expected at least ${MINE_TERRAIN_SIZE}x${MINE_TERRAIN_SIZE}, got ${terrain.width}x${terrain.height}`,
         );
     }
 
@@ -579,17 +583,24 @@ function createTerrainImage(
         formatAsRGBA: true,
     });
     if (
-        background.width < TERRAIN_CELL_SIZE
-        || background.height < TERRAIN_CELL_SIZE
+        background.width < MINE_BACKGROUND_FILL_SIZE
+        || background.height < MINE_BACKGROUND_FILL_SIZE
     ) {
         throw new Error(
-            `Unsupported Mines background dimensions: expected at least ${TERRAIN_CELL_SIZE}x${TERRAIN_CELL_SIZE}, got ${background.width}x${background.height}`,
+            `Unsupported Mines background dimensions: expected at least ${MINE_BACKGROUND_FILL_SIZE}x${MINE_BACKGROUND_FILL_SIZE}, got ${background.width}x${background.height}`,
+        );
+    }
+
+    const decoration = PNG.sync.read(decorationSourceData, {skipRescale: true});
+    if (decoration.width < 1024 || decoration.height < 512) {
+        throw new Error(
+            `Unsupported Mines decoration dimensions: expected at least 1024x512, got ${decoration.width}x${decoration.height}`,
         );
     }
 
     const output = new PNG({
-        width: (MINE_GROUND_SOURCES.length + 1) * TERRAIN_CELL_SIZE,
-        height: TERRAIN_CELL_SIZE,
+        width: MINE_DECOR_OUTPUT_X + MINE_BACKGROUND_WIDTH,
+        height: MINE_BACKGROUND_HEIGHT,
         colorType: 6,
         inputColorType: 6,
         bitDepth: 8,
@@ -597,29 +608,39 @@ function createTerrainImage(
     });
     output.data.fill(0);
 
-    MINE_GROUND_SOURCES.forEach(([sourceX, sourceY], outputIndex) => {
-        PNG.bitblt(
-            terrain,
-            output,
-            sourceX,
-            sourceY,
-            TERRAIN_CELL_SIZE,
-            TERRAIN_CELL_SIZE,
-            outputIndex * TERRAIN_CELL_SIZE,
-            0,
-        );
-    });
+    PNG.bitblt(
+        terrain,
+        output,
+        0,
+        0,
+        MINE_TERRAIN_SIZE,
+        MINE_TERRAIN_SIZE,
+        0,
+        0,
+    );
 
-    const backgroundOutputX = MINE_GROUND_SOURCES.length * TERRAIN_CELL_SIZE;
-    for (let y = 0; y < TERRAIN_CELL_SIZE; y++) {
+    for (let y = 0; y < MINE_BACKGROUND_FILL_SIZE; y++) {
         const sourceStart = y * background.width * 4;
-        const sourceEnd = sourceStart + TERRAIN_CELL_SIZE * 4;
-        const outputStart = (y * output.width + backgroundOutputX) * 4;
+        const sourceEnd = sourceStart + MINE_BACKGROUND_FILL_SIZE * 4;
+        const outputStart = (y * output.width + MINE_FILL_OUTPUT_X) * 4;
         output.data.set(
             background.data.subarray(sourceStart, sourceEnd),
             outputStart,
         );
     }
+
+    MINE_BACKGROUND_DECORATIONS.forEach(({source, destination}) => {
+        PNG.bitblt(
+            decoration,
+            output,
+            source[0],
+            source[1],
+            256,
+            256,
+            MINE_DECOR_OUTPUT_X + destination[0],
+            destination[1],
+        );
+    });
 
     return PNG.sync.write(output, {
         colorType: 6,
@@ -769,9 +790,16 @@ export async function importSpelunkyHd(
     if (backgroundSource === undefined) {
         throw new Error('Import profile does not contain MINE/minebg.jpg');
     }
+    const decorationSource = selected.find(
+        entry => entry.key === 'MINE/minesmallbg.png',
+    );
+    if (decorationSource === undefined) {
+        throw new Error('Import profile does not contain MINE/minesmallbg.png');
+    }
     const terrainImage = createTerrainImage(
         terrainSource.data,
         backgroundSource.data,
+        decorationSource.data,
     );
     const terrainImagePath = join(
         outputRoot,

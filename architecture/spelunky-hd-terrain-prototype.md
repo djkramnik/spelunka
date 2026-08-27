@@ -2,6 +2,13 @@
 
 Beads task: `spelunka-erb.4`
 
+This document records the initial standalone-block prototype. The current
+neighbor-aware terrain and rocky border composition added by `spelunka-erb.7`
+is documented in
+[`spelunky-hd-terrain-borders.md`](./spelunky-hd-terrain-borders.md). The
+viewport-sized background added by `spelunka-erb.8` is documented in
+[`spelunky-hd-background-assembly.md`](./spelunky-hd-background-assembly.md).
+
 The normal `underworld` sprite sheet now uses Spelunky HD Mines artwork with no
 runtime flag. The one-time importer writes
 `public/generated/spelunky-hd/mines.png`; the tracked metadata in

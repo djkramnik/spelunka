@@ -4,30 +4,167 @@
     "tileW": 64,
     "tileH": 64,
 
+    "tileSets": [
+        {
+            "namePrefix": "sky-fill",
+            "index": [8, 0],
+            "size": [4, 4]
+        },
+        {
+            "namePrefix": "sky-decor",
+            "index": [12, 0],
+            "size": [20, 12]
+        }
+    ],
+
     "tiles": [
         {
             "name": "ground",
-            "index": [0, 0]
+            "index": [0, 1]
         },
         {
             "name": "ground-1",
-            "index": [0, 0]
+            "index": [0, 1]
         },
         {
             "name": "ground-2",
-            "index": [1, 0]
+            "index": [1, 1]
         },
         {
             "name": "ground-3",
-            "index": [2, 0]
+            "index": [0, 2]
         },
         {
             "name": "ground-4",
-            "index": [3, 0]
+            "index": [1, 2]
         },
         {
             "name": "sky",
-            "index": [4, 0]
+            "index": [8, 0]
+        },
+        {
+            "name": "ground-2x1-1-left",
+            "index": [0, 3]
+        },
+        {
+            "name": "ground-2x1-1-right",
+            "index": [1, 3]
+        },
+        {
+            "name": "ground-2x1-2-left",
+            "index": [2, 3]
+        },
+        {
+            "name": "ground-2x1-2-right",
+            "index": [3, 3]
+        },
+        {
+            "name": "ground-1x2-1-top",
+            "index": [2, 1]
+        },
+        {
+            "name": "ground-1x2-1-bottom",
+            "index": [2, 2]
+        },
+        {
+            "name": "ground-1x2-2-top",
+            "index": [3, 1]
+        },
+        {
+            "name": "ground-1x2-2-bottom",
+            "index": [3, 2]
+        },
+        {
+            "name": "ground-2x2-1-top-left",
+            "index": [0, 4]
+        },
+        {
+            "name": "ground-2x2-1-top-right",
+            "index": [1, 4]
+        },
+        {
+            "name": "ground-2x2-1-bottom-left",
+            "index": [0, 5]
+        },
+        {
+            "name": "ground-2x2-1-bottom-right",
+            "index": [1, 5]
+        },
+        {
+            "name": "ground-2x2-2-top-left",
+            "index": [2, 4]
+        },
+        {
+            "name": "ground-2x2-2-top-right",
+            "index": [3, 4]
+        },
+        {
+            "name": "ground-2x2-2-bottom-left",
+            "index": [2, 5]
+        },
+        {
+            "name": "ground-2x2-2-bottom-right",
+            "index": [3, 5]
+        },
+        {
+            "name": "ground-2x2-3-top-left",
+            "index": [0, 6]
+        },
+        {
+            "name": "ground-2x2-3-top-right",
+            "index": [1, 6]
+        },
+        {
+            "name": "ground-2x2-3-bottom-left",
+            "index": [0, 7]
+        },
+        {
+            "name": "ground-2x2-3-bottom-right",
+            "index": [1, 7]
+        },
+        {
+            "name": "ground-2x2-4-top-left",
+            "index": [2, 6]
+        },
+        {
+            "name": "ground-2x2-4-top-right",
+            "index": [3, 6]
+        },
+        {
+            "name": "ground-2x2-4-bottom-left",
+            "index": [2, 7]
+        },
+        {
+            "name": "ground-2x2-4-bottom-right",
+            "index": [3, 7]
+        },
+        {
+            "name": "ground-edge-top-1",
+            "index": [5, 0]
+        },
+        {
+            "name": "ground-edge-top-2",
+            "index": [6, 0]
+        },
+        {
+            "name": "ground-edge-top-3",
+            "index": [7, 0]
+        },
+        {
+            "name": "ground-edge-bottom-1",
+            "index": [5, 1]
+        },
+        {
+            "name": "ground-edge-bottom-2",
+            "index": [6, 1]
+        },
+        {
+            "name": "ground-edge-left",
+            "index": [7, 2]
+        },
+        {
+            "name": "ground-edge-right",
+            "index": [7, 1]
         }
     ]
 }
