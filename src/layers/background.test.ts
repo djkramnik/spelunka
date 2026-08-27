@@ -3,6 +3,7 @@ import Level from '../Level.js';
 import type {NamedTileSpec} from '../loaders/schemas.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import {Matrix} from '../math.js';
+import {OUTPUT_SCALE} from '../Renderer.js';
 import {createBackgroundLayer} from './background.js';
 
 function assertEqual<Value>(
@@ -17,7 +18,12 @@ function assertEqual<Value>(
 
 const tileDraws: Array<{name: string; x: number; y: number}> = [];
 const screenDraws: Array<{x: number; y: number}> = [];
+const bufferTransforms: number[][] = [];
 const bufferContext = {
+    imageSmoothingEnabled: true,
+    setTransform: (...values: number[]): void => {
+        bufferTransforms.push(values);
+    },
     clearRect: (): void => {},
 } as unknown as CanvasRenderingContext2D;
 const buffer = {
@@ -36,6 +42,12 @@ Object.defineProperty(globalThis, 'document', {
 
 try {
     const sprites = {
+        tiles: new Map([
+            ['ground-1', {}],
+            ['ground-2', {}],
+            ['ground-3', {}],
+            ['ground-4', {}],
+        ]),
         animations: new Map<string, unknown>(),
         drawAnim: (): void => {},
         drawTile: (name: string, _context: CanvasRenderingContext2D, x: number, y: number): void => {
@@ -57,6 +69,7 @@ try {
     tiles.set(0, 14, tile('view-top'));
     tiles.set(0, 25, tile('view-bottom-buffer'));
     tiles.set(0, 26, tile('below-view'));
+    tiles.set(1, 14, tile('ground'));
 
     const level = new Level();
     const camera = new Camera();
@@ -67,9 +80,24 @@ try {
     assertEqual(tileDraws, [
         {name: 'view-top', x: 0, y: 0},
         {name: 'view-bottom-buffer', x: 0, y: 11},
+        {name: 'ground-4', x: 1, y: 0},
     ], 'Camera-relative tile rows');
     assertEqual(screenDraws, [{x: 0, y: -8}], 'Sub-tile camera offset');
-    assertEqual([buffer.width, buffer.height], [336, 196], 'Background buffer size');
+    assertEqual(
+        [buffer.width, buffer.height],
+        [336 * OUTPUT_SCALE, 196 * OUTPUT_SCALE],
+        'Background buffer retains native HD pixels',
+    );
+    assertEqual(
+        bufferTransforms,
+        [[OUTPUT_SCALE, 0, 0, OUTPUT_SCALE, 0, 0]],
+        'Background tiles render at output scale',
+    );
+    assertEqual(
+        bufferContext.imageSmoothingEnabled,
+        false,
+        'Background scaling remains crisp',
+    );
 } finally {
     if (originalDocument) {
         Object.defineProperty(globalThis, 'document', originalDocument);

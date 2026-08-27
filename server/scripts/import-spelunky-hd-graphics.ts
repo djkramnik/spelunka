@@ -73,6 +73,7 @@ async function main(): Promise<void> {
         console.log(`Player metadata: ${result.playerSpecPath}`);
         console.log(`Enemy PNG: ${result.enemyImagePath}`);
         console.log(`Enemy metadata: ${result.enemySpecPath}`);
+        console.log(`Mines terrain PNG: ${result.terrainImagePath}`);
         console.log(`Import report: ${result.reportPath}`);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

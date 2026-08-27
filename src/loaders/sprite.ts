@@ -6,7 +6,12 @@ import {SpriteSheetSchema} from './schemas.js';
 export async function loadSpriteSheet(name: string): Promise<SpriteSheet> {
     const sheetSpec = await loadJSON(`/sprites/${name}.json`, SpriteSheetSchema);
     const image = await loadImage(sheetSpec.imageURL);
-    const sprites = new SpriteSheet(image, sheetSpec.tileW, sheetSpec.tileH);
+    const sprites = new SpriteSheet(
+        image,
+        sheetSpec.tileW,
+        sheetSpec.tileH,
+        sheetSpec.frameScale,
+    );
 
     sheetSpec.tiles.forEach(tileSpec => {
         sprites.defineTile(

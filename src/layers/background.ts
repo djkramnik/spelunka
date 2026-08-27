@@ -4,8 +4,33 @@ import type {RenderLayer} from '../Compositor.js';
 import type Level from '../Level.js';
 import type {NamedTileSpec} from '../loaders/schemas.js';
 import {Matrix} from '../math.js';
+import {OUTPUT_SCALE} from '../Renderer.js';
 import SpriteSheet from '../SpriteSheet.js';
 import TileResolver from '../TileResolver.js';
+
+const GROUND_VARIANTS = [
+    'ground-1',
+    'ground-2',
+    'ground-3',
+    'ground-4',
+] as const;
+
+export function selectBackgroundTileName(
+    name: string,
+    x: number,
+    y: number,
+    sprites: SpriteSheet,
+): string {
+    if (
+        name !== 'ground'
+        || !GROUND_VARIANTS.every(variant => sprites.tiles.has(variant))
+    ) {
+        return name;
+    }
+
+    const index = Math.abs(x + y * 3) % GROUND_VARIANTS.length;
+    return GROUND_VARIANTS[index] ?? name;
+}
 
 export function createBackgroundLayer(
     level: Level,
@@ -13,14 +38,18 @@ export function createBackgroundLayer(
     sprites: SpriteSheet,
 ): RenderLayer<Camera> {
     const resolver = new TileResolver(tiles);
+    const bufferWidth = VIEWPORT_WIDTH + resolver.tileSize;
+    const bufferHeight = VIEWPORT_HEIGHT + resolver.tileSize;
     const buffer = document.createElement('canvas');
-    buffer.width = VIEWPORT_WIDTH + resolver.tileSize;
-    buffer.height = VIEWPORT_HEIGHT + resolver.tileSize;
+    buffer.width = bufferWidth * OUTPUT_SCALE;
+    buffer.height = bufferHeight * OUTPUT_SCALE;
 
     const bufferContext = buffer.getContext('2d');
     if (!bufferContext) {
         throw new Error('Unable to create background buffer context');
     }
+    bufferContext.imageSmoothingEnabled = false;
+    bufferContext.setTransform(OUTPUT_SCALE, 0, 0, OUTPUT_SCALE, 0, 0);
 
     const redraw = (
         startX: number,
@@ -28,7 +57,7 @@ export function createBackgroundLayer(
         startY: number,
         endY: number,
     ): void => {
-        bufferContext.clearRect(0, 0, buffer.width, buffer.height);
+        bufferContext.clearRect(0, 0, bufferWidth, bufferHeight);
 
         for (let x = startX; x <= endX; ++x) {
             for (let y = startY; y <= endY; ++y) {
@@ -36,9 +65,15 @@ export function createBackgroundLayer(
                 if (!tile) {
                     continue;
                 }
-                if (sprites.animations.has(tile.name)) {
+                const tileName = selectBackgroundTileName(
+                    tile.name,
+                    x,
+                    y,
+                    sprites,
+                );
+                if (sprites.animations.has(tileName)) {
                     sprites.drawAnim(
-                        tile.name,
+                        tileName,
                         bufferContext,
                         x - startX,
                         y - startY,
@@ -46,7 +81,7 @@ export function createBackgroundLayer(
                     );
                 } else {
                     sprites.drawTile(
-                        tile.name,
+                        tileName,
                         bufferContext,
                         x - startX,
                         y - startY,
@@ -70,6 +105,8 @@ export function createBackgroundLayer(
             buffer,
             Math.floor(-view.pos.x % resolver.tileSize),
             Math.floor(-view.pos.y % resolver.tileSize),
+            bufferWidth,
+            bufferHeight,
         );
     };
 }

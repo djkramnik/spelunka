@@ -19,6 +19,7 @@ export default class SpriteSheet {
         private readonly image: CanvasImageSource,
         readonly width?: number,
         readonly height?: number,
+        private readonly tileScale = 1,
     ) {}
 
     defineAnim(name: string, animation: Animation): void {
@@ -95,6 +96,8 @@ export default class SpriteSheet {
             y * this.height,
             this.width,
             this.height,
+            undefined,
+            this.tileScale,
         );
     }
 
@@ -161,7 +164,12 @@ export default class SpriteSheet {
         y: number,
     ): void {
         this.assertTileSize();
-        this.draw(name, context, x * this.width, y * this.height);
+        this.draw(
+            name,
+            context,
+            x * this.width * this.tileScale,
+            y * this.height * this.tileScale,
+        );
     }
 
     private assertTileSize(): asserts this is this & {

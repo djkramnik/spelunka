@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
+import {encode as encodeJpeg} from 'jpeg-js';
 import {PNG} from 'pngjs';
 import {SpriteSheetSchema} from '../src/loaders/schemas.js';
 import {
@@ -87,6 +88,48 @@ function makeMonsterPng(): Buffer {
     });
 }
 
+function makeTerrainPng(): Buffer {
+    const image = new PNG({
+        width: 128,
+        height: 192,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    image.data.fill(0);
+    const cells = [
+        [0, 64, [40, 50, 60, 70]],
+        [64, 64, [80, 90, 100, 110]],
+        [0, 128, [120, 130, 140, 150]],
+        [64, 128, [160, 170, 180, 190]],
+    ] as const;
+    for (const [cellX, cellY, color] of cells) {
+        for (let y = 0; y < 64; y++) {
+            for (let x = 0; x < 64; x++) {
+                const offset = ((cellY + y) * image.width + cellX + x) * 4;
+                image.data.set(color, offset);
+            }
+        }
+    }
+    return PNG.sync.write(image, {
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        filterType: 4,
+        deflateLevel: 9,
+        deflateStrategy: 3,
+    });
+}
+
+function makeMineBackgroundJpeg(): Buffer {
+    const data = Buffer.alloc(64 * 64 * 4);
+    for (let offset = 0; offset < data.length; offset += 4) {
+        data.set([24, 36, 48, 255], offset);
+    }
+    return encodeJpeg({data, width: 64, height: 64}, 100).data;
+}
+
 const animationText = [
     '!',
     '* 0 0 0 1 0 0',
@@ -98,6 +141,27 @@ const animationText = [
     '* 18 36 43 4 36 0',
     '',
 ].join('\r\n');
+
+const underworldSpec = SpriteSheetSchema.parse(JSON.parse(readFileSync(
+    new URL('../public/sprites/underworld.json', import.meta.url),
+    'utf8',
+)));
+assert.equal(underworldSpec.imageURL, '/generated/spelunky-hd/mines.png');
+assert.deepEqual(
+    [underworldSpec.tileW, underworldSpec.tileH, underworldSpec.frameScale],
+    [64, 64, 0.25],
+);
+assert.deepEqual(
+    underworldSpec.tiles.map(tile => [tile.name, tile.index]),
+    [
+        ['ground', [0, 0]],
+        ['ground-1', [0, 0]],
+        ['ground-2', [1, 0]],
+        ['ground-3', [2, 0]],
+        ['ground-4', [3, 0]],
+        ['sky', [4, 0]],
+    ],
+);
 
 const root = mkdtempSync(join(tmpdir(), 'spelunka-hd-import-test-'));
 try {
@@ -138,10 +202,10 @@ try {
     const sourceEntries = [
         {group: 'PLAYERS', name: 'char_white.png', data: makePlayerPng()},
         {group: 'MONSTERS', name: 'monsters.png', data: makeMonsterPng()},
-        {group: 'ALLTILES', name: 'alltiles.png', data: Buffer.from('terrain fixture')},
+        {group: 'ALLTILES', name: 'alltiles.png', data: makeTerrainPng()},
         {group: 'ALLTILES', name: 'alltilesN.jpg', data: Buffer.from('normal fixture')},
         {group: 'MINE', name: 'minesmallbg.png', data: Buffer.from('decoration fixture')},
-        {group: 'MINE', name: 'minebg.jpg', data: Buffer.from('background fixture')},
+        {group: 'MINE', name: 'minebg.jpg', data: makeMineBackgroundJpeg()},
     ] as const;
 
     const wixLines: string[] = [];
@@ -185,6 +249,7 @@ try {
     const firstImage = readFileSync(result.playerImagePath);
     const firstSpec = readFileSync(result.playerSpecPath);
     const firstEnemySpec = readFileSync(result.enemySpecPath);
+    const firstTerrainImage = readFileSync(result.terrainImagePath);
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
@@ -234,11 +299,34 @@ try {
         'Enemy RGBA values survive the crop and repack',
     );
 
+    const terrainImage = PNG.sync.read(firstTerrainImage);
+    assert.deepEqual([terrainImage.width, terrainImage.height], [320, 64]);
+    const expectedGroundColors = [
+        [40, 50, 60, 70],
+        [80, 90, 100, 110],
+        [120, 130, 140, 150],
+        [160, 170, 180, 190],
+    ];
+    assert.deepEqual(
+        expectedGroundColors.map((_, index) => {
+            const offset = (index * 64) * 4;
+            return [...terrainImage.data.subarray(offset, offset + 4)];
+        }),
+        expectedGroundColors,
+        'All four Mines earth variants preserve source RGBA pixels',
+    );
+    assert.deepEqual(
+        [...terrainImage.data.subarray(256 * 4, 256 * 4 + 4)],
+        [24, 36, 48, 255],
+        'Opaque Mines JPEG fill is decoded into the terrain sheet',
+    );
+
     await importSpelunkyHd({sourceRoot, outputRoot, profile});
     assert.deepEqual(readFileSync(result.playerImagePath), firstImage);
     assert.deepEqual(readFileSync(result.playerSpecPath), firstSpec);
     assert.deepEqual(readFileSync(result.enemyImagePath), enemyImage);
     assert.deepEqual(readFileSync(result.enemySpecPath), firstEnemySpec);
+    assert.deepEqual(readFileSync(result.terrainImagePath), firstTerrainImage);
     assert.deepEqual(readFileSync(result.reportPath), firstReport);
 
     const badProfile: ImportProfile = {...profile, wadSha256: '0'.repeat(64)};

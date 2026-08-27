@@ -1,16 +1,33 @@
 {
-    "imageURL": "/img/tiles.png",
-    "tileW": 16,
-    "tileH": 16,
+    "imageURL": "/generated/spelunky-hd/mines.png",
+    "frameScale": 0.25,
+    "tileW": 64,
+    "tileH": 64,
 
     "tiles": [
         {
             "name": "ground",
-            "index": [0, 2]
+            "index": [0, 0]
+        },
+        {
+            "name": "ground-1",
+            "index": [0, 0]
+        },
+        {
+            "name": "ground-2",
+            "index": [1, 0]
+        },
+        {
+            "name": "ground-3",
+            "index": [2, 0]
+        },
+        {
+            "name": "ground-4",
+            "index": [3, 0]
         },
         {
             "name": "sky",
-            "index": [13, 3]
+            "index": [4, 0]
         }
     ]
 }

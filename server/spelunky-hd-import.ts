@@ -11,6 +11,7 @@ import {
     writeFileSync,
 } from 'node:fs';
 import {dirname, join, resolve} from 'node:path';
+import {decode as decodeJpeg} from 'jpeg-js';
 import {PNG} from 'pngjs';
 
 export interface WadEntry {
@@ -53,6 +54,7 @@ export interface ImportResult {
     readonly playerSpecPath: string;
     readonly enemyImagePath: string;
     readonly enemySpecPath: string;
+    readonly terrainImagePath: string;
     readonly reportPath: string;
 }
 
@@ -62,6 +64,14 @@ const PLAYER_COLUMNS = 12;
 const OUTPUT_COLUMNS = 5;
 const PLAYER_PIVOT = [40, 72] as const;
 const ENEMY_PIVOT = [40, 72] as const;
+const TERRAIN_CELL_SIZE = 64;
+
+const MINE_GROUND_SOURCES = [
+    [0, 64],
+    [64, 64],
+    [0, 128],
+    [64, 128],
+] as const;
 
 const PLAYER_FRAME_SOURCES = [
     ['idle', 0],
@@ -512,6 +522,80 @@ function createEnemyAssets(sourceData: Buffer): {
     };
 }
 
+function createTerrainImage(
+    terrainSourceData: Buffer,
+    backgroundSourceData: Buffer,
+): Buffer {
+    const terrain = PNG.sync.read(terrainSourceData, {skipRescale: true});
+    const requiredWidth = Math.max(
+        ...MINE_GROUND_SOURCES.map(([x]) => x + TERRAIN_CELL_SIZE),
+    );
+    const requiredHeight = Math.max(
+        ...MINE_GROUND_SOURCES.map(([, y]) => y + TERRAIN_CELL_SIZE),
+    );
+    if (terrain.width < requiredWidth || terrain.height < requiredHeight) {
+        throw new Error(
+            `Unsupported terrain atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${terrain.width}x${terrain.height}`,
+        );
+    }
+
+    const background = decodeJpeg(backgroundSourceData, {
+        useTArray: true,
+        formatAsRGBA: true,
+    });
+    if (
+        background.width < TERRAIN_CELL_SIZE
+        || background.height < TERRAIN_CELL_SIZE
+    ) {
+        throw new Error(
+            `Unsupported Mines background dimensions: expected at least ${TERRAIN_CELL_SIZE}x${TERRAIN_CELL_SIZE}, got ${background.width}x${background.height}`,
+        );
+    }
+
+    const output = new PNG({
+        width: (MINE_GROUND_SOURCES.length + 1) * TERRAIN_CELL_SIZE,
+        height: TERRAIN_CELL_SIZE,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    output.data.fill(0);
+
+    MINE_GROUND_SOURCES.forEach(([sourceX, sourceY], outputIndex) => {
+        PNG.bitblt(
+            terrain,
+            output,
+            sourceX,
+            sourceY,
+            TERRAIN_CELL_SIZE,
+            TERRAIN_CELL_SIZE,
+            outputIndex * TERRAIN_CELL_SIZE,
+            0,
+        );
+    });
+
+    const backgroundOutputX = MINE_GROUND_SOURCES.length * TERRAIN_CELL_SIZE;
+    for (let y = 0; y < TERRAIN_CELL_SIZE; y++) {
+        const sourceStart = y * background.width * 4;
+        const sourceEnd = sourceStart + TERRAIN_CELL_SIZE * 4;
+        const outputStart = (y * output.width + backgroundOutputX) * 4;
+        output.data.set(
+            background.data.subarray(sourceStart, sourceEnd),
+            outputStart,
+        );
+    }
+
+    return PNG.sync.write(output, {
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        filterType: 4,
+        deflateLevel: 9,
+        deflateStrategy: 3,
+    });
+}
+
 export async function importSpelunkyHd(
     options: ImportOptions,
 ): Promise<ImportResult> {
@@ -638,6 +722,32 @@ export async function importSpelunkyHd(
     writeFileSync(enemyImagePath, enemyAssets.png);
     writeDeterministicJson(enemySpecPath, enemyAssets.spec);
 
+    const terrainSource = selected.find(
+        entry => entry.key === 'ALLTILES/alltiles.png',
+    );
+    if (terrainSource === undefined) {
+        throw new Error('Import profile does not contain ALLTILES/alltiles.png');
+    }
+    const backgroundSource = selected.find(
+        entry => entry.key === 'MINE/minebg.jpg',
+    );
+    if (backgroundSource === undefined) {
+        throw new Error('Import profile does not contain MINE/minebg.jpg');
+    }
+    const terrainImage = createTerrainImage(
+        terrainSource.data,
+        backgroundSource.data,
+    );
+    const terrainImagePath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'mines.png',
+    );
+    ensureParent(terrainImagePath);
+    writeFileSync(terrainImagePath, terrainImage);
+
     const reportPath = join(
         outputRoot,
         '.local',
@@ -677,6 +787,10 @@ export async function importSpelunkyHd(
                 path: 'public/sprites/generated/spelunky-hd/snake.json',
                 sha256: await sha256File(enemySpecPath),
             },
+            {
+                path: 'public/generated/spelunky-hd/mines.png',
+                sha256: sha256(terrainImage),
+            },
         ],
     });
 
@@ -685,6 +799,7 @@ export async function importSpelunkyHd(
         playerSpecPath,
         enemyImagePath,
         enemySpecPath,
+        terrainImagePath,
         reportPath,
     };
 }

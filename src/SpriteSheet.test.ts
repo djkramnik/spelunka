@@ -49,10 +49,19 @@ try {
     sheet.drawFrame('large-player', context, 7, 16, true);
     sheet.draw('large-player', context, 3, 4);
 
+    const terrain = new SpriteSheet({} as CanvasImageSource, 64, 64, 0.25);
+    terrain.defineTile('earth', 1, 2);
+    terrain.drawTile('earth', context, 3, 4);
+
     assertEqual(
         draws,
-        [[2, 5, 16, 12], [-4, 5, 16, 12], [3, 4, 16, 12]],
-        'Scaled frames align to their pivot and preserve top-left drawing',
+        [
+            [2, 5, 16, 12],
+            [-4, 5, 16, 12],
+            [3, 4, 16, 12],
+            [48, 64, 16, 16],
+        ],
+        'Scaled frames and tiles preserve logical positions and dimensions',
     );
 } finally {
     if (originalDocument) {

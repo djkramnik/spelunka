@@ -43,7 +43,9 @@ All outputs are ignored by Git:
 - `public/generated/spelunky-hd/snake.png` is a deterministic 240x80 RGBA
   sheet containing two movement cells and one defeated fallback; and
 - `public/sprites/generated/spelunky-hd/snake.json` maps that sheet to the
-  existing enemy loader's `walk-1`, `walk-2`, and `flat` states.
+  existing enemy loader's `walk-1`, `walk-2`, and `flat` states; and
+- `public/generated/spelunky-hd/mines.png` contains four native-resolution
+  64x64 Mines earth blocks plus one opaque 64x64 Mines background tile.
 
 The generated player metadata is loadable with:
 
@@ -51,6 +53,10 @@ The generated player metadata is loadable with:
 await loadSpriteSheet('generated/spelunky-hd/player');
 await loadSpriteSheet('generated/spelunky-hd/snake');
 ```
+
+The tracked `underworld` sprite metadata loads the Mines sheet at
+`frameScale: 0.25`, so its 64-pixel cells align with the existing 16-pixel
+logical tile and 4x output scale without a runtime conversion.
 
 The output uses `frameScale: 0.25` and a `[40, 72]` bottom-centre pivot. Carry
 states initially reuse the matching idle, run, jump, and fall poses. That is a
