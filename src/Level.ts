@@ -11,6 +11,7 @@ import {TILE_SIZE} from './TileResolver.js';
 import {LOGICAL_HEIGHT, LOGICAL_WIDTH} from './Renderer.js';
 import {findPlayers} from './player.js';
 import {Vec2} from './math.js';
+import Crouch from './traits/Crouch.js';
 
 type LevelTrigger = LevelSpec['triggers'][number];
 
@@ -25,17 +26,26 @@ const VERTICAL_CAMERA_BOTTOM_MARGIN = TILE_SIZE;
 
 export function focusPlayer(level: Level): void {
     for (const player of findPlayers(level.entities)) {
-        level.camera.pos.x = player.pos.x - 100;
+        const crouch = player.traits.has(Crouch)
+            ? player.traits.get(Crouch)
+            : undefined;
+        const transitionOffset = crouch?.transitionAnchorActive
+            ? crouch.transitionOffset
+            : undefined;
+        const focusX = player.pos.x + (transitionOffset?.x ?? 0);
+        const focusTop = player.bounds.top + (transitionOffset?.y ?? 0);
+        const focusBottom = player.bounds.bottom + (transitionOffset?.y ?? 0);
+        level.camera.pos.x = focusX - 100;
 
         const cameraTop = level.camera.pos.y + VERTICAL_CAMERA_TOP_MARGIN;
         const cameraBottom = level.camera.pos.y
             + level.camera.size.y
             - VERTICAL_CAMERA_BOTTOM_MARGIN;
 
-        if (player.bounds.top < cameraTop) {
-            level.camera.pos.y = player.bounds.top - VERTICAL_CAMERA_TOP_MARGIN;
-        } else if (player.bounds.bottom > cameraBottom) {
-            level.camera.pos.y = player.bounds.bottom
+        if (focusTop < cameraTop) {
+            level.camera.pos.y = focusTop - VERTICAL_CAMERA_TOP_MARGIN;
+        } else if (focusBottom > cameraBottom) {
+            level.camera.pos.y = focusBottom
                 - level.camera.size.y
                 + VERTICAL_CAMERA_BOTTOM_MARGIN;
         }

@@ -76,7 +76,16 @@
         }
     ],
 
-    "entities": [],
+    "entities": [
+        {
+            "name": "snake",
+            "pos": [352, 64]
+        },
+        {
+            "name": "snake",
+            "pos": [464, 96]
+        }
+    ],
     "triggers": [
         {
             "type": "teleport",

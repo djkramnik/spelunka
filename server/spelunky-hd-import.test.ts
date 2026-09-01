@@ -69,7 +69,12 @@ function makeMonsterPng(): Buffer {
         fill: false,
     });
     image.data.fill(0);
-    for (const frame of [4, 7, 16]) {
+    const frames = [
+        0, 1, 2, 3,
+        4, 5, 6, 7, 8, 9, 10,
+        12, 13, 14, 15, 16, 17, 18,
+    ];
+    for (const frame of frames) {
         const x = (frame % 12) * 80 + 12;
         const y = Math.floor(frame / 12) * 80 + 13;
         const offset = (y * image.width + x) * 4;
@@ -162,7 +167,17 @@ const animationText = [
     '* 3 112 115 4 115 0',
     '* 8 54 58 4 58 0',
     '* 9 9 9 1 9 0',
+    '* 6 14 14 1 14 0',
+    '* 7 17 23 3 17 0',
+    '* 25 12 14 4 14 0',
+    '* 26 14 16 4 16 0',
     '* 18 36 43 4 36 0',
+    '* 12 44 47 4 47 0',
+    '* 19 28 34 4 34 0',
+    '!',
+    '* 0 0 3 10 0 1',
+    '* 1 4 10 6 4 0',
+    '* 17 12 18 4 18 0',
     '',
 ].join('\r\n');
 
@@ -298,10 +313,10 @@ try {
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 560]);
+    assert.deepEqual([generated.width, generated.height], [400, 880]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 51);
+    assert.equal(spec.frames.length, 83);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -347,6 +362,90 @@ try {
         },
         'Throw animation uses the complete non-looping HD source record',
     );
+    assert.deepEqual(
+        animation('crouch-enter'),
+        {
+            name: 'crouch-enter',
+            frameLen: 4 / 60,
+            frames: ['crouch-enter-1', 'crouch-enter-2', 'crouch-enter-3'],
+            loop: false,
+        },
+        'Crouch-in uses complete HD animation 25',
+    );
+    assert.deepEqual(
+        animation('crouch-exit'),
+        {
+            name: 'crouch-exit',
+            frameLen: 4 / 60,
+            frames: ['crouch-exit-1', 'crouch-exit-2', 'crouch-exit-3'],
+            loop: false,
+        },
+        'Crouch-out uses complete HD animation 26',
+    );
+    assert.deepEqual(
+        animation('crawl'),
+        {
+            name: 'crawl',
+            frameLen: 3 / 60,
+            frames: [
+                'crawl-1',
+                'crawl-2',
+                'crawl-3',
+                'crawl-4',
+                'crawl-5',
+                'crawl-6',
+                'crawl-7',
+            ],
+            loop: true,
+        },
+        'Crawl uses complete looping HD animation 7',
+    );
+    assert.deepEqual(
+        animation('ledge-flip'),
+        {
+            name: 'ledge-flip',
+            frameLen: 4 / 60,
+            frames: [
+                'ledge-flip-1',
+                'ledge-flip-2',
+                'ledge-flip-3',
+                'ledge-flip-4',
+                'ledge-flip-5',
+                'ledge-flip-6',
+                'ledge-flip-7',
+            ],
+            loop: false,
+        },
+        'Top-to-hang transition reverses the complete HD ledge-flip record',
+    );
+    assert.deepEqual(
+        animation('ledge-hang'),
+        {
+            name: 'ledge-hang',
+            frameLen: 4 / 60,
+            frames: ['ledge-hang-1', 'ledge-hang-2', 'ledge-hang-3', 'ledge-hang-4'],
+            loop: false,
+        },
+        'Ledge hang uses the complete HD ledge-grab record and holds its terminal pose',
+    );
+    assert.deepEqual(
+        animation('ledge-climb'),
+        {
+            name: 'ledge-climb',
+            frameLen: 4 / 60,
+            frames: [
+                'ledge-climb-1',
+                'ledge-climb-2',
+                'ledge-climb-3',
+                'ledge-climb-4',
+                'ledge-climb-5',
+                'ledge-climb-6',
+                'ledge-climb-7',
+            ],
+            loop: false,
+        },
+        'Ledge climb uses the complete HD ledge-flip record',
+    );
 
     const copiedPlayer = readFileSync(join(
         outputRoot,
@@ -360,23 +459,75 @@ try {
 
     const enemyImage = readFileSync(result.enemyImagePath);
     const enemy = PNG.sync.read(enemyImage);
-    assert.deepEqual([enemy.width, enemy.height], [240, 80]);
+    assert.deepEqual([enemy.width, enemy.height], [1440, 80]);
     const enemySpec = SpriteSheetSchema.parse(JSON.parse(
         readFileSync(result.enemySpecPath, 'utf8'),
     ));
+    const expectedEnemyFrames = [
+        ...Array.from({length: 4}, (_, index) => [
+            `idle-${index + 1}`,
+            [index * 80, 0, 80, 80],
+            [40, 72],
+        ]),
+        ...Array.from({length: 7}, (_, index) => [
+            `walk-${index + 1}`,
+            [(index + 4) * 80, 0, 80, 80],
+            [40, 72],
+        ]),
+        ...Array.from({length: 7}, (_, index) => [
+            `attack-${index + 1}`,
+            [(index + 11) * 80, 0, 80, 80],
+            [40, 72],
+        ]),
+        ['flat', [15 * 80, 0, 80, 80], [40, 72]],
+    ];
     assert.deepEqual(
         enemySpec.frames.map(frame => [frame.name, frame.rect, frame.pivot]),
-        [
-            ['walk-1', [0, 0, 80, 80], [40, 72]],
-            ['walk-2', [80, 0, 80, 80], [40, 72]],
-            ['flat', [160, 0, 80, 80], [40, 72]],
-        ],
+        expectedEnemyFrames,
+    );
+    const enemyAnimation = (name: string) => {
+        const result = enemySpec.animations.find(candidate => candidate.name === name);
+        assert.ok(result, `Missing generated snake animation ${name}`);
+        return result;
+    };
+    assert.deepEqual(
+        enemyAnimation('idle'),
+        {
+            name: 'idle',
+            frameLen: 10 / 60,
+            frames: ['idle-1', 'idle-2', 'idle-3', 'idle-4'],
+            loop: true,
+        },
+    );
+    assert.deepEqual(
+        enemyAnimation('walk'),
+        {
+            name: 'walk',
+            frameLen: 6 / 60,
+            frames: Array.from({length: 7}, (_, index) => `walk-${index + 1}`),
+            loop: true,
+        },
+    );
+    assert.deepEqual(
+        enemyAnimation('attack'),
+        {
+            name: 'attack',
+            frameLen: 4 / 60,
+            frames: Array.from({length: 7}, (_, index) => `attack-${index + 1}`),
+            loop: false,
+        },
     );
     const enemyPixel = (13 * enemy.width + 12) * 4;
     assert.deepEqual(
         [...enemy.data.subarray(enemyPixel, enemyPixel + 4)],
-        [4, 200, 100, 68],
-        'Enemy RGBA values survive the crop and repack',
+        [0, 200, 100, 64],
+        'Snake RGBA values, including partial alpha, survive the crop and repack',
+    );
+    const lastEnemyPixel = (13 * enemy.width + 17 * 80 + 12) * 4;
+    assert.deepEqual(
+        [...enemy.data.subarray(lastEnemyPixel, lastEnemyPixel + 4)],
+        [18, 200, 100, 82],
+        'The terminal HD attack frame is packed in source order',
     );
 
     const terrainImage = PNG.sync.read(firstTerrainImage);
@@ -449,6 +600,20 @@ try {
     await assert.rejects(
         importSpelunkyHd({sourceRoot, outputRoot, profile: badProfile}),
         /Unsupported Spelunky HD texture WAD/,
+    );
+
+    const unsupportedSnakeAnimations = animationText.replace(
+        '* 1 4 10 6 4 0',
+        '* 1 4 9 6 4 0',
+    );
+    write(animationsPath, unsupportedSnakeAnimations);
+    const badSnakeProfile: ImportProfile = {
+        ...profile,
+        animationsSha256: await sha256File(animationsPath),
+    };
+    await assert.rejects(
+        importSpelunkyHd({sourceRoot, outputRoot, profile: badSnakeProfile}),
+        /Unsupported snake animation 1/,
     );
 } finally {
     rmSync(root, {recursive: true, force: true});

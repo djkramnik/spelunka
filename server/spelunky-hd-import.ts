@@ -80,6 +80,12 @@ const MOVEMENT_SOURCE_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const SKID_SOURCE_FRAMES = [36, 37, 38, 39, 40, 41, 42, 43] as const;
 const JUMP_SOURCE_FRAMES = [108, 109, 110, 111] as const;
 const FALL_SOURCE_FRAMES = [112, 113, 114, 115] as const;
+const CROUCH_ENTER_SOURCE_FRAMES = [12, 13, 14] as const;
+const CROUCH_EXIT_SOURCE_FRAMES = [14, 15, 16] as const;
+const CRAWL_SOURCE_FRAMES = [17, 18, 19, 20, 21, 22, 23] as const;
+const LEDGE_HANG_SOURCE_FRAMES = [44, 45, 46, 47] as const;
+const LEDGE_CLIMB_SOURCE_FRAMES = [28, 29, 30, 31, 32, 33, 34] as const;
+const LEDGE_FLIP_SOURCE_FRAMES = [34, 33, 32, 31, 30, 29, 28] as const;
 const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
 
 const MINE_BACKGROUND_DECORATIONS = [
@@ -107,6 +113,13 @@ const PLAYER_FRAME_SOURCES = [
     ...namedFrames('skid', SKID_SOURCE_FRAMES),
     ...namedFrames('jump', JUMP_SOURCE_FRAMES),
     ...namedFrames('fall', FALL_SOURCE_FRAMES),
+    ...namedFrames('crouch-enter', CROUCH_ENTER_SOURCE_FRAMES),
+    ['crouch', 14] as const,
+    ...namedFrames('crouch-exit', CROUCH_EXIT_SOURCE_FRAMES),
+    ...namedFrames('crawl', CRAWL_SOURCE_FRAMES),
+    ...namedFrames('ledge-flip', LEDGE_FLIP_SOURCE_FRAMES),
+    ...namedFrames('ledge-hang', LEDGE_HANG_SOURCE_FRAMES),
+    ...namedFrames('ledge-climb', LEDGE_CLIMB_SOURCE_FRAMES),
     ['carry-idle', 0] as const,
     ...namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES),
     ['carry-jump', 111] as const,
@@ -116,10 +129,17 @@ const PLAYER_FRAME_SOURCES = [
     ['reaction-dead', 9],
 ] as const;
 
+const SNAKE_IDLE_SOURCE_FRAMES = [0, 1, 2, 3] as const;
+const SNAKE_WALK_SOURCE_FRAMES = [4, 5, 6, 7, 8, 9, 10] as const;
+const SNAKE_ATTACK_SOURCE_FRAMES = [12, 13, 14, 15, 16, 17, 18] as const;
+
 const ENEMY_FRAME_SOURCES = [
-    ['walk-1', 4],
-    ['walk-2', 7],
-    ['flat', 16],
+    ...namedFrames('idle', SNAKE_IDLE_SOURCE_FRAMES),
+    ...namedFrames('walk', SNAKE_WALK_SOURCE_FRAMES),
+    ...namedFrames('attack', SNAKE_ATTACK_SOURCE_FRAMES),
+    // The Goomba behavior still requests `flat` when defeated. Keep this
+    // temporary alias until the dedicated snake entity owns death rendering.
+    ['flat', 16] as const,
 ] as const;
 
 const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
@@ -129,7 +149,22 @@ const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [3, [112, 115]],
     [8, [54, 58]],
     [9, [9, 9]],
+    [6, [14, 14]],
+    [7, [17, 23]],
+    [25, [12, 14]],
+    [26, [14, 16]],
     [18, [36, 43]],
+    [12, [44, 47]],
+    [19, [28, 34]],
+]);
+
+const REQUIRED_SNAKE_ANIMATIONS = new Map<
+number,
+readonly [firstFrame: number, lastFrame: number, frameLength: number, terminalFrame: number]
+>([
+    [0, [0, 3, 10, 0]],
+    [1, [4, 10, 6, 4]],
+    [17, [12, 18, 4, 18]],
 ]);
 
 export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
@@ -303,6 +338,26 @@ function validatePlayerAnimations(sections: readonly (readonly AnimationRecord[]
     }
 }
 
+function validateSnakeAnimations(sections: readonly (readonly AnimationRecord[])[]): void {
+    const snake = sections[1];
+    if (snake === undefined) {
+        throw new Error('Animation metadata has no snake section');
+    }
+    const byId = new Map(snake.map(record => [record.id, record]));
+    for (const [id, expected] of REQUIRED_SNAKE_ANIMATIONS) {
+        const record = byId.get(id);
+        if (record === undefined
+            || record.firstFrame !== expected[0]
+            || record.lastFrame !== expected[1]
+            || record.frameLength !== expected[2]
+            || record.terminalFrame !== expected[3]) {
+            throw new Error(
+                `Unsupported snake animation ${id}; expected frames ${expected[0]}-${expected[1]}, frame length ${expected[2]}, terminal frame ${expected[3]}`,
+            );
+        }
+    }
+}
+
 function sha256(data: Uint8Array): string {
     return createHash('sha256').update(data).digest('hex');
 }
@@ -469,6 +524,47 @@ function createPlayerAssets(sourceData: Buffer): {
                 loop: false,
             },
             {
+                name: 'crouch-enter',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('crouch-enter', CROUCH_ENTER_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'crouch-exit',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('crouch-exit', CROUCH_EXIT_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'crawl',
+                frameLen: 3 * HD_TICK_SECONDS,
+                frames: namedFrames('crawl', CRAWL_SOURCE_FRAMES)
+                    .map(([name]) => name),
+            },
+            {
+                name: 'ledge-flip',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('ledge-flip', LEDGE_FLIP_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'ledge-hang',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('ledge-hang', LEDGE_HANG_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'ledge-climb',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('ledge-climb', LEDGE_CLIMB_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
                 name: 'carry-run',
                 frameLen: MOVEMENT_FRAME_DISTANCE,
                 frames: namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES)
@@ -512,8 +608,9 @@ function createEnemyAssets(sourceData: Buffer): {
         );
     }
 
+    const uniqueFrames = [...new Set(ENEMY_FRAME_SOURCES.map(([, frame]) => frame))];
     const output = new PNG({
-        width: ENEMY_FRAME_SOURCES.length * PLAYER_CELL_SIZE,
+        width: uniqueFrames.length * PLAYER_CELL_SIZE,
         height: PLAYER_CELL_SIZE,
         colorType: 6,
         inputColorType: 6,
@@ -521,7 +618,8 @@ function createEnemyAssets(sourceData: Buffer): {
         fill: false,
     });
     output.data.fill(0);
-    const frames = ENEMY_FRAME_SOURCES.map(([name, sourceFrame], outputIndex) => {
+    const rectBySource = new Map<number, readonly [number, number, number, number]>();
+    uniqueFrames.forEach((sourceFrame, outputIndex) => {
         const sourceX = (sourceFrame % PLAYER_COLUMNS) * PLAYER_CELL_SIZE;
         const sourceY = Math.floor(sourceFrame / PLAYER_COLUMNS) * PLAYER_CELL_SIZE;
         const outputX = outputIndex * PLAYER_CELL_SIZE;
@@ -535,11 +633,19 @@ function createEnemyAssets(sourceData: Buffer): {
             outputX,
             0,
         );
-        return {
-            name,
-            rect: [outputX, 0, PLAYER_CELL_SIZE, PLAYER_CELL_SIZE],
-            pivot: ENEMY_PIVOT,
-        };
+        rectBySource.set(sourceFrame, [
+            outputX,
+            0,
+            PLAYER_CELL_SIZE,
+            PLAYER_CELL_SIZE,
+        ]);
+    });
+    const frames = ENEMY_FRAME_SOURCES.map(([name, sourceFrame]) => {
+        const rect = rectBySource.get(sourceFrame);
+        if (rect === undefined) {
+            throw new Error(`Missing packed snake source frame ${sourceFrame}`);
+        }
+        return {name, rect, pivot: ENEMY_PIVOT};
     });
 
     return {
@@ -557,9 +663,23 @@ function createEnemyAssets(sourceData: Buffer): {
             frames,
             animations: [
                 {
+                    name: 'idle',
+                    frameLen: 10 * HD_TICK_SECONDS,
+                    frames: namedFrames('idle', SNAKE_IDLE_SOURCE_FRAMES)
+                        .map(([name]) => name),
+                },
+                {
                     name: 'walk',
-                    frameLen: 0.15,
-                    frames: ['walk-1', 'walk-2'],
+                    frameLen: 6 * HD_TICK_SECONDS,
+                    frames: namedFrames('walk', SNAKE_WALK_SOURCE_FRAMES)
+                        .map(([name]) => name),
+                },
+                {
+                    name: 'attack',
+                    frameLen: 4 * HD_TICK_SECONDS,
+                    frames: namedFrames('attack', SNAKE_ATTACK_SOURCE_FRAMES)
+                        .map(([name]) => name),
+                    loop: false,
                 },
             ],
         },
@@ -688,6 +808,7 @@ export async function importSpelunkyHd(
         readFileSync(animationsPath, 'utf8'),
     );
     validatePlayerAnimations(animationSections);
+    validateSnakeAnimations(animationSections);
 
     const selected: Array<{
         readonly key: string;
@@ -833,6 +954,7 @@ export async function importSpelunkyHd(
             sha256: entryHash,
         })),
         playerAnimationRecords: animationSections[0],
+        snakeAnimationRecords: animationSections[1],
         generated: [
             {
                 path: 'public/generated/spelunky-hd/player.png',

@@ -3,13 +3,8 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 
-type MovingEntity = Entity & {
-    jump?: {
-        falling: boolean;
-    };
-};
-
 export default class Go extends Trait {
+    enabled = true;
     dir = 0;
     acceleration = 400;
     deceleration = 300;
@@ -18,18 +13,21 @@ export default class Go extends Trait {
     heading = 1;
 
     override update(
-        entity: MovingEntity,
+        entity: Entity,
         {deltaTime}: GameContext,
         _level: Level,
     ): void {
+        if (!this.enabled) {
+            return;
+        }
         const absoluteVelocity = Math.abs(entity.vel.x);
 
         if (this.dir !== 0) {
             entity.vel.x += this.acceleration * deltaTime * this.dir;
 
-            if (!entity.jump || entity.jump.falling === false) {
-                this.heading = this.dir;
-            }
+            // Spelunky permits directional air control and turns the player
+            // toward that input; keep movement and visual facing aligned.
+            this.heading = this.dir;
         } else if (entity.vel.x !== 0) {
             const deceleration = Math.min(
                 absoluteVelocity,

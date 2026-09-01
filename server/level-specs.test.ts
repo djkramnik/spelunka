@@ -85,7 +85,10 @@ assert.deepEqual(tutorial.size, [42, 19]);
 // Classic's player uses an 8px centered sprite origin at [24, 72]. Our
 // entities use top-left positions, so [16, 64] preserves the same bounds.
 assert.deepEqual(tutorial.playerSpawn, [16, 64]);
-assert.deepEqual(tutorial.entities, []);
+assert.deepEqual(tutorial.entities, [
+    {name: 'snake', pos: [352, 64]},
+    {name: 'snake', pos: [464, 96]},
+]);
 assert.deepEqual(tutorial.triggers, [{
     type: 'teleport',
     pos: [48, 240],
@@ -122,6 +125,18 @@ for (const range of tutorialGround.ranges) {
             tutorialSolidTiles.add(`${x},${y}`);
         }
     }
+}
+for (const snake of tutorial.entities) {
+    const supportX = Math.floor((snake.pos[0] + 8) / 16);
+    const supportY = Math.floor((snake.pos[1] + 16) / 16);
+    assert.ok(
+        tutorialSolidTiles.has(`${supportX},${supportY}`),
+        `Tutorial snake at ${snake.pos.join(',')} should start on solid terrain`,
+    );
+    assert.ok(
+        !tutorialSolidTiles.has(`${supportX},${supportY - 1}`),
+        `Tutorial snake at ${snake.pos.join(',')} should not start inside terrain`,
+    );
 }
 assert.equal(
     tutorialSolidTiles.size,

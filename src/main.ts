@@ -42,7 +42,7 @@ declare global {
     }
 }
 
-const INITIAL_LOAD_TASKS = 10;
+const INITIAL_LOAD_TASKS = 11;
 const LEVEL_LOAD_TASKS = 4;
 
 async function main(

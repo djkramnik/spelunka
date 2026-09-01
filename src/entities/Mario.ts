@@ -7,9 +7,11 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import SpriteSheet from '../SpriteSheet.js';
 import Carrier from '../traits/Carrier.js';
+import Crouch from '../traits/Crouch.js';
 import Go from '../traits/Go.js';
 import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
+import LedgeHang from '../traits/LedgeHang.js';
 import Physics from '../traits/Physics.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
@@ -54,6 +56,38 @@ export const PLAYER_FRAME_NAMES = [
     'fall-2',
     'fall-3',
     'fall-4',
+    'crouch-enter-1',
+    'crouch-enter-2',
+    'crouch-enter-3',
+    'crouch',
+    'crouch-exit-1',
+    'crouch-exit-2',
+    'crouch-exit-3',
+    'crawl-1',
+    'crawl-2',
+    'crawl-3',
+    'crawl-4',
+    'crawl-5',
+    'crawl-6',
+    'crawl-7',
+    'ledge-flip-1',
+    'ledge-flip-2',
+    'ledge-flip-3',
+    'ledge-flip-4',
+    'ledge-flip-5',
+    'ledge-flip-6',
+    'ledge-flip-7',
+    'ledge-hang-1',
+    'ledge-hang-2',
+    'ledge-hang-3',
+    'ledge-hang-4',
+    'ledge-climb-1',
+    'ledge-climb-2',
+    'ledge-climb-3',
+    'ledge-climb-4',
+    'ledge-climb-5',
+    'ledge-climb-6',
+    'ledge-climb-7',
     'carry-idle',
     'carry-run-1',
     'carry-run-2',
@@ -83,6 +117,13 @@ type PlayerAnimationState =
     | 'skid'
     | 'jump'
     | 'fall'
+    | 'crouch-enter'
+    | 'crouch'
+    | 'crouch-exit'
+    | 'crawl'
+    | 'ledge-flip'
+    | 'ledge-hang'
+    | 'ledge-climb'
     | 'carry-idle'
     | 'carry-run'
     | 'carry-jump'
@@ -118,6 +159,12 @@ export function createMarioFactory(
     const skidAnimation = sprite.getAnimation('skid');
     const jumpAnimation = sprite.getAnimation('jump');
     const fallAnimation = sprite.getAnimation('fall');
+    const crouchEnterAnimation = sprite.getAnimation('crouch-enter');
+    const crouchExitAnimation = sprite.getAnimation('crouch-exit');
+    const crawlAnimation = sprite.getAnimation('crawl');
+    const ledgeFlipAnimation = sprite.getAnimation('ledge-flip');
+    const ledgeHangAnimation = sprite.getAnimation('ledge-hang');
+    const ledgeClimbAnimation = sprite.getAnimation('ledge-climb');
     const carryRunAnimation = sprite.getAnimation('carry-run');
     const throwAnimation = sprite.getAnimation('throw');
 
@@ -126,9 +173,23 @@ export function createMarioFactory(
         const go = mario.traits.get(Go);
         const killable = mario.traits.get(Killable);
         const carrier = mario.traits.get(Carrier);
+        const crouch = mario.traits.get(Crouch);
+        const ledgeHang = mario.traits.get(LedgeHang);
 
         if (killable.dead) {
             return 'dead';
+        }
+
+        if (ledgeHang.phase === 'hanging') {
+            return 'ledge-hang';
+        }
+
+        if (ledgeHang.phase === 'climbing') {
+            return 'ledge-climb';
+        }
+
+        if (crouch.phase === 'flipping') {
+            return 'ledge-flip';
         }
 
         if (mario.throwFrameTime > 0) {
@@ -151,6 +212,18 @@ export function createMarioFactory(
             return mario.vel.y < 0 ? 'jump' : 'fall';
         }
 
+        if (crouch.phase === 'entering') {
+            return 'crouch-enter';
+        }
+
+        if (crouch.phase === 'exiting') {
+            return 'crouch-exit';
+        }
+
+        if (crouch.phase === 'crouched') {
+            return go.dir === 0 ? 'crouch' : 'crawl';
+        }
+
         if (go.distance > 0) {
             if ((mario.vel.x > 0 && go.dir < 0)
                 || (mario.vel.x < 0 && go.dir > 0)) {
@@ -170,6 +243,7 @@ export function createMarioFactory(
             : 0;
         const go = mario.traits.get(Go);
         const killable = mario.traits.get(Killable);
+        const ledgeHang = mario.traits.get(LedgeHang);
 
         switch (state) {
             case 'dead':
@@ -186,6 +260,20 @@ export function createMarioFactory(
                 return jumpAnimation(stateTime) as PlayerFrameName;
             case 'fall':
                 return fallAnimation(stateTime) as PlayerFrameName;
+            case 'crouch-enter':
+                return crouchEnterAnimation(stateTime) as PlayerFrameName;
+            case 'crouch-exit':
+                return crouchExitAnimation(stateTime) as PlayerFrameName;
+            case 'crawl':
+                return crawlAnimation(stateTime) as PlayerFrameName;
+            case 'ledge-flip':
+                return ledgeFlipAnimation(stateTime) as PlayerFrameName;
+            case 'ledge-hang':
+                return ledgeHang.enteredFromTop
+                    ? 'ledge-hang-4'
+                    : ledgeHangAnimation(stateTime) as PlayerFrameName;
+            case 'ledge-climb':
+                return ledgeClimbAnimation(stateTime) as PlayerFrameName;
             case 'walk':
                 return walkAnimation(go.distance) as PlayerFrameName;
             case 'run':
@@ -208,11 +296,13 @@ export function createMarioFactory(
 
             this.addTrait(new Physics());
             this.addTrait(new Solid());
+            this.addTrait(new Crouch());
             this.addTrait(new Go());
             this.addTrait(new Jump());
             this.addTrait(new Killable());
             this.addTrait(new Stomper());
             this.addTrait(new Carrier());
+            this.addTrait(new LedgeHang());
 
             this.traits.get(Killable).removeAfter = 0;
             this.turbo(false);
@@ -228,6 +318,10 @@ export function createMarioFactory(
         }
 
         pickupOrThrow(): Entity | null {
+            if (this.traits.get(LedgeHang).active
+                || this.traits.get(Crouch).active) {
+                return null;
+            }
             const carrier = this.traits.get(Carrier);
             const wasCarrying = carrier.carried !== null;
             const result = carrier.pickupOrThrow(this);
@@ -253,12 +347,22 @@ export function createMarioFactory(
         }
 
         override draw(context: CanvasRenderingContext2D): void {
+            const ledgeHang = this.traits.get(LedgeHang);
+            const crouch = this.traits.get(Crouch);
             sprite.drawFrame(
                 routeFrame(this),
                 context,
-                this.size.x / 2,
-                this.size.y,
-                this.traits.get(Go).heading < 0,
+                this.size.x / 2 + (crouch.transitionAnchorActive
+                    ? crouch.transitionOffset.x
+                    : 0),
+                this.size.y + (crouch.transitionAnchorActive
+                    ? crouch.transitionOffset.y
+                    : 0),
+                ledgeHang.active
+                    ? ledgeHang.side < 0
+                    : crouch.phase === 'flipping'
+                        ? crouch.flipDirection > 0
+                    : this.traits.get(Go).heading < 0,
             );
         }
     }

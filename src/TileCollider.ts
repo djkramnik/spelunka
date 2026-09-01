@@ -36,11 +36,28 @@ const handlers: Record<string, readonly TileHandler[]> = {
     ground,
 };
 
+const solidTileTypes = new Set(['brick', 'ground']);
+
 export default class TileCollider {
     readonly resolvers: Array<TileResolver<CollisionTile>> = [];
 
     addGrid(tileMatrix: Matrix<CollisionTile>): void {
         this.resolvers.push(new TileResolver(tileMatrix));
+    }
+
+    hasSolidAt(x: number, y: number): boolean {
+        return this.getSolidAt(x, y) !== undefined;
+    }
+
+    getSolidAt(x: number, y: number): TileMatch<CollisionTile> | undefined {
+        for (const resolver of this.resolvers) {
+            const match = resolver.searchByPosition(x, y);
+            if (match?.tile.type !== undefined
+                && solidTileTypes.has(match.tile.type)) {
+                return match;
+            }
+        }
+        return undefined;
     }
 
     checkX(entity: CollisionEntity, gameContext: GameContext, level: Level): void {

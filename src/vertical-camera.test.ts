@@ -1,6 +1,7 @@
 import Entity from './Entity.js';
 import Level, {focusPlayer} from './Level.js';
 import {makePlayer} from './player.js';
+import Crouch from './traits/Crouch.js';
 import type {GameContext} from './Scene.js';
 
 function assertEqual<Value>(
@@ -76,6 +77,31 @@ assertEqual(
     existingLevel.camera.pos.y,
     60,
     'Widescreen camera clamps at the bottom of an existing level',
+);
+
+const transitionLevel = new Level();
+transitionLevel.setDimensions(30, 30);
+const transitionMario = new Entity();
+transitionMario.size.set(14, 16);
+transitionMario.pos.set(200, 200);
+const transitionCrouch = new Crouch();
+transitionMario.addTrait(transitionCrouch);
+makePlayer(transitionMario, 'MARIO');
+transitionLevel.entities.add(transitionMario);
+focusPlayer(transitionLevel);
+const cameraBeforeTransition = [
+    transitionLevel.camera.pos.x,
+    transitionLevel.camera.pos.y,
+];
+transitionMario.pos.x += 8;
+transitionMario.pos.y += 10;
+transitionCrouch.transitionOffset.set(-8, -10);
+transitionCrouch.transitionAnchorActive = true;
+focusPlayer(transitionLevel);
+assertEqual(
+    [transitionLevel.camera.pos.x, transitionLevel.camera.pos.y],
+    cameraBeforeTransition,
+    'Scripted crawl-to-hang correction preserves the camera focus anchor',
 );
 
 const drawEvents: string[] = [];

@@ -2,6 +2,9 @@
 
 ## Behavior references
 
+- [Spelunky Classic ledge-hanging behavior and HD animation](ledge-hanging.md)
+- [Spelunky crouch, crawl, and top-to-hang transition](crouch-crawl.md)
+- [Spelunky Classic snake behavior and animation](snake.md)
 - [Spelunky Classic throwing behavior](throwing.md)
 
 ## Interactive review
@@ -350,22 +353,36 @@ step would change Mario's acceleration curve and terminal speed.
 
 ### Mario's jump
 
-Pressing Z gives `Jump` a 0.1-second pending request. If a bottom tile contact
-marks the jump as ready before that request expires, the trait starts a
-0.3-second jump and queues the jump sound. This creates input buffering: Z can
-be pressed just before landing.
+Pressing Z gives `Jump` a 0.1-second pending request. Landing before that
+request expires starts the jump, and a separate 0.1-second coyote window lets
+the same request succeed just after leaving a ledge. A launch is one impulse;
+the old Mario-derived behavior that repeatedly overwrote upward velocity while
+Z remained held has been removed.
 
-While Z remains held and the engagement window remains positive, every update
-sets upward velocity to:
+The `spelunka-r54.30` trajectory uses Spelunky Classic's released source as
+the behavior reference and HD as the visual scale reference. In Classic,
+`initialJumpAcc = -2` is doubled for a normal jump, producing one -4 pixel
+impulse at 30 Hz. While Z remains held, `gravityIntensity` ramps from 0.1 to
+the normal 1 pixel/tick² over ten ticks. Releasing Z immediately completes the
+gravity ramp instead of directly clamping upward velocity. The resulting
+Classic arc rises 24 pixels, reaches its apex on tick 9, and crosses its launch
+height on tick 16.
 
-```ts
-mario.vel.y = -(200 + Math.abs(mario.vel.x) * 0.3);
-```
+The time-based conversion uses a 120 px/s launch, 900 px/s² full gravity, and
+a 10/30-second gravity ramp. At this project's 60 Hz fixed step, the fixture
+measures 23.89 pixels of rise, apex on simulation frame 19, and landing on frame
+33; releasing on frame 3 produces a 12.69-pixel short hop. The 24-pixel target
+also agrees with an external HD/Spelunky 2 frame comparison that estimates a
+standing jump at roughly 1.5 character heights. That recording reports longer
+airtime, but it cannot reveal the collision body's motion, so the source-backed
+Classic curve is the current feel baseline. Running does not alter vertical
+height or timing.
 
-Horizontal speed therefore increases jump strength. Releasing Z clears the
-engagement window, allowing gravity to shorten the jump. Hitting a ceiling
-also cancels it. `Jump.falling` is based on whether the entity has recently
-received bottom obstruction, rather than on the sign of vertical velocity.
+`Jump.phase` is the authoritative `grounded`, `rising`, or `falling` state.
+Landing, ceiling obstruction, buffered launch, coyote launch, button release,
+and enemy rebound all transition that state explicitly. Enemy rebound uses
+full gravity and is not shortened when Z is released; it is an external impulse
+rather than a player jump request.
 
 ### Enemy and respawn movement
 
@@ -380,11 +397,10 @@ been removed from the level, the controller revives him, moves him to its
 
 ### Movement finding
 
-`Go.update()` checks the optional property `entity.jump` before changing
-heading in mid-air, but Mario's jump state now lives in
-`entity.traits.get(Jump)`. No code assigns `entity.jump`. The check therefore
-always permits heading changes while airborne, which appears to be a leftover
-from the pre-trait-property conversion.
+`Go.update()` applies the same directional acceleration on the ground and in
+the air, and visual heading follows that input in both states. This keeps the
+existing responsive air control explicit instead of consulting the obsolete
+pre-trait `entity.jump` property.
 
 ## Collision logic
 
@@ -450,8 +466,11 @@ overlap.
 
 The principal reactions are:
 
-- Mario's `Stomper` queues an upward bounce when he is moving downward faster
-  than a killable entity, queues the stomp sound, and emits a scoring event.
+- Mario's `Stomper` requires a downward relative velocity and contact within
+  the top eight pixels of a killable entity. It aligns Mario above the target
+  and routes an impact-scaled rebound through `Jump.rebound()`, so grounded,
+  buffered, coyote, and animation state stay coherent. Duplicate directional
+  callbacks queue only one rebound and one stomp event.
 - Mario's `Carrier` records overlapping `Pickable` entities as pickup
   candidates. An explicit pickup action attaches at most one candidate; the
   red shell opts into this behavior without reacting to collision by itself.
@@ -488,11 +507,6 @@ model does not provide:
   `entity.player.addCoins()`, while player state is stored as a `Player` trait.
   As written, touching a coin does not satisfy that check, so the coin is not
   collected.
-- `Stomper.collides()` calls `them.traits.get(Killable)` and then checks
-  whether the result is absent. `TraitMap.get()` throws when a trait is absent,
-  so Mario overlapping a non-killable entity can throw instead of simply
-  ignoring it. The intended guard is likely `traits.has(Killable)` before
-  `get()`.
 
 Entity collision is also an O(n²) all-pairs pass. That is small for the current
 entity count, but it is an obvious scaling constraint if later Spelunky levels

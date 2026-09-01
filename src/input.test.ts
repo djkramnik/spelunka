@@ -4,8 +4,10 @@ import type {KeyState} from './KeyboardState.js';
 import type Level from './Level.js';
 import type {GameContext} from './Scene.js';
 import Carrier from './traits/Carrier.js';
+import Crouch from './traits/Crouch.js';
 import Go from './traits/Go.js';
 import Jump from './traits/Jump.js';
+import LedgeHang from './traits/LedgeHang.js';
 import Pickable from './traits/Pickable.js';
 
 function assertEqual<Value>(
@@ -55,9 +57,13 @@ const receiver = new Entity() as KeyboardReceiver;
 const carrier = new Carrier();
 const jump = new Jump();
 const go = new Go();
+const ledgeHang = new LedgeHang();
+const crouch = new Crouch();
 receiver.addTrait(carrier);
 receiver.addTrait(jump);
 receiver.addTrait(go);
+receiver.addTrait(ledgeHang);
+receiver.addTrait(crouch);
 
 let pickupOrThrowCalls = 0;
 const turboStates: KeyState[] = [];
@@ -129,5 +135,16 @@ dispatch('keydown', 'ArrowLeft');
 assertEqual(go.dir, -1, 'Left press remains unchanged');
 dispatch('keyup', 'ArrowLeft');
 assertEqual(go.dir, 0, 'Left release remains unchanged');
+
+dispatch('keydown', 'ArrowUp');
+assertEqual(ledgeHang.verticalDirection, -1, 'Up press is available to ledge climb');
+dispatch('keyup', 'ArrowUp');
+assertEqual(ledgeHang.verticalDirection, 0, 'Up release clears ledge input');
+dispatch('keydown', 'ArrowDown');
+assertEqual(ledgeHang.verticalDirection, 1, 'Down press is available to ledge drop');
+assertEqual(crouch.downHeld, true, 'Down press is available to grounded crouch');
+dispatch('keyup', 'ArrowDown');
+assertEqual(ledgeHang.verticalDirection, 0, 'Down release clears ledge input');
+assertEqual(crouch.downHeld, false, 'Down release clears crouch input');
 
 console.log('Keyboard pickup and throw input regression passed');

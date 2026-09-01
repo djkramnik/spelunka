@@ -35,15 +35,16 @@ All outputs are ignored by Git:
 - `.local/spelunky-hd/source/` contains only the six allow-listed source
   entries used by the player, enemy, terrain, and Mines background prototypes;
 - `.local/spelunky-hd/import-report.json` records input, selected-entry, and
-  generated-output hashes plus the numeric player animation records;
-- `public/generated/spelunky-hd/player.png` is a deterministic 400x560 RGBA
-  sheet containing 31 unique, unchanged 80x80 source cells; and
+  generated-output hashes plus the numeric player and snake animation records;
+- `public/generated/spelunky-hd/player.png` is a deterministic 400x880 RGBA
+  sheet containing 54 unique, unchanged 80x80 source cells; and
 - `public/sprites/generated/spelunky-hd/player.json` maps that sheet to every
   frame and animation name required by the current player loader;
-- `public/generated/spelunky-hd/snake.png` is a deterministic 240x80 RGBA
-  sheet containing two movement cells and one defeated fallback; and
-- `public/sprites/generated/spelunky-hd/snake.json` maps that sheet to the
-  existing enemy loader's `walk-1`, `walk-2`, and `flat` states; and
+- `public/generated/spelunky-hd/snake.png` is a deterministic 1440x80 RGBA
+  sheet containing 18 unique HD snake cells in atlas order; and
+- `public/sprites/generated/spelunky-hd/snake.json` maps those cells to four
+  idle frames, seven walk frames, seven attack frames, and a temporary `flat`
+  compatibility alias without duplicating source pixels; and
 - `public/generated/spelunky-hd/mines.png` is a deterministic 2048x768 RGBA
   sheet containing the upper-left 512x512 Mines terrain region, the full
   256x256 opaque Mines fill, and a transparent 1280x768 background-decoration
@@ -61,10 +62,24 @@ The tracked `underworld` sprite metadata loads the Mines sheet at
 `frameScale: 0.25`, so its 64-pixel cells align with the existing 16-pixel
 logical tile and 4x output scale without a runtime conversion.
 
-The output uses `frameScale: 0.25` and a `[40, 72]` bottom-centre pivot. Carry
-states initially reuse the matching idle, run, jump, and fall poses. That is a
-deliberate compatibility baseline for the player/enemy prototype ticket, not a
-claim that the visual mapping is final.
+The player and snake outputs use `frameScale: 0.25` and a `[40, 72]`
+bottom-centre pivot. Snake animation timing comes from the validated second HD
+animation section: idle frames 0-3 use 10 ticks per frame, walk frames 4-10 use
+6 ticks per frame, and non-looping attack frames 12-18 use 4 ticks per frame.
+Frame 11 is an empty atlas spacer. The HD range contains no dedicated snake
+reaction or death record because HD uses a blood-splatter effect and removes
+the snake; the importer therefore does not invent a corpse frame. The `flat`
+alias retained for the pre-existing Goomba behavior points to frame 16 and is
+explicitly temporary.
+
+A follow-up review of `effects.png`, `effectsbig.png`, `rubble.png`, the HD
+animation archive, and executable texture-name strings found no dedicated
+blood-splatter animation sequence. The snake behavior should compose the
+effect procedurally rather than expanding the texture allow-list with an
+unrelated generic effect atlas.
+
+Player carry states initially reuse the matching idle, run, jump, and fall
+poses. That remains a deliberate compatibility baseline.
 
 ## Reproducibility and safety
 

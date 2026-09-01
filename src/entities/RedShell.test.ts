@@ -232,7 +232,7 @@ assertEqual(
 const topRegionBoundary = collideMarioWithShell(0, 300, 200);
 assertEqual(
     topRegionBoundary.mario.vel.y,
-    -topRegionBoundary.stomper.bounceSpeed,
+    -topRegionBoundary.stomper.reboundSpeedFor(300),
     'Contact at top stomp-region boundary bounces Mario',
 );
 
@@ -289,7 +289,7 @@ assertEqual(
 );
 assertEqual(
     stompImpact.mario.vel.y,
-    -stompImpact.stomper.bounceSpeed,
+    -stompImpact.stomper.reboundSpeedFor(300),
     'Mario keeps normal stomp bounce',
 );
 assertEqual(

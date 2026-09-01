@@ -37,6 +37,13 @@ player collider at logical `[7, 16]`.
 | `skid-1..8` | 36-43 | Complete source animation 18 while reversing direction |
 | `jump-1..4` | 108-111 | Complete non-looping source animation 2 |
 | `fall-1..4` | 112-115 | Complete non-looping source animation 3 |
+| `crouch-enter-1..3` | 12-14 | Complete non-looping source animation 25 |
+| `crouch` | 14 | Static source animation 6 |
+| `crouch-exit-1..3` | 14-16 | Complete non-looping source animation 26 |
+| `crawl-1..7` | 17-23 | Complete looping source animation 7 |
+| `ledge-flip-1..7` | 34-28 | Source animation 19 reversed for top-to-hang |
+| `ledge-hang-1..4` | 44-47 | Complete non-looping source animation 12 (`Ledge Grab`); holds frame 47 |
+| `ledge-climb-1..7` | 28-34 | Complete non-looping source animation 19 (`Ledge Flip`) |
 | `throw-1..5` | 54-58 | Complete non-looping source animation 8 |
 | `reaction-stunned`, `reaction-dead` | 9 | Shared source dead/stunned pose |
 | `carry-idle`, `carry-run-1..8` | 0, 1-8 | Intentional matching base-pose fallback |
@@ -53,11 +60,22 @@ solid, stomppable, pendulum-moving entity. Its source cells are also 80x80 with
 a `[40, 72]` pivot and `frameScale: 0.25`, anchoring at collider position
 `[8, 16]`.
 
-| Spelunka state | Monster atlas frame | Notes |
-| --- | ---: | --- |
-| `walk-1` | 4 | Snake locomotion |
-| `walk-2` | 7 | Snake locomotion |
-| `flat` | 16 | Intentional flattened/defeated fallback |
+The initial two-frame prototype was expanded by `spelunka-r54.25` after visual
+review and validation against the HD animation archive:
+
+| Spelunka animation | Monster atlas frames | Timing | Notes |
+| --- | --- | --- | --- |
+| `idle` | 0-3 | 10 HD ticks/frame | Complete looping source record |
+| `walk` | 4-10 | 6 HD ticks/frame | Complete looping source record |
+| `attack` | 12-18 | 4 HD ticks/frame | Complete non-looping source record |
+| `flat` | 16 | Static | Temporary Goomba compatibility alias, not a verified death pose |
+
+Frame 11 is an empty spacer. The reviewed snake range has no dedicated
+reaction or death record because HD uses a blood-splatter effect followed by
+removal. The future dedicated snake entity should reproduce that presentation
+rather than presenting the attack alias as a corpse. Review of the shared HD
+effect and rubble atlases found no dedicated blood animation sequence, so the
+splatter should be a short procedural particle burst.
 
 The source snake faces right. The default loader enables movement-facing for
 this behavior: negative pendulum speed flips the sheet, while positive speed
