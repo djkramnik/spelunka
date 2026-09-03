@@ -8,6 +8,9 @@
         },
         "stomp": {
             "url": "/audio/stomp.ogg"
+        },
+        "snakebite": {
+            "url": "/generated/spelunky-hd/snakebite.wav"
         }
     }
 }

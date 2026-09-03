@@ -59,6 +59,8 @@ The current local source archives are:
 | --- | ---: | --- |
 | `Data/Textures/alltex.wad` | 70,406,882 | `11cfdf62cfd36466883bf34bb8cc7a29527d6313caf7f9450d269352bf4948fd` |
 | `Data/Textures/alltex.wad.wix` | 6,452 | `ed829de2a9bf7a457eda560e7825b43e69b0b6b9cdc9eb7dfd959c76b0762da4` |
+| `Data/Sounds/allsounds.wad` | 47,352,114 | `78d0f623106fb90ca44ac9298de2d66c4f7bd66435113000267346fa40ff2631` |
+| `Data/Sounds/allsounds.wad.wix` | 7,514 | `953b69d185c6e54ea2c7320b7c5a48db061f09aebdbab6187758cbe87743b56d` |
 | `Data/Animations/allanimations.wad` | 8,045 | `d24d7fd5b8cbcba2c76b4829b3bb38f47b33c32eb3d2189c38e52c82b031dd89` |
 
 The WIX contains 193 entry records. Every offset and length is a safe integer,
@@ -141,8 +143,11 @@ to the repository.
 | Terrain lighting | `ALLTILES/alltilesN.jpg` | 2048x2048, 8-bit RGB JPEG companion map aligned with the terrain colour atlas | `20fd2e5fbb9ba25cf8c5b388ff1177084969aeaa031bff800dc6b9e283814033` |
 | Mines decoration | `MINE/minesmallbg.png` | 1024x1024, 8-bit RGBA; rock clusters, timber openings, cobweb, shrine, and other background decorations | `f2d50e85c3c7df937c9f24e7b4c2355191f14047ec538f8e55537889822778da` |
 | Mines fill | `MINE/minebg.jpg` | 256x256, 8-bit RGB JPEG; opaque repeating dark-rock background | `22093edcf3bb51b6c0190609c92c0fdb0565c39791d4b73a440622587420bc93` |
+| Compact player HUD | `ANYLEVEL/playerhudPRO.png` | 256x256, 8-bit RGBA; standalone transparent heart and compact HUD icons | `84213a3344d4121838e3e753d4c88739a3b1466c8cb75c265694f51531cf0497` |
+| HUD counters | `ATSTART/hudicons.png` | 512x128, 8-bit RGBA; dedicated counter icons and digit cells 0-9 | `769d13ca7b9507437081a52e96957feef87e3396e4c60f7a4bf1d59f6f105cc7` |
+| Snake contact | `ALLSOUNDS/snakebite.wav` | 0.207-second, 44.1 kHz, 16-bit mono PCM WAV | `5149006b05e3f62179a0626f3043bc72966107a163ba28a056c192510a6f9677` |
 
-All four PNG samples contain an alpha channel and use all 256 alpha levels, so
+All six PNG samples contain an alpha channel, so
 the converter must preserve partial transparency rather than reduce it to a
 binary mask. The JPEG entries are opaque. The source images use sRGB and do not
 use indexed palettes.

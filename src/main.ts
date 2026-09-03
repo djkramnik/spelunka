@@ -14,6 +14,7 @@ import {createTextLayer} from './layers/text.js';
 import Level from './Level.js';
 import {createLevelLoader} from './loaders/level.js';
 import {Font, loadFont} from './loaders/font.js';
+import {loadSpriteSheet} from './loaders/sprite.js';
 import type {LevelSpec} from './loaders/schemas.js';
 import LoadingProgress from './loading-progress.js';
 import PerformanceMetrics from './PerformanceMetrics.js';
@@ -42,7 +43,7 @@ declare global {
     }
 }
 
-const INITIAL_LOAD_TASKS = 12;
+const INITIAL_LOAD_TASKS = 13;
 const LEVEL_LOAD_TASKS = 4;
 
 async function main(
@@ -65,10 +66,13 @@ async function main(
         renderer.present();
     };
 
-    const entityFactory = await loadEntities(
-        audioContext,
-        advanceLoadingProgress,
-    );
+    const [entityFactory, hudSprites] = await Promise.all([
+        loadEntities(audioContext, advanceLoadingProgress),
+        loadSpriteSheet('generated/spelunky-hd/hud').then(sprite => {
+            advanceLoadingProgress();
+            return sprite;
+        }),
+    ]);
     const loadLevel = createLevelLoader(entityFactory, {
         musicEnabled: runtimeOptions.audioEnabled,
     });
@@ -127,7 +131,7 @@ async function main(
         });
 
         const playerProgressLayer = createPlayerProgressLayer(font, level);
-        const dashboardLayer = createDashboardLayer(font, level);
+        const dashboardLayer = createDashboardLayer(font, hudSprites, level);
 
         mario.pos.copy(level.playerSpawn);
         level.entities.add(mario);

@@ -66,6 +66,19 @@ export default class Pickable extends Trait {
         return true;
     }
 
+    drop(entity: Entity, carrier: Entity): boolean {
+        if (this.carrier !== carrier) {
+            return false;
+        }
+
+        this.carrier = null;
+        this.clearThrowerProtection();
+        this.setPhysicsEnabled(entity, true);
+        entity.vel.copy(carrier.vel);
+        entity.zIndex = this.uncarriedZIndex;
+        return true;
+    }
+
     isThrowerProtected(entity: Entity, candidate: Entity): boolean {
         if (this.recentThrower !== candidate
             || this.throwerGraceUpdatesRemaining <= 0) {

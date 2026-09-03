@@ -1,10 +1,10 @@
-# Local Spelunky HD graphics import workflow
+# Local Spelunky HD asset import workflow
 
 Beads task: `spelunka-erb.2`
 
-This one-time local build step reads selected graphics from a user-owned
-Spelunky HD Steam depot and writes normal PNG/JSON assets. The browser game
-never reads WAD files and performs no conversion at runtime.
+This one-time local build step reads selected graphics and audio from a
+user-owned Spelunky HD Steam depot and writes normal PNG, JSON, and WAV assets.
+The browser game never reads WAD files and performs no conversion at runtime.
 
 The legal and technical source assessment is in
 [`spelunky-hd-graphics-assessment.md`](./spelunky-hd-graphics-assessment.md).
@@ -32,12 +32,13 @@ or the player image is too small.
 
 All outputs are ignored by Git:
 
-- `.local/spelunky-hd/source/` contains only the six allow-listed source
-  entries used by the player, enemy, terrain, and Mines background prototypes;
+- `.local/spelunky-hd/source/` contains only the nine allow-listed source
+  entries used by the player, enemy, terrain, HUD, and snake contact behavior;
 - `.local/spelunky-hd/import-report.json` records input, selected-entry, and
   generated-output hashes plus the numeric player and snake animation records;
-- `public/generated/spelunky-hd/player.png` is a deterministic 400x880 RGBA
-  sheet containing 54 unique, unchanged 80x80 source cells; and
+- `public/generated/spelunky-hd/player.png` is a deterministic 400x1040 RGBA
+  sheet containing 61 unique, unchanged 80x80 source cells, including HD's
+  airborne dead-body frame 103 and settled unconscious frame 9; and
 - `public/sprites/generated/spelunky-hd/player.json` maps that sheet to every
   frame and animation name required by the current player loader;
 - `public/generated/spelunky-hd/snake.png` is a deterministic 1440x80 RGBA
@@ -50,6 +51,11 @@ All outputs are ignored by Git:
   256x256 opaque Mines fill, and a transparent 1280x768 background-decoration
   assembly. The terrain region includes standalone blocks, connected chunks,
   and transparent rocky edge decals.
+- `public/generated/spelunky-hd/hud.png` and its sprite metadata contain the
+  clean standalone HD player heart plus all ten dedicated HD counter cells.
+  Per-frame scales present both at 14.4 logical pixels.
+- `public/generated/spelunky-hd/snakebite.wav` is the unchanged 44.1 kHz mono
+  HD contact effect selected specifically for accepted snake damage.
 
 The generated player metadata is loadable with:
 
@@ -94,9 +100,13 @@ entry path components, and reads only these allow-listed entries from the WAD:
 - `ALLTILES/alltilesN.jpg`
 - `MINE/minesmallbg.png`
 - `MINE/minebg.jpg`
+- `ANYLEVEL/playerhudPRO.png`
+- `ATSTART/hudicons.png`
+- `ALLSOUNDS/snakebite.wav`
 
-The PNG repack copies RGBA pixels exactly, including partial alpha. Fixed PNG
-encoder settings and stable JSON formatting make repeated runs byte-identical.
+The importer copies WAV bytes unchanged. The PNG repack copies RGBA pixels
+exactly, including partial alpha. Fixed PNG encoder settings and stable JSON
+formatting make repeated runs byte-identical.
 Focused tests construct a synthetic WAD/WIX pair, verify path/range rejection,
 missing and unsupported source errors, animation validation, pixel/alpha
 preservation, loader schema compatibility, source allow-list extraction, and

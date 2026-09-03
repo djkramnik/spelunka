@@ -3,6 +3,7 @@ import type Level from '../Level.js';
 import {Vec2} from '../math.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
+import Health from './Health.js';
 import Killable from './Killable.js';
 
 export default class PlayerController extends Trait {
@@ -23,6 +24,10 @@ export default class PlayerController extends Trait {
         }
 
         if (!level.entities.has(this.player)) {
+            if (this.player.traits.has(Health)
+                && this.player.traits.get(Health).depleted) {
+                return;
+            }
             this.player.traits.get(Killable).revive();
             this.player.pos.copy(this.checkpoint);
             level.entities.add(this.player);

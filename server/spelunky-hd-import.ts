@@ -39,8 +39,11 @@ interface ApprovedEntry {
 export interface ImportProfile {
     readonly wadSha256: string;
     readonly wixSha256: string;
+    readonly soundWadSha256: string;
+    readonly soundWixSha256: string;
     readonly animationsSha256: string;
     readonly entries: readonly ApprovedEntry[];
+    readonly soundEntries: readonly ApprovedEntry[];
 }
 
 export interface ImportOptions {
@@ -55,6 +58,9 @@ export interface ImportResult {
     readonly enemyImagePath: string;
     readonly enemySpecPath: string;
     readonly terrainImagePath: string;
+    readonly hudImagePath: string;
+    readonly hudSpecPath: string;
+    readonly snakebiteSoundPath: string;
     readonly reportPath: string;
 }
 
@@ -75,6 +81,27 @@ const MINE_FILL_OUTPUT_X = MINE_TERRAIN_SIZE;
 const MINE_DECOR_OUTPUT_X = MINE_FILL_OUTPUT_X + MINE_BACKGROUND_FILL_SIZE;
 const HD_TICK_SECONDS = 1 / 60;
 const MOVEMENT_FRAME_DISTANCE = 3;
+const HUD_HEART_SIZE = 32;
+const HUD_HEART_SOURCE_X = 0;
+const HUD_HEART_SOURCE_Y = 128;
+const HUD_DIGIT_SIZE = 64;
+const HUD_OUTPUT_WIDTH = HUD_HEART_SIZE + 10 * HUD_DIGIT_SIZE;
+const HUD_OUTPUT_HEIGHT = HUD_DIGIT_SIZE;
+const HUD_DIGIT_SCALE = 0.225;
+const HUD_HEART_SCALE = 0.45;
+
+const HUD_DIGIT_SOURCE_CELLS = [
+    [4, 0],
+    [5, 0],
+    [6, 0],
+    [7, 0],
+    [0, 1],
+    [1, 1],
+    [2, 1],
+    [3, 1],
+    [4, 1],
+    [5, 1],
+] as const;
 
 const MOVEMENT_SOURCE_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const SKID_SOURCE_FRAMES = [36, 37, 38, 39, 40, 41, 42, 43] as const;
@@ -128,8 +155,8 @@ const PLAYER_FRAME_SOURCES = [
     ['carry-jump', 111] as const,
     ['carry-fall', 115] as const,
     ...namedFrames('throw', THROW_SOURCE_FRAMES),
-    ['reaction-stunned', 9],
-    ['reaction-dead', 9],
+    ['reaction-airborne', 103],
+    ['reaction-unconscious', 9],
 ] as const;
 
 const SNAKE_IDLE_SOURCE_FRAMES = [0, 1, 2, 3] as const;
@@ -152,6 +179,7 @@ const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [3, [112, 115]],
     [8, [54, 58]],
     [9, [9, 9]],
+    [33, [103, 103]],
     [6, [14, 14]],
     [7, [17, 23]],
     [25, [12, 14]],
@@ -175,6 +203,8 @@ readonly [firstFrame: number, lastFrame: number, frameLength: number, terminalFr
 export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
     wadSha256: '11cfdf62cfd36466883bf34bb8cc7a29527d6313caf7f9450d269352bf4948fd',
     wixSha256: 'ed829de2a9bf7a457eda560e7825b43e69b0b6b9cdc9eb7dfd959c76b0762da4',
+    soundWadSha256: '78d0f623106fb90ca44ac9298de2d66c4f7bd66435113000267346fa40ff2631',
+    soundWixSha256: '953b69d185c6e54ea2c7320b7c5a48db061f09aebdbab6187758cbe87743b56d',
     animationsSha256: 'd24d7fd5b8cbcba2c76b4829b3bb38f47b33c32eb3d2189c38e52c82b031dd89',
     entries: [
         {
@@ -206,6 +236,23 @@ export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
             group: 'MINE',
             name: 'minebg.jpg',
             sha256: '22093edcf3bb51b6c0190609c92c0fdb0565c39791d4b73a440622587420bc93',
+        },
+        {
+            group: 'ANYLEVEL',
+            name: 'playerhudPRO.png',
+            sha256: '84213a3344d4121838e3e753d4c88739a3b1466c8cb75c265694f51531cf0497',
+        },
+        {
+            group: 'ATSTART',
+            name: 'hudicons.png',
+            sha256: '769d13ca7b9507437081a52e96957feef87e3396e4c60f7a4bf1d59f6f105cc7',
+        },
+    ],
+    soundEntries: [
+        {
+            group: 'ALLSOUNDS',
+            name: 'snakebite.wav',
+            sha256: '5149006b05e3f62179a0626f3043bc72966107a163ba28a056c192510a6f9677',
         },
     ],
 };
@@ -707,6 +754,92 @@ function createEnemyAssets(sourceData: Buffer): {
     };
 }
 
+export function createHudAssets(
+    playerHudProData: Buffer,
+    hudIconsData: Buffer,
+): {
+    readonly png: Buffer;
+    readonly spec: unknown;
+} {
+    const playerHudPro = PNG.sync.read(playerHudProData, {skipRescale: true});
+    const hudIcons = PNG.sync.read(hudIconsData, {skipRescale: true});
+    if (playerHudPro.width < 256 || playerHudPro.height < 256) {
+        throw new Error(
+            `Unsupported compact player HUD dimensions: expected at least 256x256, got ${playerHudPro.width}x${playerHudPro.height}`,
+        );
+    }
+    if (hudIcons.width < 512 || hudIcons.height < 128) {
+        throw new Error(
+            `Unsupported HUD icon dimensions: expected at least 512x128, got ${hudIcons.width}x${hudIcons.height}`,
+        );
+    }
+
+    const output = new PNG({
+        width: HUD_OUTPUT_WIDTH,
+        height: HUD_OUTPUT_HEIGHT,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    output.data.fill(0);
+
+    PNG.bitblt(
+        playerHudPro,
+        output,
+        HUD_HEART_SOURCE_X,
+        HUD_HEART_SOURCE_Y,
+        HUD_HEART_SIZE,
+        HUD_HEART_SIZE,
+        0,
+        0,
+    );
+
+    HUD_DIGIT_SOURCE_CELLS.forEach(([cellX, cellY], digit) => {
+        PNG.bitblt(
+            hudIcons,
+            output,
+            cellX * HUD_DIGIT_SIZE,
+            cellY * HUD_DIGIT_SIZE,
+            HUD_DIGIT_SIZE,
+            HUD_DIGIT_SIZE,
+            HUD_HEART_SIZE + digit * HUD_DIGIT_SIZE,
+            0,
+        );
+    });
+
+    return {
+        png: PNG.sync.write(output, {
+            colorType: 6,
+            inputColorType: 6,
+            bitDepth: 8,
+            filterType: 4,
+            deflateLevel: 9,
+            deflateStrategy: 3,
+        }),
+        spec: {
+            imageURL: '/generated/spelunky-hd/hud.png',
+            frameScale: HUD_DIGIT_SCALE,
+            frames: [
+                {
+                    name: 'heart',
+                    rect: [0, 0, HUD_HEART_SIZE, HUD_HEART_SIZE],
+                    scale: HUD_HEART_SCALE,
+                },
+                ...HUD_DIGIT_SOURCE_CELLS.map((_cell, digit) => ({
+                    name: `digit-${digit}`,
+                    rect: [
+                        HUD_HEART_SIZE + digit * HUD_DIGIT_SIZE,
+                        0,
+                        HUD_DIGIT_SIZE,
+                        HUD_DIGIT_SIZE,
+                    ],
+                })),
+            ],
+        },
+    };
+}
+
 function createTerrainImage(
     terrainSourceData: Buffer,
     backgroundSourceData: Buffer,
@@ -801,6 +934,13 @@ export async function importSpelunkyHd(
     const profile = options.profile ?? DEFAULT_IMPORT_PROFILE;
     const wadPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad');
     const wixPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad.wix');
+    const soundWadPath = join(sourceRoot, 'Data', 'Sounds', 'allsounds.wad');
+    const soundWixPath = join(
+        sourceRoot,
+        'Data',
+        'Sounds',
+        'allsounds.wad.wix',
+    );
     const animationsPath = join(
         sourceRoot,
         'Data',
@@ -808,10 +948,26 @@ export async function importSpelunkyHd(
         'allanimations.wad',
     );
 
-    [wadPath, wixPath, animationsPath].forEach(assertSourceFile);
+    [
+        wadPath,
+        wixPath,
+        soundWadPath,
+        soundWixPath,
+        animationsPath,
+    ].forEach(assertSourceFile);
     await Promise.all([
         assertFileHash(wadPath, profile.wadSha256, 'Spelunky HD texture WAD'),
         assertFileHash(wixPath, profile.wixSha256, 'Spelunky HD texture WIX'),
+        assertFileHash(
+            soundWadPath,
+            profile.soundWadSha256,
+            'Spelunky HD sound WAD',
+        ),
+        assertFileHash(
+            soundWixPath,
+            profile.soundWixSha256,
+            'Spelunky HD sound WIX',
+        ),
         assertFileHash(
             animationsPath,
             profile.animationsSha256,
@@ -822,6 +978,12 @@ export async function importSpelunkyHd(
     const wix = readFileSync(wixPath, 'utf8');
     const entries = parseWix(wix, statSync(wadPath).size);
     const entriesByKey = new Map(entries.map(entry => [
+        entryKey(entry.group, entry.name),
+        entry,
+    ]));
+    const soundWix = readFileSync(soundWixPath, 'utf8');
+    const soundEntries = parseWix(soundWix, statSync(soundWadPath).size);
+    const soundEntriesByKey = new Map(soundEntries.map(entry => [
         entryKey(entry.group, entry.name),
         entry,
     ]));
@@ -855,7 +1017,36 @@ export async function importSpelunkyHd(
         selected.push({key, length: entry.length, sha256: actualHash, data});
     }
 
-    for (const entry of selected) {
+    const selectedSounds: Array<{
+        readonly key: string;
+        readonly length: number;
+        readonly sha256: string;
+        readonly data: Buffer;
+    }> = [];
+    for (const approved of profile.soundEntries) {
+        assertSafeComponent(approved.group, 'approved sound group');
+        assertSafeComponent(approved.name, 'approved sound name');
+        const key = entryKey(approved.group, approved.name);
+        const entry = soundEntriesByKey.get(key);
+        if (entry === undefined) {
+            throw new Error(`Approved sound WAD entry is missing: ${key}`);
+        }
+        const data = readEntry(soundWadPath, entry);
+        const actualHash = sha256(data);
+        if (actualHash !== approved.sha256) {
+            throw new Error(
+                `Unsupported sound WAD entry ${key}: expected SHA-256 ${approved.sha256}, got ${actualHash}`,
+            );
+        }
+        selectedSounds.push({
+            key,
+            length: entry.length,
+            sha256: actualHash,
+            data,
+        });
+    }
+
+    for (const entry of [...selected, ...selectedSounds]) {
         const [group, name] = entry.key.split('/');
         if (group === undefined || name === undefined) {
             throw new Error(`Invalid selected entry key: ${entry.key}`);
@@ -953,6 +1144,61 @@ export async function importSpelunkyHd(
     ensureParent(terrainImagePath);
     writeFileSync(terrainImagePath, terrainImage);
 
+    const playerHudProSource = selected.find(
+        entry => entry.key === 'ANYLEVEL/playerhudPRO.png',
+    );
+    if (playerHudProSource === undefined) {
+        throw new Error(
+            'Import profile does not contain ANYLEVEL/playerhudPRO.png',
+        );
+    }
+    const hudIconsSource = selected.find(
+        entry => entry.key === 'ATSTART/hudicons.png',
+    );
+    if (hudIconsSource === undefined) {
+        throw new Error('Import profile does not contain ATSTART/hudicons.png');
+    }
+    const hudAssets = createHudAssets(
+        playerHudProSource.data,
+        hudIconsSource.data,
+    );
+    const hudImagePath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'hud.png',
+    );
+    const hudSpecPath = join(
+        outputRoot,
+        'public',
+        'sprites',
+        'generated',
+        'spelunky-hd',
+        'hud.json',
+    );
+    ensureParent(hudImagePath);
+    writeFileSync(hudImagePath, hudAssets.png);
+    writeDeterministicJson(hudSpecPath, hudAssets.spec);
+
+    const snakebiteSource = selectedSounds.find(
+        entry => entry.key === 'ALLSOUNDS/snakebite.wav',
+    );
+    if (snakebiteSource === undefined) {
+        throw new Error(
+            'Import profile does not contain ALLSOUNDS/snakebite.wav',
+        );
+    }
+    const snakebiteSoundPath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'snakebite.wav',
+    );
+    ensureParent(snakebiteSoundPath);
+    writeFileSync(snakebiteSoundPath, snakebiteSource.data);
+
     const reportPath = join(
         outputRoot,
         '.local',
@@ -967,13 +1213,17 @@ export async function importSpelunkyHd(
             manifestId: '2622961810503583299',
             wadSha256: profile.wadSha256,
             wixSha256: profile.wixSha256,
+            soundWadSha256: profile.soundWadSha256,
+            soundWixSha256: profile.soundWixSha256,
             animationsSha256: profile.animationsSha256,
         },
-        selectedEntries: selected.map(({key, length, sha256: entryHash}) => ({
-            key,
-            length,
-            sha256: entryHash,
-        })),
+        selectedEntries: [...selected, ...selectedSounds].map(
+            ({key, length, sha256: entryHash}) => ({
+                key,
+                length,
+                sha256: entryHash,
+            }),
+        ),
         playerAnimationRecords: animationSections[0],
         snakeAnimationRecords: animationSections[1],
         generated: [
@@ -997,6 +1247,18 @@ export async function importSpelunkyHd(
                 path: 'public/generated/spelunky-hd/mines.png',
                 sha256: sha256(terrainImage),
             },
+            {
+                path: 'public/generated/spelunky-hd/hud.png',
+                sha256: sha256(hudAssets.png),
+            },
+            {
+                path: 'public/sprites/generated/spelunky-hd/hud.json',
+                sha256: await sha256File(hudSpecPath),
+            },
+            {
+                path: 'public/generated/spelunky-hd/snakebite.wav',
+                sha256: sha256(snakebiteSource.data),
+            },
         ],
     });
 
@@ -1006,6 +1268,9 @@ export async function importSpelunkyHd(
         enemyImagePath,
         enemySpecPath,
         terrainImagePath,
+        hudImagePath,
+        hudSpecPath,
+        snakebiteSoundPath,
         reportPath,
     };
 }

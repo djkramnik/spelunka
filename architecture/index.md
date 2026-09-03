@@ -4,6 +4,8 @@
 
 - [Spelunky Classic ledge-hanging behavior and HD animation](ledge-hanging.md)
 - [Spelunky ladder climbing and HD animation](ladder-climbing.md)
+- [Spelunky hearts and health HUD](health-hud.md)
+- [Player death physics and HD body states](player-death.md)
 - [Spelunky crouch, crawl, and top-to-hang transition](crouch-crawl.md)
 - [Spelunky Classic snake behavior and animation](snake.md)
 - [Spelunky Classic throwing behavior](throwing.md)
@@ -392,9 +394,11 @@ velocity (initially `-30`) after physics runs, and reverses that speed when a
 left or right tile obstructs the entity. Koopa behavior can disable this trait
 while hiding or increase it to `300` when its shell enters the panic state.
 
-The player has a separate, invisible controller entity. Once dead Mario has
-been removed from the level, the controller revives him, moves him to its
-`(64, 64)` checkpoint, and adds him back to the entity set.
+The player has a separate, invisible controller entity. It retains the legacy
+ability to re-add a normally removed player at its `(64, 64)` checkpoint, but
+explicitly refuses that path for a zero-heart player. Terminal death instead
+leaves a collision-disabled unconscious body in the level; see the dedicated
+death-state note for its terrain physics and visual routing.
 
 ### Movement finding
 

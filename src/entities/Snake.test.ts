@@ -1,3 +1,4 @@
+import AudioBoard from '../AudioBoard.js';
 import Entity, {Sides} from '../Entity.js';
 import EntityCollider from '../EntityCollider.js';
 import Level from '../Level.js';
@@ -5,16 +6,24 @@ import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
+import Health from '../traits/Health.js';
 import Killable from '../traits/Killable.js';
 import Physics from '../traits/Physics.js';
+import PlayerDeath from '../traits/PlayerDeath.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 import {
     createSnakeFactory,
+    SNAKE_CONTACT_DAMAGE,
+    SNAKE_DEATH_KNOCKBACK_SPEED,
+    SNAKE_DEATH_UPWARD_SPEED,
     SNAKE_INITIAL_DIRECTION,
+    SNAKE_INVULNERABILITY_DURATION,
+    SNAKE_KNOCKBACK_SPEED,
     SNAKE_WALK_SPEED,
     SnakeBehavior,
 } from './Snake.js';
+import {createMarioFactory} from './Mario.js';
 
 function assertEqual<Value>(
     actual: Value,
@@ -65,8 +74,20 @@ assertEqual(visualSnake.traits.has(Physics), true, 'Snake physics');
 assertEqual(visualSnake.traits.has(Solid), true, 'Snake terrain collision');
 assertEqual(visualSnake.traits.get(Killable).removeAfter, 0, 'Snake prompt cleanup');
 assertEqual(
-    [visualBehavior.walkSpeed, visualBehavior.direction],
-    [SNAKE_WALK_SPEED, SNAKE_INITIAL_DIRECTION],
+    [
+        visualBehavior.walkSpeed,
+        visualBehavior.direction,
+        visualBehavior.knockbackSpeed,
+        visualBehavior.deathKnockbackSpeed,
+        visualBehavior.deathUpwardSpeed,
+    ],
+    [
+        SNAKE_WALK_SPEED,
+        SNAKE_INITIAL_DIRECTION,
+        SNAKE_KNOCKBACK_SPEED,
+        SNAKE_DEATH_KNOCKBACK_SPEED,
+        SNAKE_DEATH_UPWARD_SPEED,
+    ],
     'Snake named movement tunables',
 );
 
@@ -177,15 +198,97 @@ assertEqual(deathEffects, 1, 'Future splatter hook remains exactly once');
 
 const contactSnake = createSnakeFactory(sprite)();
 const contactMario = new Entity();
+contactMario.size.set(14, 16);
+contactMario.pos.x = -16;
 contactMario.addTrait(new Killable());
 contactMario.addTrait(new Stomper());
+const contactHealth = new Health();
+contactMario.addTrait(contactHealth);
 contactMario.vel.y = 0;
 contactSnake.vel.y = 0;
 contactSnake.collides(contactMario);
 contactMario.finalize();
 contactSnake.finalize();
-assertEqual(contactMario.traits.get(Killable).dead, true, 'Non-stomp contact kills Mario');
+assertEqual(
+    [
+        contactHealth.hearts,
+        contactMario.vel.x,
+        contactHealth.invulnerabilityTime,
+        contactMario.traits.get(Killable).dead,
+    ],
+    [
+        4 - SNAKE_CONTACT_DAMAGE,
+        -SNAKE_KNOCKBACK_SPEED,
+        SNAKE_INVULNERABILITY_DURATION,
+        false,
+    ],
+    'Snake contact removes one heart, knocks left, and protects without killing',
+);
 assertEqual(contactSnake.traits.get(Killable).dead, false, 'Snake survives non-stomp contact');
+assertEqual(
+    contactMario.sounds.has('snakebite'),
+    true,
+    'Accepted snake damage queues the imported snake-bite effect',
+);
+
+contactMario.sounds.clear();
+contactSnake.collides(contactMario);
+contactMario.finalize();
+assertEqual(
+    [contactHealth.hearts, contactMario.vel.x, contactMario.sounds.size],
+    [3, -SNAKE_KNOCKBACK_SPEED, 0],
+    'Continuous overlap cannot repeat damage or knockback during protection',
+);
+
+const gentleSnake = createSnakeFactory(sprite, {knockbackSpeed: 24})();
+const gentleTarget = new Entity();
+gentleTarget.size.set(14, 16);
+gentleTarget.pos.x = -16;
+gentleTarget.addTrait(new Killable());
+gentleTarget.addTrait(new Stomper());
+gentleTarget.addTrait(new Health());
+gentleSnake.collides(gentleTarget);
+assertEqual(
+    gentleTarget.vel.x,
+    -24,
+    'Knockback magnitude belongs to the individual enemy behavior',
+);
+
+const rightContactMario = createMarioFactory(sprite, new AudioBoard())();
+rightContactMario.pos.x = 16;
+const lastHeart = rightContactMario.traits.get(Health);
+lastHeart.damage(3);
+contactSnake.collides(rightContactMario);
+rightContactMario.finalize();
+assertEqual(
+    [
+        lastHeart.hearts,
+        rightContactMario.vel.x,
+        rightContactMario.vel.y,
+        rightContactMario.traits.get(Killable).dead,
+        rightContactMario.traits.get(PlayerDeath).phase,
+        rightContactMario.entityCollisionsEnabled,
+    ],
+    [
+        0,
+        SNAKE_DEATH_KNOCKBACK_SPEED,
+        -SNAKE_DEATH_UPWARD_SPEED,
+        true,
+        'airborne',
+        false,
+    ],
+    'Snake contact on the last heart launches the terminal player body',
+);
+rightContactMario.sounds.clear();
+const playerDeathLevel = new Level();
+playerDeathLevel.entities.add(rightContactMario);
+rightContactMario.update(gameContext, playerDeathLevel);
+rightContactMario.finalize();
+assertEqual(
+    playerDeathLevel.entities.has(rightContactMario),
+    true,
+    'A player with no hearts remains in the level as a physical body',
+);
 
 const externallyKilledSnake = createSnakeFactory(sprite, {
     onDeath: (): void => {

@@ -23,8 +23,8 @@ const LEGACY_FRAME_NAMES = [
     'carry-jump',
     'carry-fall',
     'throw',
-    'reaction-stunned',
-    'reaction-dead',
+    'reaction-airborne',
+    'reaction-unconscious',
 ] as const;
 
 function assertEqual<Value>(

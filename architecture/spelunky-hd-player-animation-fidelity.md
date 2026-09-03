@@ -29,7 +29,8 @@ engine ticks. Timed Spelunka states convert those values at 60 ticks per second.
 | ladder cling | 4 | 72 | 1 tick | Static |
 | ladder climb | 5 | 72-77 | 4 ticks | 1/15 second per frame while moving, looping |
 | throw | 8 | 54-58 | 4 ticks | 1/15 second per frame, non-looping |
-| reaction | 9 | 9 | 1 tick | Shared stunned/dead fallback |
+| settled unconscious | 9 | 9 | 1 tick | Static after dead-body physics settle |
+| airborne dead body | 33 | 103 | 1 tick | Static curled pose during launch and rebounds |
 | skid | 18 | 36-43 | 4 ticks | 1/15 second per frame while reversing |
 
 Movement animation remains distance-based because Spelunka supports gradual
@@ -49,7 +50,8 @@ Rather than guess, carrying continues to reuse the matching base poses:
 - carry idle uses source frame 0;
 - carry movement uses the complete source movement frames 1-8;
 - carry rise and fall use terminal source frames 111 and 115; and
-- stunned and dead both use the only confidently mapped reaction frame, 9.
+- terminal death uses frame 103 while its body is moving and frame 9 after it
+  has physically settled. Recoverable stun animation remains future work.
 
 Focused tests cover the complete 90-name frame catalogue, dense distance-based
 movement, state-clock advancement, terminal-frame clamping, facing and pivot

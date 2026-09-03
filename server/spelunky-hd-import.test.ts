@@ -39,7 +39,7 @@ function makePlayerPng(): Buffer {
         fill: false,
     });
     image.data.fill(0);
-    const frames = [0, 1, 3, 5, 7, 9, 36, 58, 111, 115];
+    const frames = [0, 1, 3, 5, 7, 9, 36, 58, 103, 111, 115];
     for (const frame of frames) {
         const x = (frame % 12) * 80 + 10;
         const y = Math.floor(frame / 12) * 80 + 11;
@@ -159,6 +159,60 @@ function makeMineDecorationPng(): Buffer {
     });
 }
 
+function makePlayerHudProPng(): Buffer {
+    const image = new PNG({
+        width: 256,
+        height: 256,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    image.data.fill(0);
+    image.data.set([220, 30, 40, 180], (138 * image.width + 10) * 4);
+    image.data.set([200, 160, 20, 255], (170 * image.width + 40) * 4);
+    return PNG.sync.write(image, {
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        filterType: 4,
+        deflateLevel: 9,
+        deflateStrategy: 3,
+    });
+}
+
+function makeHudIconsPng(): Buffer {
+    const image = new PNG({
+        width: 512,
+        height: 128,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    image.data.fill(0);
+    const cells = [
+        [4, 0], [5, 0], [6, 0], [7, 0], [0, 1],
+        [1, 1], [2, 1], [3, 1], [4, 1], [5, 1],
+    ] as const;
+    cells.forEach(([cellX, cellY], digit) => {
+        const x = cellX * 64 + 8;
+        const y = cellY * 64 + 9;
+        image.data.set(
+            [digit, 100 + digit, 200 - digit, 150 + digit],
+            (y * image.width + x) * 4,
+        );
+    });
+    return PNG.sync.write(image, {
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        filterType: 4,
+        deflateLevel: 9,
+        deflateStrategy: 3,
+    });
+}
+
 const animationText = [
     '!',
     '* 0 0 0 1 0 0',
@@ -169,6 +223,7 @@ const animationText = [
     '* 5 72 77 4 72 0',
     '* 8 54 58 4 58 0',
     '* 9 9 9 1 9 0',
+    '* 33 103 103 1 103 0',
     '* 6 14 14 1 14 0',
     '* 7 17 23 3 17 0',
     '* 25 12 14 4 14 0',
@@ -279,6 +334,12 @@ try {
         {group: 'ALLTILES', name: 'alltilesN.jpg', data: Buffer.from('normal fixture')},
         {group: 'MINE', name: 'minesmallbg.png', data: makeMineDecorationPng()},
         {group: 'MINE', name: 'minebg.jpg', data: makeMineBackgroundJpeg()},
+        {
+            group: 'ANYLEVEL',
+            name: 'playerhudPRO.png',
+            data: makePlayerHudProPng(),
+        },
+        {group: 'ATSTART', name: 'hudicons.png', data: makeHudIconsPng()},
     ] as const;
 
     const wixLines: string[] = [];
@@ -298,6 +359,19 @@ try {
     const wix = `${wixLines.join('\r\n')}\r\n`;
     const wadPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad');
     const wixPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad.wix');
+    const snakebiteSound = Buffer.from('synthetic snake bite wave');
+    const soundWadPath = join(
+        sourceRoot,
+        'Data',
+        'Sounds',
+        'allsounds.wad',
+    );
+    const soundWixPath = join(
+        sourceRoot,
+        'Data',
+        'Sounds',
+        'allsounds.wad.wix',
+    );
     const animationsPath = join(
         sourceRoot,
         'Data',
@@ -306,27 +380,42 @@ try {
     );
     write(wadPath, wad);
     write(wixPath, wix);
+    write(soundWadPath, snakebiteSound);
+    write(
+        soundWixPath,
+        `!group ALLSOUNDS\r\nsnakebite.wav 0 ${snakebiteSound.length}\r\n`,
+    );
     write(animationsPath, animationText);
 
     const profile: ImportProfile = {
         wadSha256: await sha256File(wadPath),
         wixSha256: await sha256File(wixPath),
+        soundWadSha256: await sha256File(soundWadPath),
+        soundWixSha256: await sha256File(soundWixPath),
         animationsSha256: await sha256File(animationsPath),
         entries: sourceEntries.map(entry => ({
             group: entry.group,
             name: entry.name,
             sha256: sha256(entry.data),
         })),
+        soundEntries: [{
+            group: 'ALLSOUNDS',
+            name: 'snakebite.wav',
+            sha256: sha256(snakebiteSound),
+        }],
     };
     const result = await importSpelunkyHd({sourceRoot, outputRoot, profile});
     const firstImage = readFileSync(result.playerImagePath);
     const firstSpec = readFileSync(result.playerSpecPath);
     const firstEnemySpec = readFileSync(result.enemySpecPath);
     const firstTerrainImage = readFileSync(result.terrainImagePath);
+    const firstHudImage = readFileSync(result.hudImagePath);
+    const firstHudSpec = readFileSync(result.hudSpecPath);
+    const firstSnakebiteSound = readFileSync(result.snakebiteSoundPath);
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 960]);
+    assert.deepEqual([generated.width, generated.height], [400, 1040]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
     assert.equal(spec.frames.length, 90);
@@ -496,6 +585,23 @@ try {
         'char_white.png',
     ));
     assert.deepEqual(copiedPlayer, sourceEntries[0].data);
+    assert.deepEqual(
+        readFileSync(join(
+            outputRoot,
+            '.local',
+            'spelunky-hd',
+            'source',
+            'ALLSOUNDS',
+            'snakebite.wav',
+        )),
+        snakebiteSound,
+        'The allow-listed HD snake-bite source is copied unchanged',
+    );
+    assert.deepEqual(
+        firstSnakebiteSound,
+        snakebiteSound,
+        'The generated snake-bite effect preserves its source bytes',
+    );
 
     const enemyImage = readFileSync(result.enemyImagePath);
     const enemy = PNG.sync.read(enemyImage);
@@ -628,12 +734,63 @@ try {
         'Empty assembly cells stay transparent above the opaque fill layer',
     );
 
+    const hudImage = PNG.sync.read(firstHudImage);
+    assert.deepEqual([hudImage.width, hudImage.height], [672, 64]);
+    const hudSpec = SpriteSheetSchema.parse(JSON.parse(
+        firstHudSpec.toString('utf8'),
+    ));
+    assert.equal(hudSpec.frameScale, 0.225);
+    assert.deepEqual(
+        hudSpec.frames.map(frame => [frame.name, frame.rect, frame.scale]),
+        [
+            ['heart', [0, 0, 32, 32], 0.45],
+            ...Array.from({length: 10}, (_, digit) => [
+                `digit-${digit}`,
+                [32 + digit * 64, 0, 64, 64],
+                undefined,
+            ]),
+        ],
+        'HUD metadata exposes the HD heart and all ten counter glyphs',
+    );
+    const heartPixel = (10 * hudImage.width + 10) * 4;
+    assert.deepEqual(
+        [...hudImage.data.subarray(heartPixel, heartPixel + 4)],
+        [220, 30, 40, 180],
+        'Heart pixels preserve source RGBA',
+    );
+    const excludedHudPixel = (42 * hudImage.width + 40) * 4;
+    assert.deepEqual(
+        [...hudImage.data.subarray(
+            excludedHudPixel,
+            excludedHudPixel + 4,
+        )],
+        [0, 0, 0, 0],
+        'Only the standalone compact heart cell is copied',
+    );
+    const digitFourPixel = (
+        9 * hudImage.width
+        + 32
+        + 4 * 64
+        + 8
+    ) * 4;
+    assert.deepEqual(
+        [...hudImage.data.subarray(digitFourPixel, digitFourPixel + 4)],
+        [4, 104, 196, 154],
+        'Counter cells are repacked from their non-linear HD atlas order',
+    );
+
     await importSpelunkyHd({sourceRoot, outputRoot, profile});
     assert.deepEqual(readFileSync(result.playerImagePath), firstImage);
     assert.deepEqual(readFileSync(result.playerSpecPath), firstSpec);
     assert.deepEqual(readFileSync(result.enemyImagePath), enemyImage);
     assert.deepEqual(readFileSync(result.enemySpecPath), firstEnemySpec);
     assert.deepEqual(readFileSync(result.terrainImagePath), firstTerrainImage);
+    assert.deepEqual(readFileSync(result.hudImagePath), firstHudImage);
+    assert.deepEqual(readFileSync(result.hudSpecPath), firstHudSpec);
+    assert.deepEqual(
+        readFileSync(result.snakebiteSoundPath),
+        firstSnakebiteSound,
+    );
     assert.deepEqual(readFileSync(result.reportPath), firstReport);
 
     const badProfile: ImportProfile = {...profile, wadSha256: '0'.repeat(64)};
@@ -673,4 +830,4 @@ try {
     rmSync(root, {recursive: true, force: true});
 }
 
-console.log('Spelunky HD local graphics importer passed');
+console.log('Spelunky HD local asset importer passed');

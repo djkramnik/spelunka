@@ -28,8 +28,8 @@
         {"name": "carry-fall", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
 
         {"name": "throw", "rect": [0, 80, 80, 80], "pivot": [40, 75]},
-        {"name": "reaction-stunned", "rect": [160, 0, 80, 80], "pivot": [40, 75]},
-        {"name": "reaction-dead", "rect": [240, 80, 80, 80], "pivot": [40, 75]}
+        {"name": "reaction-airborne", "rect": [240, 80, 80, 80], "pivot": [40, 75]},
+        {"name": "reaction-unconscious", "rect": [160, 0, 80, 80], "pivot": [40, 75]}
     ],
 
     "animations": [

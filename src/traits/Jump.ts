@@ -19,6 +19,7 @@ export const SPELUNKY_HD_JUMP_COYOTE_TIME = 0.1;
 export type JumpPhase = 'grounded' | 'rising' | 'falling';
 
 export default class Jump extends Trait {
+    enabled = true;
     // Retained for animation-test and diagnostic compatibility while the
     // explicit phase becomes the authoritative runtime state.
     ready = 0;
@@ -41,6 +42,9 @@ export default class Jump extends Trait {
     }
 
     start(): void {
+        if (!this.enabled) {
+            return;
+        }
         this.held = true;
         this.requestTime = this.gracePeriod;
     }
@@ -103,6 +107,9 @@ export default class Jump extends Trait {
         {deltaTime}: GameContext,
         level: Level,
     ): void {
+        if (!this.enabled) {
+            return;
+        }
         const physics = entity.traits.get(Physics);
         const grounded = physics.grounded && entity.vel.y === 0;
 

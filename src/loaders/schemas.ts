@@ -75,6 +75,7 @@ const SpriteFrameSchema = z.object({
         PositiveNumberSchema,
     ]),
     pivot: PositionSchema.optional(),
+    scale: PositiveNumberSchema.optional(),
 });
 
 const SpriteAnimationSchema = z.object({

@@ -154,6 +154,14 @@ export default class LedgeHang extends Trait {
         jump.ready = -1;
     }
 
+    interrupt(entity: Entity): void {
+        if (this.active) {
+            this.release(entity);
+        }
+        this.verticalDirection = 0;
+        this.climbRequested = false;
+    }
+
     private topSupport(
         entity: Entity,
         level: Level,

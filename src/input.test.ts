@@ -9,6 +9,7 @@ import Go from './traits/Go.js';
 import Jump from './traits/Jump.js';
 import LadderClimb from './traits/LadderClimb.js';
 import LedgeHang from './traits/LedgeHang.js';
+import Killable from './traits/Killable.js';
 import Pickable from './traits/Pickable.js';
 
 function assertEqual<Value>(
@@ -61,12 +62,14 @@ const go = new Go();
 const ledgeHang = new LedgeHang();
 const ladderClimb = new LadderClimb();
 const crouch = new Crouch();
+const killable = new Killable();
 receiver.addTrait(carrier);
 receiver.addTrait(jump);
 receiver.addTrait(go);
 receiver.addTrait(ledgeHang);
 receiver.addTrait(ladderClimb);
 receiver.addTrait(crouch);
+receiver.addTrait(killable);
 
 let pickupOrThrowCalls = 0;
 const turboStates: KeyState[] = [];
@@ -153,5 +156,26 @@ dispatch('keyup', 'ArrowDown');
 assertEqual(ladderClimb.verticalDirection, 0, 'Down release clears ladder input');
 assertEqual(ledgeHang.verticalDirection, 0, 'Down release clears ledge input');
 assertEqual(crouch.downHeld, false, 'Down release clears crouch input');
+
+killable.dead = true;
+dispatch('keydown', 'KeyZ');
+dispatch('keydown', 'KeyX');
+dispatch('keydown', 'KeyD');
+dispatch('keydown', 'ArrowRight');
+dispatch('keydown', 'ArrowUp');
+dispatch('keydown', 'ArrowDown');
+assertEqual(
+    [
+        jump.requestTime,
+        turboStates,
+        pickupOrThrowCalls,
+        go.dir,
+        ladderClimb.verticalDirection,
+        ledgeHang.verticalDirection,
+        crouch.downHeld,
+    ],
+    [0, [1, 0], 3, 0, 0, 0, false],
+    'Dead players ignore movement and action presses',
+);
 
 console.log('Keyboard pickup and throw input regression passed');

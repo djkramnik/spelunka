@@ -2,6 +2,7 @@ import BoundingBox from './BoundingBox.js';
 
 interface CollidableEntity<Entity> {
     bounds: BoundingBox;
+    entityCollisionsEnabled?: boolean;
     collides(candidate: Entity): void;
 }
 
@@ -29,7 +30,7 @@ export default class EntityCollider<
             subjectIndex < this.sortedEntities.length;
             subjectIndex++) {
             const subject = this.sortedEntities[subjectIndex];
-            if (!subject) {
+            if (!subject || subject.entityCollisionsEnabled === false) {
                 continue;
             }
 
@@ -40,6 +41,10 @@ export default class EntityCollider<
                 const candidate = this.sortedEntities[candidateIndex];
                 if (!candidate || candidate.bounds.left >= subjectRight) {
                     break;
+                }
+
+                if (candidate.entityCollisionsEnabled === false) {
+                    continue;
                 }
 
                 candidateChecks++;

@@ -6,8 +6,10 @@ import Go from './traits/Go.js';
 import LedgeHang from './traits/LedgeHang.js';
 import Crouch from './traits/Crouch.js';
 import LadderClimb from './traits/LadderClimb.js';
+import Killable from './traits/Killable.js';
 
 interface InputTraits {
+    get(trait: typeof Killable): Killable;
     get(trait: typeof Jump): Jump;
     get(trait: typeof Go): Go;
     get(trait: typeof LedgeHang): LedgeHang;
@@ -29,38 +31,55 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
 
     input.addMapping('KeyZ', keyState => {
         if (keyState) {
-            router.route(entity => entity.traits.get(Jump).start());
+            router.route(entity => {
+                if (!entity.traits.get(Killable).dead) {
+                    entity.traits.get(Jump).start();
+                }
+            });
         } else {
             router.route(entity => entity.traits.get(Jump).cancel());
         }
     });
 
     input.addMapping('KeyX', keyState => {
-        router.route(entity => entity.turbo(keyState));
+        router.route(entity => {
+            if (!entity.traits.get(Killable).dead) {
+                entity.turbo(keyState);
+            }
+        });
     });
 
     input.addMapping('KeyD', keyState => {
         if (keyState) {
             router.route(entity => {
-                entity.pickupOrThrow();
+                if (!entity.traits.get(Killable).dead) {
+                    entity.pickupOrThrow();
+                }
             });
         }
     });
 
     input.addMapping('ArrowRight', keyState => {
         router.route(entity => {
-            entity.traits.get(Go).dir += keyState ? 1 : -1;
+            if (!entity.traits.get(Killable).dead) {
+                entity.traits.get(Go).dir += keyState ? 1 : -1;
+            }
         });
     });
 
     input.addMapping('ArrowLeft', keyState => {
         router.route(entity => {
-            entity.traits.get(Go).dir += keyState ? -1 : 1;
+            if (!entity.traits.get(Killable).dead) {
+                entity.traits.get(Go).dir += keyState ? -1 : 1;
+            }
         });
     });
 
     input.addMapping('ArrowUp', keyState => {
         router.route(entity => {
+            if (entity.traits.get(Killable).dead) {
+                return;
+            }
             entity.traits.get(LadderClimb).setVerticalInput(-1, Boolean(keyState));
             entity.traits.get(LedgeHang).setVerticalInput(-1, Boolean(keyState));
         });
@@ -68,6 +87,9 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
 
     input.addMapping('ArrowDown', keyState => {
         router.route(entity => {
+            if (entity.traits.get(Killable).dead) {
+                return;
+            }
             entity.traits.get(LadderClimb).setVerticalInput(1, Boolean(keyState));
             entity.traits.get(LedgeHang).setVerticalInput(1, Boolean(keyState));
             entity.traits.get(Crouch).setDown(Boolean(keyState));

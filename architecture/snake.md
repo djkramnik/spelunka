@@ -52,8 +52,16 @@ The snake has one hit point:
 - Spikes, lava, and overlapping solid terrain use inherited enemy rules and
   kill it.
 - Touching a living snake from the side or below costs the player one heart,
-  knocks the player horizontally away, and grants 30 Classic updates (one
-  second) of temporary invulnerability.
+  sets horizontal velocity to 6 Classic pixels per update away from the snake,
+  and grants 30 Classic updates (one second) of temporary invulnerability.
+  Converted to this runtime's per-second velocity, the impulse is 180 logical
+  pixels per second. Classic applies no vertical impulse and does not make this
+  weak contact an unconscious/stunned hit.
+
+The implementation deliberately uses a gentler enemy-owned value of 90 logical
+pixels per second after play review. `SnakeBehavior.knockbackSpeed` belongs to
+each snake instance, so future enemies can choose their own magnitude without
+placing movement policy in `Health`.
 
 The snake has no stunned or corpse animation of its own. When its hit point
 reaches zero, its step event creates a larger blood effect, records the kill
@@ -178,23 +186,26 @@ following first slice:
 - Continue simulating off-screen snakes. Camera-gated updates are not required
   until profiling demonstrates a need.
 
-The edge probes, wall response, collision inset, one-hit death, and absence of
-an attack are faithful to Classic. Continuous deterministic patrol, HD
-animation, lethal contact, and always-on updates are deliberate project
-choices. Classic's random pauses are documented above as source evidence but
-are intentionally not part of current gameplay. Lethal contact is another
-simplification: Classic deals one heart plus knockback and temporary
-invulnerability, but Spelunka currently models the player with a binary
-`Killable` lifecycle.
+The edge probes, wall response, collision inset, one-hit death, contact damage,
+and absence of an attack are faithful to Classic. Continuous deterministic
+patrol, HD animation, and always-on updates are deliberate project choices.
+Classic's random pauses are documented above as source evidence but are
+intentionally not part of current gameplay.
 
 ## Current implementation
 
 The distinct `snake` factory now consumes the generated HD walk animation while
 preserving the 12x16 inset gameplay collider. Its behavior continuously crosses
-its current ledge, reverses at either end or at a wall, kills the player on
-non-stomp contact, and dies through the common `Killable` path. Death suppresses
-drawing, invokes the no-op future-splatter hook once, and removes the entity on
-its next update. The imported HD idle frames remain available for future
+its current ledge and reverses at either end or at a wall. Non-stomp player
+contact removes one heart, applies the snake's 90 logical pixel-per-second
+horizontal impulse, queues HD's dedicated `snakebite.wav`, and begins one
+second of health-level damage protection. Overlap during that
+window does not retrigger damage or knockback. Losing the final heart enters
+the terminal death path with an enemy-owned 180 pixel-per-second horizontal
+launch and 120 pixel-per-second upward lift; surviving contact leaves normal
+player control intact. The snake dies through the common `Killable` path. Death
+suppresses drawing, invokes the no-op future-splatter hook once, and removes it
+on its next update. The imported HD idle frames remain available for future
 behavior but are not used by this simple patrol. The existing `goomba` factory
 still uses its temporary HD snake-art compatibility mapping; levels can select
 the dedicated behavior explicitly by using the stable `snake` entity name.

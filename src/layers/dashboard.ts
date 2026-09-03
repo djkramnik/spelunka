@@ -2,16 +2,22 @@ import type {CanvasLayer} from '../Compositor.js';
 import Entity from '../Entity.js';
 import Level from '../Level.js';
 import type {Font} from '../loaders/font.js';
+import SpriteSheet from '../SpriteSheet.js';
+import Health from '../traits/Health.js';
 import LevelTimer from '../traits/LevelTimer.js';
 import Player from '../traits/Player.js';
 
-function getPlayerTrait(entities: ReadonlySet<Entity>): Player {
+export const HEALTH_HUD_HEART_POSITION = [8, 4] as const;
+export const HEALTH_HUD_NUMBER_POSITION = [24, 4] as const;
+export const HEALTH_HUD_DIGIT_ADVANCE = 14.4;
+
+function getPlayerHealth(entities: ReadonlySet<Entity>): Health | undefined {
     for (const entity of entities) {
-        if (entity.traits.has(Player)) {
-            return entity.traits.get(Player);
+        if (entity.traits.has(Player) && entity.traits.has(Health)) {
+            return entity.traits.get(Health);
         }
     }
-    throw new Error('Dashboard requires a player entity');
+    return undefined;
 }
 
 function getTimerTrait(entities: ReadonlySet<Entity>): LevelTimer {
@@ -23,27 +29,34 @@ function getTimerTrait(entities: ReadonlySet<Entity>): LevelTimer {
     throw new Error('Dashboard requires a level timer entity');
 }
 
-export function createDashboardLayer(font: Font, level: Level): CanvasLayer {
+export function createDashboardLayer(
+    font: Font,
+    hud: SpriteSheet,
+    level: Level,
+): CanvasLayer {
     const line1 = font.size;
     const line2 = font.size * 2;
     const timer = getTimerTrait(level.entities);
 
     return function drawDashboard(context): void {
-        const player = getPlayerTrait(level.entities);
-
-        font.print(player.name, context, 16, line1);
-        font.print(
-            player.score.toString().padStart(6, '0'),
-            context,
-            16,
-            line2,
-        );
-        font.print(
-            `@x${player.coins.toString().padStart(2, '0')}`,
-            context,
-            96,
-            line2,
-        );
+        const health = getPlayerHealth(level.entities);
+        if (health !== undefined) {
+            hud.draw(
+                'heart',
+                context,
+                HEALTH_HUD_HEART_POSITION[0],
+                HEALTH_HUD_HEART_POSITION[1],
+            );
+            [...health.hearts.toString()].forEach((digit, index) => {
+                hud.draw(
+                    `digit-${digit}`,
+                    context,
+                    HEALTH_HUD_NUMBER_POSITION[0]
+                        + index * HEALTH_HUD_DIGIT_ADVANCE,
+                    HEALTH_HUD_NUMBER_POSITION[1],
+                );
+            });
+        }
 
         font.print('WORLD', context, 152, line1);
         font.print(level.name, context, 160, line2);

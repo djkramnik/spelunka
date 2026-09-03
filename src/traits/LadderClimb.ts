@@ -142,6 +142,13 @@ export default class LadderClimb extends Trait {
         jump.ready = -1;
     }
 
+    interrupt(entity: Entity): void {
+        if (this.active) {
+            this.releaseAirborne(entity);
+        }
+        this.verticalDirection = 0;
+    }
+
     private finishGrounded(entity: Entity): void {
         this.phase = 'inactive';
         this.ladder = null;

@@ -9,11 +9,13 @@ import SpriteSheet from '../SpriteSheet.js';
 import Carrier from '../traits/Carrier.js';
 import Crouch from '../traits/Crouch.js';
 import Go from '../traits/Go.js';
+import Health from '../traits/Health.js';
 import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import Physics from '../traits/Physics.js';
+import PlayerDeath from '../traits/PlayerDeath.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 
@@ -21,7 +23,6 @@ const SLOW_DRAG = 1 / 1000;
 const FAST_DRAG = 1 / 5000;
 const HD_TICK_SECONDS = 1 / 60;
 const THROW_FRAME_DURATION = 5 * 4 * HD_TICK_SECONDS;
-const STUNNED_FRAME_DURATION = 0.2;
 
 export const PLAYER_FRAME_NAMES = [
     'idle',
@@ -112,8 +113,8 @@ export const PLAYER_FRAME_NAMES = [
     'throw-3',
     'throw-4',
     'throw-5',
-    'reaction-stunned',
-    'reaction-dead',
+    'reaction-airborne',
+    'reaction-unconscious',
 ] as const;
 
 export type PlayerFrameName = typeof PLAYER_FRAME_NAMES[number];
@@ -187,8 +188,9 @@ export function createMarioFactory(
         const crouch = mario.traits.get(Crouch);
         const ledgeHang = mario.traits.get(LedgeHang);
         const ladderClimb = mario.traits.get(LadderClimb);
+        const playerDeath = mario.traits.get(PlayerDeath);
 
-        if (killable.dead) {
+        if (killable.dead || playerDeath.terminal) {
             return 'dead';
         }
 
@@ -262,15 +264,15 @@ export function createMarioFactory(
             ? mario.animationStateTime
             : 0;
         const go = mario.traits.get(Go);
-        const killable = mario.traits.get(Killable);
+        const playerDeath = mario.traits.get(PlayerDeath);
         const ledgeHang = mario.traits.get(LedgeHang);
         const ladderClimb = mario.traits.get(LadderClimb);
 
         switch (state) {
             case 'dead':
-                return killable.deadTime < STUNNED_FRAME_DURATION
-                    ? 'reaction-stunned'
-                    : 'reaction-dead';
+                return playerDeath.phase === 'settled'
+                    ? 'reaction-unconscious'
+                    : 'reaction-airborne';
             case 'throw':
                 return throwAnimation(stateTime) as PlayerFrameName;
             case 'carry-run':
@@ -322,29 +324,39 @@ export function createMarioFactory(
             this.addTrait(new Physics());
             this.addTrait(new Solid());
             this.addTrait(new Crouch());
+            this.addTrait(new PlayerDeath());
             this.addTrait(new Go());
+            this.addTrait(new Health());
             this.addTrait(new Jump());
-            this.addTrait(new Killable());
+            const killable = new Killable();
+            killable.removeAfter = Infinity;
+            this.addTrait(killable);
             this.addTrait(new Stomper());
             this.addTrait(new Carrier());
             this.addTrait(new LadderClimb());
             this.addTrait(new LedgeHang());
 
-            this.traits.get(Killable).removeAfter = 0;
             this.turbo(false);
         }
 
         turbo(turboOn: boolean | KeyState): void {
+            if (this.traits.get(PlayerDeath).terminal) {
+                return;
+            }
             this.running = Boolean(turboOn);
             this.traits.get(Go).dragFactor = turboOn ? FAST_DRAG : SLOW_DRAG;
         }
 
         pickup(): Entity | null {
+            if (this.traits.get(PlayerDeath).terminal) {
+                return null;
+            }
             return this.traits.get(Carrier).pickup(this);
         }
 
         pickupOrThrow(): Entity | null {
-            if (this.traits.get(LedgeHang).active
+            if (this.traits.get(PlayerDeath).terminal
+                || this.traits.get(LedgeHang).active
                 || this.traits.get(LadderClimb).active
                 || this.traits.get(Crouch).active) {
                 return null;
@@ -376,6 +388,7 @@ export function createMarioFactory(
         override draw(context: CanvasRenderingContext2D): void {
             const ledgeHang = this.traits.get(LedgeHang);
             const crouch = this.traits.get(Crouch);
+            const playerDeath = this.traits.get(PlayerDeath);
             sprite.drawFrame(
                 routeFrame(this),
                 context,
@@ -385,7 +398,11 @@ export function createMarioFactory(
                 this.size.y + (crouch.transitionAnchorActive
                     ? crouch.transitionOffset.y
                     : 0),
-                ledgeHang.active
+                playerDeath.terminal
+                    // HD's source dead-body frame has its head on the left.
+                    // Mirror it only when the body is traveling/facing right.
+                    ? playerDeath.direction > 0
+                : ledgeHang.active
                     ? ledgeHang.side < 0
                     : crouch.phase === 'flipping'
                         ? crouch.flipDirection > 0

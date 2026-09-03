@@ -5,10 +5,12 @@ import type SpriteSheet from '../SpriteSheet.js';
 import Carrier from '../traits/Carrier.js';
 import Crouch from '../traits/Crouch.js';
 import Go from '../traits/Go.js';
+import Health, {SPELUNKY_STARTING_HEARTS} from '../traits/Health.js';
 import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
+import PlayerDeath from '../traits/PlayerDeath.js';
 import {
     createMarioFactory,
     PLAYER_FRAME_NAMES,
@@ -96,11 +98,13 @@ const sprite = {
 const mario = createMarioFactory(sprite, new AudioBoard())();
 const jump = mario.traits.get(Jump);
 const go = mario.traits.get(Go);
+const health = mario.traits.get(Health);
 const carrier = mario.traits.get(Carrier);
 const killable = mario.traits.get(Killable);
 const ledgeHang = mario.traits.get(LedgeHang);
 const ladderClimb = mario.traits.get(LadderClimb);
 const crouch = mario.traits.get(Crouch);
+const playerDeath = mario.traits.get(PlayerDeath);
 const animationClock = mario as typeof mario & {
     animationState: string;
     animationStateTime: number;
@@ -113,6 +117,12 @@ const draw = (): string => {
     }
     return frame;
 };
+
+assertEqual(
+    health.hearts,
+    SPELUNKY_STARTING_HEARTS,
+    'New Spelunky player owns the default heart count',
+);
 
 assertEqual(draw(), 'idle', 'Idle frame');
 go.distance = 7;
@@ -229,10 +239,27 @@ animationClock.animationStateTime = 1;
 assertEqual(draw(), 'throw-5', 'Throw animation holds its terminal source frame');
 
 killable.dead = true;
-killable.deadTime = 0;
-assertEqual(draw(), 'reaction-stunned', 'Initial reaction frame');
-killable.deadTime = 1;
-assertEqual(draw(), 'reaction-dead', 'Terminal reaction frame');
+playerDeath.phase = 'airborne';
+playerDeath.direction = -1;
+assertEqual(draw(), 'reaction-airborne', 'Airborne death uses the curled HD body');
+assertEqual(
+    draws.at(-1)?.flip,
+    false,
+    'Leftward death keeps the HD pose with its head on the left',
+);
+playerDeath.direction = 1;
+assertEqual(draw(), 'reaction-airborne', 'Rightward death keeps the curled HD body');
+assertEqual(
+    draws.at(-1)?.flip,
+    true,
+    'Rightward death mirrors the HD pose so its head points right',
+);
+playerDeath.phase = 'settled';
+assertEqual(
+    draw(),
+    'reaction-unconscious',
+    'Settled death uses the final HD unconscious pose',
+);
 
 assertEqual(
     draws[0],

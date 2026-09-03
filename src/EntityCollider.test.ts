@@ -45,4 +45,17 @@ if (
     })}`);
 }
 
+collisionCallbacks.length = 0;
+first.entityCollisionsEnabled = false;
+const disabledResult = collider.check();
+if (
+    disabledResult.overlaps !== 0
+    || collisionCallbacks.length !== 0
+) {
+    throw new Error(`Collision-disabled entity still interacted: ${JSON.stringify({
+        disabledResult,
+        collisionCallbacks,
+    })}`);
+}
+
 console.log('Entity collider sweep-and-prune regression passed');

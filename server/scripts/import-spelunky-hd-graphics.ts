@@ -8,7 +8,7 @@ interface CliOptions {
 
 function usage(): string {
     return [
-        'Import selected graphics from a user-owned Spelunky HD Steam depot.',
+        'Import selected assets from a user-owned Spelunky HD Steam depot.',
         '',
         'Usage:',
         '  npm run graphics:import:spelunky-hd -- --source <depot-dir> [--output <project-dir>]',
@@ -68,16 +68,19 @@ async function main(): Promise<void> {
             return;
         }
         const result = await importSpelunkyHd(options);
-        console.log('Spelunky HD graphics import complete.');
+        console.log('Spelunky HD asset import complete.');
         console.log(`Player PNG: ${result.playerImagePath}`);
         console.log(`Player metadata: ${result.playerSpecPath}`);
         console.log(`Enemy PNG: ${result.enemyImagePath}`);
         console.log(`Enemy metadata: ${result.enemySpecPath}`);
         console.log(`Mines terrain PNG: ${result.terrainImagePath}`);
+        console.log(`HUD PNG: ${result.hudImagePath}`);
+        console.log(`HUD metadata: ${result.hudSpecPath}`);
+        console.log(`Snake-bite WAV: ${result.snakebiteSoundPath}`);
         console.log(`Import report: ${result.reportPath}`);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        console.error(`Spelunky HD graphics import failed: ${message}`);
+        console.error(`Spelunky HD asset import failed: ${message}`);
         console.error('');
         console.error(usage());
         process.exitCode = 1;

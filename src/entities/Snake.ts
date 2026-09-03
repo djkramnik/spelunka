@@ -4,18 +4,30 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import SpriteSheet from '../SpriteSheet.js';
 import Trait from '../Trait.js';
+import Health from '../traits/Health.js';
 import Killable from '../traits/Killable.js';
 import Physics from '../traits/Physics.js';
+import PlayerDeath from '../traits/PlayerDeath.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 
 export const SNAKE_WALK_SPEED = 30;
 export const SNAKE_INITIAL_DIRECTION = 1;
+const CLASSIC_UPDATES_PER_SECOND = 30;
+export const SNAKE_CONTACT_DAMAGE = 1;
+export const SNAKE_KNOCKBACK_SPEED = 3 * CLASSIC_UPDATES_PER_SECOND;
+export const SNAKE_DEATH_KNOCKBACK_SPEED = 6 * CLASSIC_UPDATES_PER_SECOND;
+export const SNAKE_DEATH_UPWARD_SPEED = 4 * CLASSIC_UPDATES_PER_SECOND;
+export const SNAKE_INVULNERABILITY_DURATION = 30
+    / CLASSIC_UPDATES_PER_SECOND;
 
 export type SnakeDeathEffect = (snake: Entity, level: Level) => void;
 
 export interface SnakeOptions {
     initialDirection?: -1 | 1;
+    knockbackSpeed?: number;
+    deathKnockbackSpeed?: number;
+    deathUpwardSpeed?: number;
     onDeath?: SnakeDeathEffect;
 }
 
@@ -34,6 +46,9 @@ export class SnakeBehavior extends Trait {
     constructor(
         initialDirection: -1 | 1 = SNAKE_INITIAL_DIRECTION,
         private readonly onDeath: SnakeDeathEffect = noSnakeDeathEffect,
+        readonly knockbackSpeed = SNAKE_KNOCKBACK_SPEED,
+        readonly deathKnockbackSpeed = SNAKE_DEATH_KNOCKBACK_SPEED,
+        readonly deathUpwardSpeed = SNAKE_DEATH_UPWARD_SPEED,
     ) {
         super();
         this.direction = initialDirection;
@@ -56,8 +71,35 @@ export class SnakeBehavior extends Trait {
 
         if (candidate.traits.get(Stomper).canStomp(candidate, snake)) {
             killable.kill();
-        } else {
-            candidate.traits.get(Killable).kill();
+        } else if (candidate.traits.has(Health)) {
+            const health = candidate.traits.get(Health);
+            if (!health.takeDamage(
+                SNAKE_CONTACT_DAMAGE,
+                SNAKE_INVULNERABILITY_DURATION,
+            )) {
+                return;
+            }
+
+            const candidateCenter = candidate.bounds.left
+                + candidate.size.x / 2;
+            const snakeCenter = snake.bounds.left + snake.size.x / 2;
+            const direction = candidateCenter < snakeCenter ? -1 : 1;
+            candidate.sounds.add('snakebite');
+            if (health.depleted) {
+                if (candidate.traits.has(PlayerDeath)) {
+                    candidate.traits.get(PlayerDeath).kill(
+                        candidate,
+                        direction * this.deathKnockbackSpeed,
+                        this.deathUpwardSpeed,
+                    );
+                } else {
+                    candidate.vel.x = direction * this.deathKnockbackSpeed;
+                    candidate.vel.y = -this.deathUpwardSpeed;
+                    candidate.traits.get(Killable).kill();
+                }
+            } else {
+                candidate.vel.x = direction * this.knockbackSpeed;
+            }
         }
     }
 
@@ -114,6 +156,9 @@ export function createSnakeFactory(
         const behavior = new SnakeBehavior(
             options.initialDirection,
             options.onDeath,
+            options.knockbackSpeed,
+            options.deathKnockbackSpeed,
+            options.deathUpwardSpeed,
         );
         const killable = new Killable();
 
