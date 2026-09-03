@@ -86,6 +86,7 @@ const CRAWL_SOURCE_FRAMES = [17, 18, 19, 20, 21, 22, 23] as const;
 const LEDGE_HANG_SOURCE_FRAMES = [44, 45, 46, 47] as const;
 const LEDGE_CLIMB_SOURCE_FRAMES = [28, 29, 30, 31, 32, 33, 34] as const;
 const LEDGE_FLIP_SOURCE_FRAMES = [34, 33, 32, 31, 30, 29, 28] as const;
+const LADDER_CLIMB_SOURCE_FRAMES = [72, 73, 74, 75, 76, 77] as const;
 const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
 
 const MINE_BACKGROUND_DECORATIONS = [
@@ -120,6 +121,8 @@ const PLAYER_FRAME_SOURCES = [
     ...namedFrames('ledge-flip', LEDGE_FLIP_SOURCE_FRAMES),
     ...namedFrames('ledge-hang', LEDGE_HANG_SOURCE_FRAMES),
     ...namedFrames('ledge-climb', LEDGE_CLIMB_SOURCE_FRAMES),
+    ['ladder-cling', 72] as const,
+    ...namedFrames('ladder-climb', LADDER_CLIMB_SOURCE_FRAMES),
     ['carry-idle', 0] as const,
     ...namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES),
     ['carry-jump', 111] as const,
@@ -156,6 +159,8 @@ const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [18, [36, 43]],
     [12, [44, 47]],
     [19, [28, 34]],
+    [4, [72, 72]],
+    [5, [72, 77]],
 ]);
 
 const REQUIRED_SNAKE_ANIMATIONS = new Map<
@@ -336,6 +341,16 @@ function validatePlayerAnimations(sections: readonly (readonly AnimationRecord[]
             );
         }
     }
+    const ladderCling = byId.get(4);
+    const ladderClimb = byId.get(5);
+    if (ladderCling?.frameLength !== 1
+        || ladderCling.terminalFrame !== 72
+        || ladderClimb?.frameLength !== 4
+        || ladderClimb.terminalFrame !== 72) {
+        throw new Error(
+            'Unsupported HD ladder animation timing; expected IDs 4 and 5 to hold and loop from frame 72',
+        );
+    }
 }
 
 function validateSnakeAnimations(sections: readonly (readonly AnimationRecord[])[]): void {
@@ -427,7 +442,7 @@ function writeDeterministicJson(path: string, value: unknown): void {
     writeFileSync(path, `${JSON.stringify(value, null, 4)}\n`);
 }
 
-function createPlayerAssets(sourceData: Buffer): {
+export function createPlayerAssets(sourceData: Buffer): {
     readonly png: Buffer;
     readonly spec: unknown;
 } {
@@ -563,6 +578,12 @@ function createPlayerAssets(sourceData: Buffer): {
                 frames: namedFrames('ledge-climb', LEDGE_CLIMB_SOURCE_FRAMES)
                     .map(([name]) => name),
                 loop: false,
+            },
+            {
+                name: 'ladder-climb',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('ladder-climb', LADDER_CLIMB_SOURCE_FRAMES)
+                    .map(([name]) => name),
             },
             {
                 name: 'carry-run',

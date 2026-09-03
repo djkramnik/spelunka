@@ -86,9 +86,23 @@ assert.deepEqual(tutorial.size, [42, 19]);
 // entities use top-left positions, so [16, 64] preserves the same bounds.
 assert.deepEqual(tutorial.playerSpawn, [16, 64]);
 assert.deepEqual(tutorial.entities, [
+    {name: 'ladder', pos: [368, 80]},
+    {name: 'ladder4', pos: [480, 208]},
     {name: 'snake', pos: [352, 64]},
     {name: 'snake', pos: [464, 96]},
 ]);
+const tutorialLadder = tutorial.entities.find(entity => entity.name === 'ladder');
+assert.deepEqual(
+    tutorialLadder?.pos,
+    [23 * 16, 5 * 16],
+    'Tutorial ladder stands on the floor against the large cliff\'s right face',
+);
+const tutorialTallLadder = tutorial.entities.find(entity => entity.name === 'ladder4');
+assert.deepEqual(
+    tutorialTallLadder?.pos,
+    [30 * 16, 13 * 16],
+    'Four-tile tutorial ladder stands on the bottom floor against the lower cliff',
+);
 assert.deepEqual(tutorial.triggers, [{
     type: 'teleport',
     pos: [48, 240],
@@ -126,7 +140,21 @@ for (const range of tutorialGround.ranges) {
         }
     }
 }
-for (const snake of tutorial.entities) {
+for (let y = 13; y <= 16; y += 1) {
+    assert.ok(
+        tutorialSolidTiles.has(`29,${y}`),
+        `Lower cliff should occupy tile 29,${y}`,
+    );
+    assert.ok(
+        !tutorialSolidTiles.has(`30,${y}`),
+        `Tall ladder space should remain non-solid at tile 30,${y}`,
+    );
+}
+assert.ok(
+    tutorialSolidTiles.has('30,17'),
+    'Tall ladder should terminate on the bottom floor',
+);
+for (const snake of tutorial.entities.filter(entity => entity.name === 'snake')) {
     const supportX = Math.floor((snake.pos[0] + 8) / 16);
     const supportY = Math.floor((snake.pos[1] + 16) / 16);
     assert.ok(

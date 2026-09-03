@@ -8,6 +8,7 @@ import type {EntityFactory} from '../Scene.js';
 import SpriteSheet from '../SpriteSheet.js';
 import LevelTimer from '../traits/LevelTimer.js';
 import Trigger from '../traits/Trigger.js';
+import TopPlatform from '../traits/TopPlatform.js';
 import {loadMusicSheet} from './music.js';
 import {
     LevelSpecSchema,
@@ -92,6 +93,9 @@ function setupEntities(
 
         const entity = createEntity();
         entity.pos.set(x, y);
+        if (entity.traits.has(TopPlatform)) {
+            entity.traits.get(TopPlatform).install(entity, level);
+        }
         level.entities.add(entity);
     });
 

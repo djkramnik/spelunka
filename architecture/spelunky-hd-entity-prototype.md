@@ -44,6 +44,8 @@ player collider at logical `[7, 16]`.
 | `ledge-flip-1..7` | 34-28 | Source animation 19 reversed for top-to-hang |
 | `ledge-hang-1..4` | 44-47 | Complete non-looping source animation 12 (`Ledge Grab`); holds frame 47 |
 | `ledge-climb-1..7` | 28-34 | Complete non-looping source animation 19 (`Ledge Flip`) |
+| `ladder-cling` | 72 | Static source animation 4 |
+| `ladder-climb-1..6` | 72-77 | Complete looping source animation 5 |
 | `throw-1..5` | 54-58 | Complete non-looping source animation 8 |
 | `reaction-stunned`, `reaction-dead` | 9 | Shared source dead/stunned pose |
 | `carry-idle`, `carry-run-1..8` | 0, 1-8 | Intentional matching base-pose fallback |

@@ -26,6 +26,8 @@ engine ticks. Timed Spelunka states convert those values at 60 ticks per second.
 | top-to-hang flip | 19 reversed | 34-28 | 4 ticks | 1/15 second per frame, non-looping |
 | ledge grab/hang | 12 | 44-47 | 4 ticks | 1/15 second per frame, non-looping; holds frame 47 |
 | ledge climb | 19 | 28-34 | 4 ticks | 1/15 second per frame, non-looping |
+| ladder cling | 4 | 72 | 1 tick | Static |
+| ladder climb | 5 | 72-77 | 4 ticks | 1/15 second per frame while moving, looping |
 | throw | 8 | 54-58 | 4 ticks | 1/15 second per frame, non-looping |
 | reaction | 9 | 9 | 1 tick | Shared stunned/dead fallback |
 | skid | 18 | 36-43 | 4 ticks | 1/15 second per frame while reversing |
@@ -49,7 +51,7 @@ Rather than guess, carrying continues to reuse the matching base poses:
 - carry rise and fall use terminal source frames 111 and 115; and
 - stunned and dead both use the only confidently mapped reaction frame, 9.
 
-Focused tests cover the complete 83-name frame catalogue, dense distance-based
+Focused tests cover the complete 90-name frame catalogue, dense distance-based
 movement, state-clock advancement, terminal-frame clamping, facing and pivot
 stability, exact source-pixel preservation, deterministic repacking, and the
 unchanged 14x16 player collider. Final visual quality remains a user play-review

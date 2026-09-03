@@ -11,6 +11,7 @@ import Crouch from '../traits/Crouch.js';
 import Go from '../traits/Go.js';
 import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
+import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import Physics from '../traits/Physics.js';
 import Solid from '../traits/Solid.js';
@@ -88,6 +89,13 @@ export const PLAYER_FRAME_NAMES = [
     'ledge-climb-5',
     'ledge-climb-6',
     'ledge-climb-7',
+    'ladder-cling',
+    'ladder-climb-1',
+    'ladder-climb-2',
+    'ladder-climb-3',
+    'ladder-climb-4',
+    'ladder-climb-5',
+    'ladder-climb-6',
     'carry-idle',
     'carry-run-1',
     'carry-run-2',
@@ -124,6 +132,8 @@ type PlayerAnimationState =
     | 'ledge-flip'
     | 'ledge-hang'
     | 'ledge-climb'
+    | 'ladder-cling'
+    | 'ladder-climb'
     | 'carry-idle'
     | 'carry-run'
     | 'carry-jump'
@@ -165,6 +175,7 @@ export function createMarioFactory(
     const ledgeFlipAnimation = sprite.getAnimation('ledge-flip');
     const ledgeHangAnimation = sprite.getAnimation('ledge-hang');
     const ledgeClimbAnimation = sprite.getAnimation('ledge-climb');
+    const ladderClimbAnimation = sprite.getAnimation('ladder-climb');
     const carryRunAnimation = sprite.getAnimation('carry-run');
     const throwAnimation = sprite.getAnimation('throw');
 
@@ -175,9 +186,18 @@ export function createMarioFactory(
         const carrier = mario.traits.get(Carrier);
         const crouch = mario.traits.get(Crouch);
         const ledgeHang = mario.traits.get(LedgeHang);
+        const ladderClimb = mario.traits.get(LadderClimb);
 
         if (killable.dead) {
             return 'dead';
+        }
+
+        if (ladderClimb.phase === 'clinging') {
+            return 'ladder-cling';
+        }
+
+        if (ladderClimb.phase === 'climbing') {
+            return 'ladder-climb';
         }
 
         if (ledgeHang.phase === 'hanging') {
@@ -244,6 +264,7 @@ export function createMarioFactory(
         const go = mario.traits.get(Go);
         const killable = mario.traits.get(Killable);
         const ledgeHang = mario.traits.get(LedgeHang);
+        const ladderClimb = mario.traits.get(LadderClimb);
 
         switch (state) {
             case 'dead':
@@ -274,6 +295,10 @@ export function createMarioFactory(
                     : ledgeHangAnimation(stateTime) as PlayerFrameName;
             case 'ledge-climb':
                 return ledgeClimbAnimation(stateTime) as PlayerFrameName;
+            case 'ladder-climb':
+                return ladderClimbAnimation(
+                    ladderClimb.animationTime,
+                ) as PlayerFrameName;
             case 'walk':
                 return walkAnimation(go.distance) as PlayerFrameName;
             case 'run':
@@ -302,6 +327,7 @@ export function createMarioFactory(
             this.addTrait(new Killable());
             this.addTrait(new Stomper());
             this.addTrait(new Carrier());
+            this.addTrait(new LadderClimb());
             this.addTrait(new LedgeHang());
 
             this.traits.get(Killable).removeAfter = 0;
@@ -319,6 +345,7 @@ export function createMarioFactory(
 
         pickupOrThrow(): Entity | null {
             if (this.traits.get(LedgeHang).active
+                || this.traits.get(LadderClimb).active
                 || this.traits.get(Crouch).active) {
                 return null;
             }

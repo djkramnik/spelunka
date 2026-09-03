@@ -7,6 +7,7 @@ import Crouch from '../traits/Crouch.js';
 import Go from '../traits/Go.js';
 import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
+import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import {
     createMarioFactory,
@@ -43,6 +44,7 @@ const sprite = {
             'ledge-flip': 7,
             'ledge-hang': 4,
             'ledge-climb': 7,
+            'ladder-climb': 6,
             'carry-run': 8,
             throw: 5,
         };
@@ -60,6 +62,7 @@ const sprite = {
             'ledge-flip',
             'ledge-hang',
             'ledge-climb',
+            'ladder-climb',
             'throw',
         ].includes(name);
         return createAnim(
@@ -96,6 +99,7 @@ const go = mario.traits.get(Go);
 const carrier = mario.traits.get(Carrier);
 const killable = mario.traits.get(Killable);
 const ledgeHang = mario.traits.get(LedgeHang);
+const ladderClimb = mario.traits.get(LadderClimb);
 const crouch = mario.traits.get(Crouch);
 const animationClock = mario as typeof mario & {
     animationState: string;
@@ -168,6 +172,14 @@ assertEqual(draw(), 'ledge-climb-1', 'Ledge climb starts the HD ledge-flip seque
 ledgeHang.phase = 'airborne';
 ledgeHang.side = 0;
 
+ladderClimb.phase = 'clinging';
+assertEqual(draw(), 'ladder-cling', 'Ladder mount holds the dedicated HD cling pose');
+ladderClimb.phase = 'climbing';
+ladderClimb.animationTime = 0.11;
+assertEqual(draw(), 'ladder-climb-3', 'Ladder motion advances through the HD climb loop');
+ladderClimb.phase = 'inactive';
+ladderClimb.animationTime = 0;
+
 carrier.carried = new Entity();
 jump.ready = 1;
 jump.phase = 'grounded';
@@ -230,7 +242,7 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    83,
+    90,
     'The expanded HD player frame catalogue remains explicit',
 );
 

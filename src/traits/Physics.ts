@@ -44,8 +44,14 @@ export default class Physics extends Trait {
         const ySteps = stepCount(yDistance);
         const yStep = yDistance / ySteps;
         for (let step = 0; step < ySteps; ++step) {
+            const previousBottom = entity.bounds.bottom;
             entity.pos.y += yStep;
-            level.tileCollider.checkY(entity, gameContext, level);
+            level.tileCollider.checkY(
+                entity,
+                gameContext,
+                level,
+                previousBottom,
+            );
             if (entity.vel.y !== initialYVelocity) {
                 break;
             }

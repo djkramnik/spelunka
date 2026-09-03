@@ -7,6 +7,8 @@ import {loadGoomba} from './entities/Goomba.js';
 import type {GoombaFactory} from './entities/Goomba.js';
 import {loadKoopa} from './entities/Koopa.js';
 import type {KoopaFactory} from './entities/Koopa.js';
+import {loadLadder} from './entities/Ladder.js';
+import type {LadderFactory} from './entities/Ladder.js';
 import {loadMario} from './entities/Mario.js';
 import type {MarioFactory} from './entities/Mario.js';
 import {loadRedShell} from './entities/RedShell.js';
@@ -21,6 +23,8 @@ export interface EntityFactories {
     mario: MarioFactory;
     goomba: GoombaFactory;
     koopa: KoopaFactory;
+    ladder: LadderFactory;
+    ladder4: () => Entity;
     bullet: BulletFactory;
     cannon: CannonFactory;
     redShell: RedShellFactory;
@@ -37,15 +41,35 @@ export async function loadEntities(
         return factory;
     };
 
-    const [mario, goomba, koopa, bullet, cannon, redShell, snake] = await Promise.all([
+    const [
+        mario,
+        goomba,
+        koopa,
+        ladder,
+        bullet,
+        cannon,
+        redShell,
+        snake,
+    ] = await Promise.all([
         track(loadMario(audioContext)),
         track(loadGoomba()),
         track(loadKoopa()),
+        track(loadLadder()),
         track(loadBullet()),
         track(loadCannon(audioContext)),
         track(loadRedShell()),
         track(loadSnake()),
     ]);
 
-    return {mario, goomba, koopa, bullet, cannon, redShell, snake};
+    return {
+        mario,
+        goomba,
+        koopa,
+        ladder,
+        ladder4: () => ladder(4),
+        bullet,
+        cannon,
+        redShell,
+        snake,
+    };
 }

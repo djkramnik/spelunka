@@ -7,6 +7,7 @@ import Carrier from './traits/Carrier.js';
 import Crouch from './traits/Crouch.js';
 import Go from './traits/Go.js';
 import Jump from './traits/Jump.js';
+import LadderClimb from './traits/LadderClimb.js';
 import LedgeHang from './traits/LedgeHang.js';
 import Pickable from './traits/Pickable.js';
 
@@ -58,11 +59,13 @@ const carrier = new Carrier();
 const jump = new Jump();
 const go = new Go();
 const ledgeHang = new LedgeHang();
+const ladderClimb = new LadderClimb();
 const crouch = new Crouch();
 receiver.addTrait(carrier);
 receiver.addTrait(jump);
 receiver.addTrait(go);
 receiver.addTrait(ledgeHang);
+receiver.addTrait(ladderClimb);
 receiver.addTrait(crouch);
 
 let pickupOrThrowCalls = 0;
@@ -137,13 +140,17 @@ dispatch('keyup', 'ArrowLeft');
 assertEqual(go.dir, 0, 'Left release remains unchanged');
 
 dispatch('keydown', 'ArrowUp');
+assertEqual(ladderClimb.verticalDirection, -1, 'Up press is available to ladder climb');
 assertEqual(ledgeHang.verticalDirection, -1, 'Up press is available to ledge climb');
 dispatch('keyup', 'ArrowUp');
+assertEqual(ladderClimb.verticalDirection, 0, 'Up release clears ladder input');
 assertEqual(ledgeHang.verticalDirection, 0, 'Up release clears ledge input');
 dispatch('keydown', 'ArrowDown');
+assertEqual(ladderClimb.verticalDirection, 1, 'Down press is available to ladder climb');
 assertEqual(ledgeHang.verticalDirection, 1, 'Down press is available to ledge drop');
 assertEqual(crouch.downHeld, true, 'Down press is available to grounded crouch');
 dispatch('keyup', 'ArrowDown');
+assertEqual(ladderClimb.verticalDirection, 0, 'Down release clears ladder input');
 assertEqual(ledgeHang.verticalDirection, 0, 'Down release clears ledge input');
 assertEqual(crouch.downHeld, false, 'Down release clears crouch input');
 

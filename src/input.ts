@@ -5,12 +5,14 @@ import Jump from './traits/Jump.js';
 import Go from './traits/Go.js';
 import LedgeHang from './traits/LedgeHang.js';
 import Crouch from './traits/Crouch.js';
+import LadderClimb from './traits/LadderClimb.js';
 
 interface InputTraits {
     get(trait: typeof Jump): Jump;
     get(trait: typeof Go): Go;
     get(trait: typeof LedgeHang): LedgeHang;
     get(trait: typeof Crouch): Crouch;
+    get(trait: typeof LadderClimb): LadderClimb;
 }
 
 interface KeyboardControlledEntity {
@@ -59,12 +61,14 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
 
     input.addMapping('ArrowUp', keyState => {
         router.route(entity => {
+            entity.traits.get(LadderClimb).setVerticalInput(-1, Boolean(keyState));
             entity.traits.get(LedgeHang).setVerticalInput(-1, Boolean(keyState));
         });
     });
 
     input.addMapping('ArrowDown', keyState => {
         router.route(entity => {
+            entity.traits.get(LadderClimb).setVerticalInput(1, Boolean(keyState));
             entity.traits.get(LedgeHang).setVerticalInput(1, Boolean(keyState));
             entity.traits.get(Crouch).setDown(Boolean(keyState));
         });

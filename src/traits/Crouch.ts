@@ -54,6 +54,17 @@ export default class Crouch extends Trait {
         this.downHeld = pressed;
     }
 
+    standImmediately(entity: Entity): void {
+        this.setHeight(entity, SPELUNKY_STANDING_HEIGHT);
+        this.phase = 'standing';
+        this.phaseTime = 0;
+        this.flipDirection = 0;
+        this.transitionAnchorActive = false;
+        this.transitionAnchorTime = 0;
+        this.transitionOffset.set(0, 0);
+        entity.traits.get(Go).enabled = true;
+    }
+
     private updateTransitionAnchor(deltaTime: number): void {
         if (!this.transitionAnchorActive || this.transitionAnchorTime <= 0) {
             this.transitionAnchorActive = false;

@@ -3,6 +3,7 @@
 ## Behavior references
 
 - [Spelunky Classic ledge-hanging behavior and HD animation](ledge-hanging.md)
+- [Spelunky ladder climbing and HD animation](ladder-climbing.md)
 - [Spelunky crouch, crawl, and top-to-hang transition](crouch-crawl.md)
 - [Spelunky Classic snake behavior and animation](snake.md)
 - [Spelunky Classic throwing behavior](throwing.md)

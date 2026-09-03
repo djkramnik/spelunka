@@ -43,6 +43,14 @@
             "index": [8, 0]
         },
         {
+            "name": "ladder",
+            "index": [2, 0]
+        },
+        {
+            "name": "ladder-top",
+            "index": [3, 0]
+        },
+        {
             "name": "ground-2x1-1-left",
             "index": [0, 3]
         },

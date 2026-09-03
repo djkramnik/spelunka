@@ -165,6 +165,8 @@ const animationText = [
     '* 1 1 8 4 1 0',
     '* 2 108 111 3 111 0',
     '* 3 112 115 4 115 0',
+    '* 4 72 72 1 72 0',
+    '* 5 72 77 4 72 0',
     '* 8 54 58 4 58 0',
     '* 9 9 9 1 9 0',
     '* 6 14 14 1 14 0',
@@ -221,6 +223,17 @@ assert.deepEqual(
         ['ground-edge-left', [7, 2]],
     ],
     'underworld metadata exposes connected chunks and transparent edge decals',
+);
+assert.deepEqual(
+    ['ladder', 'ladder-top'].map(name => {
+        const definition = underworldSpec.tiles.find(tile => tile.name === name);
+        return [definition?.name, definition?.index];
+    }),
+    [
+        ['ladder', [2, 0]],
+        ['ladder-top', [3, 0]],
+    ],
+    'underworld metadata exposes the HD Mines ladder body and capped top cells',
 );
 
 const root = mkdtempSync(join(tmpdir(), 'spelunka-hd-import-test-'));
@@ -313,10 +326,10 @@ try {
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 880]);
+    assert.deepEqual([generated.width, generated.height], [400, 960]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 83);
+    assert.equal(spec.frames.length, 90);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -361,6 +374,33 @@ try {
             loop: false,
         },
         'Throw animation uses the complete non-looping HD source record',
+    );
+    assert.deepEqual(
+        animation('ladder-climb'),
+        {
+            name: 'ladder-climb',
+            frameLen: 4 / 60,
+            frames: [
+                'ladder-climb-1',
+                'ladder-climb-2',
+                'ladder-climb-3',
+                'ladder-climb-4',
+                'ladder-climb-5',
+                'ladder-climb-6',
+            ],
+            loop: true,
+        },
+        'Ladder movement uses all six HD source frames at animation 5 cadence',
+    );
+    const ladderCling = spec.frames.find(frame => frame.name === 'ladder-cling');
+    const ladderClimbStart = spec.frames.find(
+        frame => frame.name === 'ladder-climb-1',
+    );
+    assert.ok(ladderCling && ladderClimbStart);
+    assert.deepEqual(
+        [ladderCling.rect, ladderCling.pivot],
+        [ladderClimbStart.rect, ladderClimbStart.pivot],
+        'HD animation 4 cling pose aliases animation 5 starting frame 72',
     );
     assert.deepEqual(
         animation('crouch-enter'),
@@ -600,6 +640,20 @@ try {
     await assert.rejects(
         importSpelunkyHd({sourceRoot, outputRoot, profile: badProfile}),
         /Unsupported Spelunky HD texture WAD/,
+    );
+
+    const unsupportedLadderAnimations = animationText.replace(
+        '* 5 72 77 4 72 0',
+        '* 5 72 77 3 72 0',
+    );
+    write(animationsPath, unsupportedLadderAnimations);
+    const badLadderProfile: ImportProfile = {
+        ...profile,
+        animationsSha256: await sha256File(animationsPath),
+    };
+    await assert.rejects(
+        importSpelunkyHd({sourceRoot, outputRoot, profile: badLadderProfile}),
+        /Unsupported HD ladder animation timing/,
     );
 
     const unsupportedSnakeAnimations = animationText.replace(

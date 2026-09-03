@@ -78,6 +78,14 @@
 
     "entities": [
         {
+            "name": "ladder",
+            "pos": [368, 80]
+        },
+        {
+            "name": "ladder4",
+            "pos": [480, 208]
+        },
+        {
             "name": "snake",
             "pos": [352, 64]
         },

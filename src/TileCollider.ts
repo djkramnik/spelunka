@@ -7,6 +7,7 @@ import type {TileMatch} from './TileResolver.js';
 import {brick} from './tiles/brick.js';
 import {coin} from './tiles/coin.js';
 import {ground} from './tiles/ground.js';
+import {platform} from './tiles/platform.js';
 
 export interface CollisionTile {
     type?: string | undefined;
@@ -26,6 +27,7 @@ export interface TileCollisionContext {
     resolver: TileResolver<CollisionTile>;
     gameContext: GameContext;
     level: Level;
+    previousBottom?: number;
 }
 
 export type TileHandler = (context: TileCollisionContext) => void;
@@ -34,6 +36,7 @@ const handlers: Record<string, readonly TileHandler[]> = {
     brick,
     coin,
     ground,
+    platform,
 };
 
 const solidTileTypes = new Set(['brick', 'ground']);
@@ -89,7 +92,12 @@ export default class TileCollider {
         }
     }
 
-    checkY(entity: CollisionEntity, gameContext: GameContext, level: Level): void {
+    checkY(
+        entity: CollisionEntity,
+        gameContext: GameContext,
+        level: Level,
+        previousBottom: number,
+    ): void {
         let y: number;
         if (entity.vel.y > 0) {
             y = entity.bounds.bottom;
@@ -110,7 +118,15 @@ export default class TileCollider {
 
             const initialVelocity = entity.vel.y;
             for (const match of matches) {
-                this.handle(1, entity, match, resolver, gameContext, level);
+                this.handle(
+                    1,
+                    entity,
+                    match,
+                    resolver,
+                    gameContext,
+                    level,
+                    previousBottom,
+                );
                 if (entity.vel.y !== initialVelocity) {
                     return;
                 }
@@ -125,12 +141,20 @@ export default class TileCollider {
         resolver: TileResolver<CollisionTile>,
         gameContext: GameContext,
         level: Level,
+        previousBottom?: number,
     ): void {
         const handler = match.tile.type
             ? handlers[match.tile.type]?.[index]
             : undefined;
         if (handler) {
-            handler({entity, match, resolver, gameContext, level});
+            handler({
+                entity,
+                match,
+                resolver,
+                gameContext,
+                level,
+                ...(previousBottom === undefined ? {} : {previousBottom}),
+            });
         }
     }
 }
