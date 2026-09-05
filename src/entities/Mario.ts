@@ -16,6 +16,7 @@ import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import Physics from '../traits/Physics.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
+import PlayerHit from '../traits/PlayerHit.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 
@@ -23,6 +24,8 @@ const SLOW_DRAG = 1 / 1000;
 const FAST_DRAG = 1 / 5000;
 const HD_TICK_SECONDS = 1 / 60;
 const THROW_FRAME_DURATION = 5 * 4 * HD_TICK_SECONDS;
+export const PLAYER_INVULNERABILITY_FLASHES_PER_SECOND = 8;
+export const PLAYER_INVULNERABILITY_MINIMUM_OPACITY = 0.35;
 
 export const PLAYER_FRAME_NAMES = [
     'idle',
@@ -113,6 +116,8 @@ export const PLAYER_FRAME_NAMES = [
     'throw-3',
     'throw-4',
     'throw-5',
+    'reaction-hit-1',
+    'reaction-hit-2',
     'reaction-airborne',
     'reaction-unconscious',
 ] as const;
@@ -140,6 +145,7 @@ type PlayerAnimationState =
     | 'carry-jump'
     | 'carry-fall'
     | 'throw'
+    | 'hit'
     | 'dead';
 
 export type Mario = Entity & {
@@ -179,6 +185,7 @@ export function createMarioFactory(
     const ladderClimbAnimation = sprite.getAnimation('ladder-climb');
     const carryRunAnimation = sprite.getAnimation('carry-run');
     const throwAnimation = sprite.getAnimation('throw');
+    const hitAnimation = sprite.getAnimation('reaction-hit');
 
     function routeAnimationState(mario: MarioEntity): PlayerAnimationState {
         const jump = mario.traits.get(Jump);
@@ -189,9 +196,14 @@ export function createMarioFactory(
         const ledgeHang = mario.traits.get(LedgeHang);
         const ladderClimb = mario.traits.get(LadderClimb);
         const playerDeath = mario.traits.get(PlayerDeath);
+        const playerHit = mario.traits.get(PlayerHit);
 
         if (killable.dead || playerDeath.terminal) {
             return 'dead';
+        }
+
+        if (playerHit.active) {
+            return 'hit';
         }
 
         if (ladderClimb.phase === 'clinging') {
@@ -265,6 +277,7 @@ export function createMarioFactory(
             : 0;
         const go = mario.traits.get(Go);
         const playerDeath = mario.traits.get(PlayerDeath);
+        const playerHit = mario.traits.get(PlayerHit);
         const ledgeHang = mario.traits.get(LedgeHang);
         const ladderClimb = mario.traits.get(LadderClimb);
 
@@ -273,6 +286,8 @@ export function createMarioFactory(
                 return playerDeath.phase === 'settled'
                     ? 'reaction-unconscious'
                     : 'reaction-airborne';
+            case 'hit':
+                return hitAnimation(playerHit.time) as PlayerFrameName;
             case 'throw':
                 return throwAnimation(stateTime) as PlayerFrameName;
             case 'carry-run':
@@ -327,6 +342,7 @@ export function createMarioFactory(
             this.addTrait(new PlayerDeath());
             this.addTrait(new Go());
             this.addTrait(new Health());
+            this.addTrait(new PlayerHit());
             this.addTrait(new Jump());
             const killable = new Killable();
             killable.removeAfter = Infinity;
@@ -389,25 +405,48 @@ export function createMarioFactory(
             const ledgeHang = this.traits.get(LedgeHang);
             const crouch = this.traits.get(Crouch);
             const playerDeath = this.traits.get(PlayerDeath);
-            sprite.drawFrame(
-                routeFrame(this),
-                context,
-                this.size.x / 2 + (crouch.transitionAnchorActive
-                    ? crouch.transitionOffset.x
-                    : 0),
-                this.size.y + (crouch.transitionAnchorActive
-                    ? crouch.transitionOffset.y
-                    : 0),
-                playerDeath.terminal
-                    // HD's source dead-body frame has its head on the left.
-                    // Mirror it only when the body is traveling/facing right.
-                    ? playerDeath.direction > 0
-                : ledgeHang.active
-                    ? ledgeHang.side < 0
-                    : crouch.phase === 'flipping'
-                        ? crouch.flipDirection > 0
-                    : this.traits.get(Go).heading < 0,
-            );
+            const playerHit = this.traits.get(PlayerHit);
+            const health = this.traits.get(Health);
+            const previousAlpha = context.globalAlpha;
+            if (health.invulnerable && !playerDeath.terminal) {
+                const oscillation = (
+                    1 + Math.cos(
+                        2 * Math.PI
+                        * PLAYER_INVULNERABILITY_FLASHES_PER_SECOND
+                        * health.invulnerabilityElapsed,
+                    )
+                ) / 2;
+                context.globalAlpha = previousAlpha * (
+                    PLAYER_INVULNERABILITY_MINIMUM_OPACITY
+                    + (1 - PLAYER_INVULNERABILITY_MINIMUM_OPACITY)
+                    * oscillation
+                );
+            }
+            try {
+                sprite.drawFrame(
+                    routeFrame(this),
+                    context,
+                    this.size.x / 2 + (crouch.transitionAnchorActive
+                        ? crouch.transitionOffset.x
+                        : 0),
+                    this.size.y + (crouch.transitionAnchorActive
+                        ? crouch.transitionOffset.y
+                        : 0),
+                    playerDeath.terminal
+                        // HD's source dead-body frame has its head on the left.
+                        // Mirror only when the body travels/faces right.
+                        ? playerDeath.direction > 0
+                    : playerHit.active
+                        ? playerHit.direction > 0
+                    : ledgeHang.active
+                        ? ledgeHang.side < 0
+                        : crouch.phase === 'flipping'
+                            ? crouch.flipDirection > 0
+                        : this.traits.get(Go).heading < 0,
+                );
+            } finally {
+                context.globalAlpha = previousAlpha;
+            }
         }
     }
 

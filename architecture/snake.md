@@ -108,9 +108,10 @@ establish these HD sequences:
 | `attack` | 17 | 12-18 | 4 HD ticks per frame (15 fps) | Non-looping; hold frame 18 |
 
 Atlas frame 11 is an empty spacer and is intentionally excluded. The complete
-idle, walk, and attack ranges are imported in source order. The attack is
-available for visual fidelity but remains unused by the first behavior slice,
-because Classic's snake has no implemented attack.
+idle, walk, and attack ranges are imported in source order. The first behavior
+slice left the attack unused because Classic's snake has no implemented
+attack. Task `spelunka-r54.37` now uses it as HD-guided feedback after accepted
+player damage.
 
 The reviewed HD range has no dedicated hit-reaction or death record because HD
 presents snake death as a blood-splatter effect followed by removal. Spelunka
@@ -182,15 +183,16 @@ following first slice:
   death frame, the snake invokes a named no-op death-effect hook exactly once,
   stops drawing, and is removed promptly. `spelunka-r54.28` can later supply a
   reusable procedural burst through that hook. Do not use the HD attack
-  sequence or Classic pixels as a fabricated corpse.
+  sequence or Classic pixels as a fabricated corpse; the attack sequence is
+  reserved for accepted living-player contact.
 - Continue simulating off-screen snakes. Camera-gated updates are not required
   until profiling demonstrates a need.
 
-The edge probes, wall response, collision inset, one-hit death, contact damage,
-and absence of an attack are faithful to Classic. Continuous deterministic
-patrol, HD animation, and always-on updates are deliberate project choices.
-Classic's random pauses are documented above as source evidence but are
-intentionally not part of current gameplay.
+The edge probes, wall response, collision inset, one-hit death, and contact
+damage are faithful to Classic. Continuous deterministic patrol, HD attack
+feedback, and always-on updates are deliberate project choices. Classic's
+random pauses and absence of a bite animation are documented above as source
+evidence but are intentionally not part of current gameplay.
 
 ## Current implementation
 
@@ -199,11 +201,16 @@ preserving the 12x16 inset gameplay collider. Its behavior continuously crosses
 its current ledge and reverses at either end or at a wall. Non-stomp player
 contact removes one heart, applies the snake's 90 logical pixel-per-second
 horizontal impulse, queues HD's dedicated `snakebite.wav`, and begins one
-second of health-level damage protection. Overlap during that
-window does not retrigger damage or knockback. Losing the final heart enters
-the terminal death path with an enemy-owned 180 pixel-per-second horizontal
-launch and 120 pixel-per-second upward lift; surviving contact leaves normal
-player control intact. The snake dies through the common `Killable` path. Death
+second of health-level damage protection. Initial contact first starts the
+seven-frame HD attack record through the reusable `AttackAnimation` timing
+trait and pauses patrol. Damage, sound, and the player's brief upright
+arms-back recoil occur at `attack-5`, after 16/60 seconds of visible wind-up;
+the sequence finishes at 28/60 seconds. Repeated wind-up overlap cannot restart
+the pending attack, and overlap during protection does not retrigger damage,
+knockback, sound, or either presentation. Losing the final heart enters the
+terminal death path with an enemy-owned 180 pixel-per-second horizontal launch
+and 120 pixel-per-second upward lift; surviving contact leaves normal player
+control intact. The snake dies through the common `Killable` path. Death
 suppresses drawing, invokes the no-op future-splatter hook once, and removes it
 on its next update. The imported HD idle frames remain available for future
 behavior but are not used by this simple patrol. The existing `goomba` factory

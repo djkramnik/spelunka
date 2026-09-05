@@ -21,6 +21,7 @@ function assertDuration(duration: number): void {
 export default class Health extends Trait {
     private value: number;
     private protectionTime = 0;
+    private protectionDuration = 0;
 
     constructor(
         initialHearts = SPELUNKY_STARTING_HEARTS,
@@ -53,6 +54,12 @@ export default class Health extends Trait {
         return this.protectionTime;
     }
 
+    get invulnerabilityElapsed(): number {
+        return this.invulnerable
+            ? this.protectionDuration - this.protectionTime
+            : 0;
+    }
+
     damage(amount = 1): number {
         assertHeartAmount(amount);
         this.value = Math.max(0, this.value - amount);
@@ -68,6 +75,7 @@ export default class Health extends Trait {
 
         this.damage(amount);
         this.protectionTime = invulnerabilityDuration;
+        this.protectionDuration = invulnerabilityDuration;
         return true;
     }
 

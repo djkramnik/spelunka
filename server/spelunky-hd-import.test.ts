@@ -39,7 +39,9 @@ function makePlayerPng(): Buffer {
         fill: false,
     });
     image.data.fill(0);
-    const frames = [0, 1, 3, 5, 7, 9, 36, 58, 103, 111, 115];
+    const frames = [
+        0, 1, 3, 5, 7, 9, 36, 37, 58, 103, 111, 115,
+    ];
     for (const frame of frames) {
         const x = (frame % 12) * 80 + 10;
         const y = Math.floor(frame / 12) * 80 + 11;
@@ -223,6 +225,7 @@ const animationText = [
     '* 5 72 77 4 72 0',
     '* 8 54 58 4 58 0',
     '* 9 9 9 1 9 0',
+    '* 29 78 83 4 78 0',
     '* 33 103 103 1 103 0',
     '* 6 14 14 1 14 0',
     '* 7 17 23 3 17 0',
@@ -418,7 +421,7 @@ try {
     assert.deepEqual([generated.width, generated.height], [400, 1040]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 90);
+    assert.equal(spec.frames.length, 92);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -428,6 +431,19 @@ try {
         [...generated.data.subarray(jumpPixel, jumpPixel + 4)],
         [111, 222, 144, 111],
         'RGBA values, including partial alpha, survive the crop and repack',
+    );
+    const reactionHit = spec.frames.find(frame => frame.name === 'reaction-hit-1');
+    assert.ok(reactionHit);
+    const [reactionX, reactionY] = reactionHit.rect;
+    const reactionPixel = (
+        (reactionY + 11) * generated.width
+        + reactionX
+        + 10
+    ) * 4;
+    assert.deepEqual(
+        [...generated.data.subarray(reactionPixel, reactionPixel + 4)],
+        [36, 72, 219, 36],
+        'The first arms-back hit-reaction frame is packed without alteration',
     );
     const animation = (name: string) => {
         const result = spec.animations.find(candidate => candidate.name === name);
@@ -463,6 +479,16 @@ try {
             loop: false,
         },
         'Throw animation uses the complete non-looping HD source record',
+    );
+    assert.deepEqual(
+        animation('reaction-hit'),
+        {
+            name: 'reaction-hit',
+            frameLen: 4 / 60,
+            frames: ['reaction-hit-1', 'reaction-hit-2'],
+            loop: false,
+        },
+        'Hit reaction uses the first two arms-back frames at the HD cadence',
     );
     assert.deepEqual(
         animation('ladder-climb'),

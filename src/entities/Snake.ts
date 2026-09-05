@@ -4,10 +4,12 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import SpriteSheet from '../SpriteSheet.js';
 import Trait from '../Trait.js';
+import AttackAnimation from '../traits/AttackAnimation.js';
 import Health from '../traits/Health.js';
 import Killable from '../traits/Killable.js';
 import Physics from '../traits/Physics.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
+import PlayerHit from '../traits/PlayerHit.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 
@@ -20,6 +22,8 @@ export const SNAKE_DEATH_KNOCKBACK_SPEED = 6 * CLASSIC_UPDATES_PER_SECOND;
 export const SNAKE_DEATH_UPWARD_SPEED = 4 * CLASSIC_UPDATES_PER_SECOND;
 export const SNAKE_INVULNERABILITY_DURATION = 30
     / CLASSIC_UPDATES_PER_SECOND;
+export const SNAKE_ATTACK_DURATION = 7 * 4 / 60;
+export const SNAKE_ATTACK_IMPACT_TIME = 4 * 4 / 60;
 
 export type SnakeDeathEffect = (snake: Entity, level: Level) => void;
 
@@ -42,6 +46,10 @@ export class SnakeBehavior extends Trait {
     animationTime = 0;
 
     private deathHandled = false;
+    private pendingAttack: {
+        readonly candidate: Entity;
+        readonly direction: -1 | 1;
+    } | null = null;
 
     constructor(
         initialDirection: -1 | 1 = SNAKE_INITIAL_DIRECTION,
@@ -61,6 +69,44 @@ export class SnakeBehavior extends Trait {
         return level.tileCollider.hasSolidAt(probeX, entity.bounds.bottom + 1);
     }
 
+    private applyPendingAttack(): void {
+        const pendingAttack = this.pendingAttack;
+        this.pendingAttack = null;
+        if (pendingAttack === null) {
+            return;
+        }
+
+        const {candidate, direction} = pendingAttack;
+        const killable = candidate.traits.get(Killable);
+        const health = candidate.traits.get(Health);
+        if (killable.dead || !health.takeDamage(
+            SNAKE_CONTACT_DAMAGE,
+            SNAKE_INVULNERABILITY_DURATION,
+        )) {
+            return;
+        }
+
+        candidate.sounds.add('snakebite');
+        if (health.depleted) {
+            if (candidate.traits.has(PlayerDeath)) {
+                candidate.traits.get(PlayerDeath).kill(
+                    candidate,
+                    direction * this.deathKnockbackSpeed,
+                    this.deathUpwardSpeed,
+                );
+            } else {
+                candidate.vel.x = direction * this.deathKnockbackSpeed;
+                candidate.vel.y = -this.deathUpwardSpeed;
+                killable.kill();
+            }
+        } else {
+            candidate.vel.x = direction * this.knockbackSpeed;
+            if (candidate.traits.has(PlayerHit)) {
+                candidate.traits.get(PlayerHit).start(direction);
+            }
+        }
+    }
+
     override collides(snake: Entity, candidate: Entity): void {
         const killable = snake.traits.get(Killable);
         if (killable.dead
@@ -73,10 +119,10 @@ export class SnakeBehavior extends Trait {
             killable.kill();
         } else if (candidate.traits.has(Health)) {
             const health = candidate.traits.get(Health);
-            if (!health.takeDamage(
-                SNAKE_CONTACT_DAMAGE,
-                SNAKE_INVULNERABILITY_DURATION,
-            )) {
+            const attackAnimation = snake.traits.get(AttackAnimation);
+            if (health.depleted
+                || health.invulnerable
+                || attackAnimation.active) {
                 return;
             }
 
@@ -84,22 +130,9 @@ export class SnakeBehavior extends Trait {
                 + candidate.size.x / 2;
             const snakeCenter = snake.bounds.left + snake.size.x / 2;
             const direction = candidateCenter < snakeCenter ? -1 : 1;
-            candidate.sounds.add('snakebite');
-            if (health.depleted) {
-                if (candidate.traits.has(PlayerDeath)) {
-                    candidate.traits.get(PlayerDeath).kill(
-                        candidate,
-                        direction * this.deathKnockbackSpeed,
-                        this.deathUpwardSpeed,
-                    );
-                } else {
-                    candidate.vel.x = direction * this.deathKnockbackSpeed;
-                    candidate.vel.y = -this.deathUpwardSpeed;
-                    candidate.traits.get(Killable).kill();
-                }
-            } else {
-                candidate.vel.x = direction * this.knockbackSpeed;
-            }
+            this.direction = direction;
+            this.pendingAttack = {candidate, direction};
+            attackAnimation.start();
         }
     }
 
@@ -115,6 +148,7 @@ export class SnakeBehavior extends Trait {
         const killable = entity.traits.get(Killable);
         if (killable.dead) {
             entity.vel.x = 0;
+            this.pendingAttack = null;
             if (!this.deathHandled) {
                 this.deathHandled = true;
                 this.onDeath(entity, level);
@@ -123,6 +157,15 @@ export class SnakeBehavior extends Trait {
         }
 
         const {deltaTime} = gameContext;
+        const attackAnimation = entity.traits.get(AttackAnimation);
+        if (attackAnimation.consumeImpact()) {
+            this.applyPendingAttack();
+        }
+        if (attackAnimation.active) {
+            entity.vel.x = 0;
+            return;
+        }
+        this.pendingAttack = null;
         this.animationTime += deltaTime;
 
         const physics = entity.traits.get(Physics);
@@ -150,6 +193,7 @@ export function createSnakeFactory(
     options: SnakeOptions = {},
 ): SnakeFactory {
     const walkAnimation = sprite.getAnimation('walk');
+    const attackFrames = sprite.getAnimation('attack');
 
     return function createSnake(): Entity {
         const snake = new Entity();
@@ -166,6 +210,11 @@ export function createSnakeFactory(
         snake.offset.x = 2;
         killable.removeAfter = 0;
 
+        const attackAnimation = new AttackAnimation(
+            SNAKE_ATTACK_DURATION,
+            SNAKE_ATTACK_IMPACT_TIME,
+        );
+        snake.addTrait(attackAnimation);
         snake.addTrait(behavior);
         snake.addTrait(new Physics());
         snake.addTrait(new Solid());
@@ -176,7 +225,9 @@ export function createSnakeFactory(
             }
 
             sprite.drawFrame(
-                walkAnimation(behavior.animationTime),
+                attackAnimation.active
+                    ? attackFrames(attackAnimation.time)
+                    : walkAnimation(behavior.animationTime),
                 context,
                 snake.offset.x + snake.size.x / 2,
                 snake.offset.y + snake.size.y,

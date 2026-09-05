@@ -1,6 +1,8 @@
 import AudioBoard from '../AudioBoard.js';
 import {createAnim} from '../anim.js';
 import Entity from '../Entity.js';
+import Level from '../Level.js';
+import type {GameContext} from '../Scene.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import Carrier from '../traits/Carrier.js';
 import Crouch from '../traits/Crouch.js';
@@ -11,9 +13,13 @@ import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
+import PlayerHit, {
+    SPELUNKY_SMALL_HIT_REACTION_DURATION,
+} from '../traits/PlayerHit.js';
 import {
     createMarioFactory,
     PLAYER_FRAME_NAMES,
+    PLAYER_INVULNERABILITY_MINIMUM_OPACITY,
 } from './Mario.js';
 
 function assertEqual<Value>(
@@ -32,6 +38,7 @@ const draws: Array<{
     pivotY: number;
     flip: boolean;
 }> = [];
+const drawOpacities: number[] = [];
 const sprite = {
     getAnimation: (name: string) => {
         const frameCounts: Readonly<Record<string, number>> = {
@@ -49,6 +56,7 @@ const sprite = {
             'ladder-climb': 6,
             'carry-run': 8,
             throw: 5,
+            'reaction-hit': 2,
         };
         const frameCount = frameCounts[name];
         if (frameCount === undefined) {
@@ -66,13 +74,14 @@ const sprite = {
             'ledge-climb',
             'ladder-climb',
             'throw',
+            'reaction-hit',
         ].includes(name);
         return createAnim(
             Array.from(
                 {length: frameCount},
                 (_, index) => `${name}-${index + 1}`,
             ),
-            timed ? 0.05 : 3,
+            name === 'reaction-hit' ? 4 / 60 : timed ? 0.05 : 3,
             ![
                 'jump',
                 'fall',
@@ -82,17 +91,19 @@ const sprite = {
                 'ledge-hang',
                 'ledge-climb',
                 'throw',
+                'reaction-hit',
             ].includes(name),
         );
     },
     drawFrame: (
         name: string,
-        _context: CanvasRenderingContext2D,
+        context: CanvasRenderingContext2D,
         pivotX: number,
         pivotY: number,
         flip: boolean,
     ): void => {
         draws.push({name, pivotX, pivotY, flip});
+        drawOpacities.push(context.globalAlpha);
     },
 } as unknown as SpriteSheet;
 const mario = createMarioFactory(sprite, new AudioBoard())();
@@ -105,12 +116,14 @@ const ledgeHang = mario.traits.get(LedgeHang);
 const ladderClimb = mario.traits.get(LadderClimb);
 const crouch = mario.traits.get(Crouch);
 const playerDeath = mario.traits.get(PlayerDeath);
+const playerHit = mario.traits.get(PlayerHit);
 const animationClock = mario as typeof mario & {
     animationState: string;
     animationStateTime: number;
 };
+const drawContext = {globalAlpha: 1} as CanvasRenderingContext2D;
 const draw = (): string => {
-    mario.draw({} as CanvasRenderingContext2D);
+    mario.draw(drawContext);
     const frame = draws.at(-1)?.name;
     if (!frame) {
         throw new Error('Mario did not draw a frame');
@@ -237,6 +250,58 @@ go.distance = 0;
 animationClock.animationState = 'throw';
 animationClock.animationStateTime = 1;
 assertEqual(draw(), 'throw-5', 'Throw animation holds its terminal source frame');
+(mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0;
+
+health.takeDamage(1, 1);
+playerHit.start(-1);
+assertEqual(draw(), 'reaction-hit-1', 'Small damage starts the upright HD reaction');
+assertEqual(draws.at(-1)?.flip, false, 'Leftward recoil keeps the source-facing reaction');
+assertEqual(drawOpacities.at(-1), 1, 'Invulnerability flashing begins at full opacity');
+assertEqual(drawContext.globalAlpha, 1, 'Player drawing restores the canvas opacity');
+
+const hitLevel = new Level();
+health.update(
+    mario,
+    {deltaTime: 1 / 16} as GameContext,
+    hitLevel,
+);
+playerHit.update(
+    mario,
+    {deltaTime: 1 / 16} as GameContext,
+    hitLevel,
+);
+assertEqual(draw(), 'reaction-hit-1', 'The recoil animation remains active during its first frame');
+assertEqual(
+    drawOpacities.at(-1),
+    PLAYER_INVULNERABILITY_MINIMUM_OPACITY,
+    'Invulnerability opacity reaches its deterministic low point',
+);
+
+playerHit.update(
+    mario,
+    {deltaTime: 0.01} as GameContext,
+    hitLevel,
+);
+assertEqual(
+    draw(),
+    'reaction-hit-2',
+    'Small recoil advances to the second arms-back frame',
+);
+
+playerHit.update(
+    mario,
+    {deltaTime: SPELUNKY_SMALL_HIT_REACTION_DURATION} as GameContext,
+    hitLevel,
+);
+assertEqual(draw(), 'idle', 'Normal animation resumes when the small reaction ends');
+
+health.update(mario, {deltaTime: 1} as GameContext, hitLevel);
+assertEqual(draw(), 'idle', 'Normal animation remains after protection expires');
+assertEqual(drawOpacities.at(-1), 1, 'Expired protection restores full opacity');
+
+playerHit.start(1);
+assertEqual(draw(), 'reaction-hit-1', 'A rightward recoil can start independently');
+assertEqual(draws.at(-1)?.flip, true, 'Rightward recoil mirrors the HD reaction frame');
 
 killable.dead = true;
 playerDeath.phase = 'airborne';
@@ -269,7 +334,7 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    90,
+    92,
     'The expanded HD player frame catalogue remains explicit',
 );
 

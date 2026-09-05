@@ -114,6 +114,7 @@ const LEDGE_HANG_SOURCE_FRAMES = [44, 45, 46, 47] as const;
 const LEDGE_CLIMB_SOURCE_FRAMES = [28, 29, 30, 31, 32, 33, 34] as const;
 const LEDGE_FLIP_SOURCE_FRAMES = [34, 33, 32, 31, 30, 29, 28] as const;
 const LADDER_CLIMB_SOURCE_FRAMES = [72, 73, 74, 75, 76, 77] as const;
+const HIT_REACTION_SOURCE_FRAMES = [36, 37] as const;
 const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
 
 const MINE_BACKGROUND_DECORATIONS = [
@@ -155,6 +156,7 @@ const PLAYER_FRAME_SOURCES = [
     ['carry-jump', 111] as const,
     ['carry-fall', 115] as const,
     ...namedFrames('throw', THROW_SOURCE_FRAMES),
+    ...namedFrames('reaction-hit', HIT_REACTION_SOURCE_FRAMES),
     ['reaction-airborne', 103],
     ['reaction-unconscious', 9],
 ] as const;
@@ -396,6 +398,13 @@ function validatePlayerAnimations(sections: readonly (readonly AnimationRecord[]
         || ladderClimb.terminalFrame !== 72) {
         throw new Error(
             'Unsupported HD ladder animation timing; expected IDs 4 and 5 to hold and loop from frame 72',
+        );
+    }
+    const hitReaction = byId.get(18);
+    if (hitReaction?.frameLength !== 4
+        || hitReaction.terminalFrame !== 36) {
+        throw new Error(
+            'Unsupported HD hit-reaction timing; expected animation 18 to begin with frames 36-37 at four ticks per frame',
         );
     }
 }
@@ -643,6 +652,15 @@ export function createPlayerAssets(sourceData: Buffer): {
                 frameLen: 4 * HD_TICK_SECONDS,
                 frames: namedFrames('throw', THROW_SOURCE_FRAMES)
                     .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'reaction-hit',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames(
+                    'reaction-hit',
+                    HIT_REACTION_SOURCE_FRAMES,
+                ).map(([name]) => name),
                 loop: false,
             },
         ],

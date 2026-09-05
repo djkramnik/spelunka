@@ -6,14 +6,18 @@ import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
+import AttackAnimation from '../traits/AttackAnimation.js';
 import Health from '../traits/Health.js';
 import Killable from '../traits/Killable.js';
 import Physics from '../traits/Physics.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
+import PlayerHit from '../traits/PlayerHit.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 import {
     createSnakeFactory,
+    SNAKE_ATTACK_DURATION,
+    SNAKE_ATTACK_IMPACT_TIME,
     SNAKE_CONTACT_DAMAGE,
     SNAKE_DEATH_KNOCKBACK_SPEED,
     SNAKE_DEATH_UPWARD_SPEED,
@@ -197,13 +201,9 @@ lethalSnake.finalize();
 assertEqual(deathEffects, 1, 'Future splatter hook remains exactly once');
 
 const contactSnake = createSnakeFactory(sprite)();
-const contactMario = new Entity();
-contactMario.size.set(14, 16);
+const contactMario = createMarioFactory(sprite, new AudioBoard())();
 contactMario.pos.x = -16;
-contactMario.addTrait(new Killable());
-contactMario.addTrait(new Stomper());
-const contactHealth = new Health();
-contactMario.addTrait(contactHealth);
+const contactHealth = contactMario.traits.get(Health);
 contactMario.vel.y = 0;
 contactSnake.vel.y = 0;
 contactSnake.collides(contactMario);
@@ -216,28 +216,132 @@ assertEqual(
         contactHealth.invulnerabilityTime,
         contactMario.traits.get(Killable).dead,
     ],
+    [4, 0, 0, false],
+    'Initial snake contact begins its wind-up without applying damage',
+);
+assertEqual(contactSnake.traits.get(Killable).dead, false, 'Snake survives non-stomp contact');
+assertEqual(
+    [
+        contactMario.traits.get(PlayerHit).active,
+        contactSnake.traits.get(AttackAnimation).active,
+        contactSnake.traits.get(SnakeBehavior).direction,
+    ],
+    [false, true, -1],
+    'Wind-up faces the target without starting the player reaction early',
+);
+contactMario.draw({globalAlpha: 1} as CanvasRenderingContext2D);
+assertEqual(
+    drawCalls.at(-1)?.name,
+    'idle',
+    'Player remains in their ordinary pose during the snake wind-up',
+);
+contactSnake.draw({} as CanvasRenderingContext2D);
+assertEqual(
+    drawCalls.at(-1)?.name,
+    'attack-0',
+    'Accepted damage starts the snake bite animation',
+);
+contactSnake.vel.x = SNAKE_WALK_SPEED;
+contactSnake.traits.get(SnakeBehavior).update(
+    contactSnake,
+    gameContext,
+    new Level(),
+);
+assertEqual(contactSnake.vel.x, 0, 'Snake pauses patrol during its bite animation');
+assertEqual(
+    contactMario.sounds.has('snakebite'),
+    false,
+    'The bite sound does not play before the attack reaches impact',
+);
+
+const attackAnimation = contactSnake.traits.get(AttackAnimation);
+attackAnimation.update(
+    contactSnake,
+    {deltaTime: 0.1} as GameContext,
+    new Level(),
+);
+contactSnake.traits.get(SnakeBehavior).update(
+    contactSnake,
+    {deltaTime: 0.1} as GameContext,
+    new Level(),
+);
+contactSnake.collides(contactMario);
+contactMario.finalize();
+assertEqual(
+    [
+        contactHealth.hearts,
+        contactMario.vel.x,
+        contactMario.sounds.size,
+        attackAnimation.time,
+    ],
+    [4, 0, 0, 0.1],
+    'Repeated wind-up overlap cannot restart the pending attack',
+);
+attackAnimation.update(
+    contactSnake,
+    {deltaTime: SNAKE_ATTACK_IMPACT_TIME - 0.1} as GameContext,
+    new Level(),
+);
+contactSnake.traits.get(SnakeBehavior).update(
+    contactSnake,
+    {deltaTime: SNAKE_ATTACK_IMPACT_TIME - 0.1} as GameContext,
+    new Level(),
+);
+assertEqual(
+    [
+        contactHealth.hearts,
+        contactMario.vel.x,
+        contactHealth.invulnerabilityTime,
+        contactMario.traits.get(PlayerHit).active,
+        contactMario.traits.get(PlayerHit).direction,
+        contactMario.sounds.has('snakebite'),
+    ],
     [
         4 - SNAKE_CONTACT_DAMAGE,
         -SNAKE_KNOCKBACK_SPEED,
         SNAKE_INVULNERABILITY_DURATION,
-        false,
+        true,
+        -1,
+        true,
     ],
-    'Snake contact removes one heart, knocks left, and protects without killing',
+    'Attack impact applies damage, small recoil, protection, and sound together',
 );
-assertEqual(contactSnake.traits.get(Killable).dead, false, 'Snake survives non-stomp contact');
+contactMario.draw({globalAlpha: 1} as CanvasRenderingContext2D);
 assertEqual(
-    contactMario.sounds.has('snakebite'),
-    true,
-    'Accepted snake damage queues the imported snake-bite effect',
+    [drawCalls.at(-1)?.name, drawCalls.at(-1)?.flip],
+    ['reaction-hit-0', false],
+    'Leftward small knockback uses the upright arms-back HD frame',
 );
 
 contactMario.sounds.clear();
+const impactAnimationTime = attackAnimation.time;
 contactSnake.collides(contactMario);
 contactMario.finalize();
 assertEqual(
-    [contactHealth.hearts, contactMario.vel.x, contactMario.sounds.size],
-    [3, -SNAKE_KNOCKBACK_SPEED, 0],
-    'Continuous overlap cannot repeat damage or knockback during protection',
+    [
+        contactHealth.hearts,
+        contactMario.vel.x,
+        contactMario.sounds.size,
+        attackAnimation.time,
+    ],
+    [3, -SNAKE_KNOCKBACK_SPEED, 0, impactAnimationTime],
+    'Protected overlap cannot retrigger damage, recoil, sound, or attack timing',
+);
+attackAnimation.update(
+    contactSnake,
+    {deltaTime: SNAKE_ATTACK_DURATION - SNAKE_ATTACK_IMPACT_TIME} as GameContext,
+    new Level(),
+);
+contactSnake.traits.get(SnakeBehavior).update(
+    contactSnake,
+    {deltaTime: SNAKE_ATTACK_DURATION - SNAKE_ATTACK_IMPACT_TIME} as GameContext,
+    new Level(),
+);
+contactSnake.draw({} as CanvasRenderingContext2D);
+assertEqual(
+    drawCalls.at(-1)?.name.startsWith('walk-'),
+    true,
+    'Snake returns to walking after one complete bite and recovery',
 );
 
 const gentleSnake = createSnakeFactory(sprite, {knockbackSpeed: 24})();
@@ -248,6 +352,16 @@ gentleTarget.addTrait(new Killable());
 gentleTarget.addTrait(new Stomper());
 gentleTarget.addTrait(new Health());
 gentleSnake.collides(gentleTarget);
+gentleSnake.traits.get(AttackAnimation).update(
+    gentleSnake,
+    {deltaTime: SNAKE_ATTACK_IMPACT_TIME} as GameContext,
+    new Level(),
+);
+gentleSnake.traits.get(SnakeBehavior).update(
+    gentleSnake,
+    {deltaTime: SNAKE_ATTACK_IMPACT_TIME} as GameContext,
+    new Level(),
+);
 assertEqual(
     gentleTarget.vel.x,
     -24,
@@ -259,6 +373,22 @@ rightContactMario.pos.x = 16;
 const lastHeart = rightContactMario.traits.get(Health);
 lastHeart.damage(3);
 contactSnake.collides(rightContactMario);
+rightContactMario.finalize();
+assertEqual(
+    [lastHeart.hearts, rightContactMario.traits.get(Killable).dead],
+    [1, false],
+    'Lethal contact also waits for the snake attack impact',
+);
+contactSnake.traits.get(AttackAnimation).update(
+    contactSnake,
+    {deltaTime: SNAKE_ATTACK_IMPACT_TIME} as GameContext,
+    new Level(),
+);
+contactSnake.traits.get(SnakeBehavior).update(
+    contactSnake,
+    {deltaTime: SNAKE_ATTACK_IMPACT_TIME} as GameContext,
+    new Level(),
+);
 rightContactMario.finalize();
 assertEqual(
     [
@@ -278,6 +408,11 @@ assertEqual(
         false,
     ],
     'Snake contact on the last heart launches the terminal player body',
+);
+assertEqual(
+    rightContactMario.traits.get(PlayerHit).active,
+    false,
+    'A lethal hit goes directly to terminal death without a small reaction',
 );
 rightContactMario.sounds.clear();
 const playerDeathLevel = new Level();

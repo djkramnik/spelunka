@@ -17,7 +17,7 @@ export const Sides = {TOP, BOTTOM, LEFT, RIGHT} as const;
 export type Side = typeof Sides[keyof typeof Sides];
 
 export type TraitConstructor<TraitType extends Trait = Trait> =
-    new () => TraitType;
+    abstract new (...args: never[]) => TraitType;
 
 export class TraitMap {
     private readonly traits = new Map<Function, Trait>();

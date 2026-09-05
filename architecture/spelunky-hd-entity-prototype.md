@@ -47,6 +47,7 @@ player collider at logical `[7, 16]`.
 | `ladder-cling` | 72 | Static source animation 4 |
 | `ladder-climb-1..6` | 72-77 | Complete looping source animation 5 |
 | `throw-1..5` | 54-58 | Complete non-looping source animation 8 |
+| `reaction-hit-1..2` | 36-37 | Opening arms-back poses of HD animation 18; brief small-hit reaction |
 | `reaction-airborne` | 103 | Singleton HD animation 33; curled moving body |
 | `reaction-unconscious` | 9 | Singleton HD animation 9; settled body |
 | `carry-idle`, `carry-run-1..8` | 0, 1-8 | Intentional matching base-pose fallback |

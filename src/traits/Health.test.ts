@@ -37,8 +37,12 @@ assertEqual(
     'A gameplay damage event is accepted while vulnerable',
 );
 assertEqual(
-    [protectedHealth.hearts, protectedHealth.invulnerable],
-    [3, true],
+    [
+        protectedHealth.hearts,
+        protectedHealth.invulnerable,
+        protectedHealth.invulnerabilityElapsed,
+    ],
+    [3, true, 0],
     'Accepted damage starts its requested protection window',
 );
 assertEqual(
@@ -56,8 +60,11 @@ protectedHealth.update(
     level,
 );
 assertEqual(
-    protectedHealth.invulnerabilityTime,
-    0.6,
+    [
+        protectedHealth.invulnerabilityTime,
+        protectedHealth.invulnerabilityElapsed,
+    ],
+    [0.6, 0.4],
     'Protection counts down in elapsed seconds',
 );
 protectedHealth.update(
@@ -66,8 +73,12 @@ protectedHealth.update(
     level,
 );
 assertEqual(
-    [protectedHealth.invulnerabilityTime, protectedHealth.invulnerable],
-    [0, false],
+    [
+        protectedHealth.invulnerabilityTime,
+        protectedHealth.invulnerabilityElapsed,
+        protectedHealth.invulnerable,
+    ],
+    [0, 0, false],
     'Protection expires without underflow',
 );
 assertEqual(

@@ -5,6 +5,7 @@
 - [Spelunky Classic ledge-hanging behavior and HD animation](ledge-hanging.md)
 - [Spelunky ladder climbing and HD animation](ladder-climbing.md)
 - [Spelunky hearts and health HUD](health-hud.md)
+- [Nonlethal player hit and invulnerability presentation](player-hit.md)
 - [Player death physics and HD body states](player-death.md)
 - [Spelunky crouch, crawl, and top-to-hang transition](crouch-crawl.md)
 - [Spelunky Classic snake behavior and animation](snake.md)
