@@ -141,7 +141,7 @@ async function main(canvas: HTMLCanvasElement, font: Font) {
     timer.start();
     // See: Animation and scene flow
 
-    await runLevel('1-1', true);
+    await runLevel('tutorial-1-scale', true);
 }
 
 // Timer's internal fixed-step game loop, simplified from Timer.ts.
@@ -184,12 +184,13 @@ Asset loading occurs in two phases.
 Before the click-to-start screen appears, the game loads `/img/font.png` and
 turns it into an 8-pixel bitmap font used for on-canvas text.
 
-After the click, the startup progress bar tracks ten logical tasks:
+After the click, the startup progress bar tracks eleven logical tasks:
 
-- Six entity factories are loaded in parallel: Mario, Goomba, Koopa, Bullet,
-  Cannon, and Red Shell. These load sprite-sheet JSON and images where needed.
-  Mario and Cannon also load sound-effect manifests, fetch their Ogg files,
-  and decode them into Web Audio buffers.
+- Six entity factories are loaded in parallel: Mario, Ladder, Bullet, Cannon,
+  Rock, and Snake. These load sprite-sheet JSON and images where needed. Mario
+  and Cannon also load sound-effect manifests, fetch their Ogg files, and
+  decode them into Web Audio buffers.
+- One task loads the HUD sprite sheet.
 - Four tasks belong to the initial level: its level JSON, background
   sprite-sheet, music manifest, and reusable tile-pattern JSON. After the level
   JSON identifies those dependencies, the last three load in parallel.
@@ -297,11 +298,12 @@ class Physics extends Trait {
 }
 ```
 
-The level gravity is `1500` pixels per second squared. Mario, Goombas, and
-Koopas use this `Physics` trait. Bullets instead use `Velocity`, which changes
-both position coordinates without tile collision or gravity. A dead bullet's
+The level gravity is `1500` pixels per second squared. Mario, snakes, and rocks
+use this `Physics` trait; rock behavior compensates for it to use a lighter
+item-specific gravity. Bullets instead use `Velocity`, which changes both
+position coordinates without tile collision or gravity. A dead bullet's
 behavior applies the separate `Gravity` trait so it begins falling after being
-stomped. Cannons and invisible control/trigger entities do not move.
+stomped. Ladders, cannons, and invisible control/trigger entities do not move.
 
 ### Update order
 
@@ -322,8 +324,8 @@ mario.playSounds();
 Consequently, a newly pressed direction or jump changes velocity during the
 current update but changes position on the following fixed step. Tile
 obstruction is dispatched to all traits during `Physics.update()`: `Solid`
-snaps the entity out of the tile, while `Jump` and `PendulumMove` can react to
-the contacted side.
+snaps the entity out of the tile, while traits such as `Jump`, `SnakeBehavior`,
+and `Pickable` can react to the contacted side.
 
 ### Mario's horizontal movement
 
@@ -390,10 +392,9 @@ rather than a player jump request.
 
 ### Enemy and respawn movement
 
-Goombas and walking Koopas use `PendulumMove`. It writes a constant horizontal
-velocity (initially `-30`) after physics runs, and reverses that speed when a
-left or right tile obstructs the entity. Koopa behavior can disable this trait
-while hiding or increase it to `300` when its shell enters the panic state.
+Snakes use `SnakeBehavior` to write a constant 30-pixel-per-second horizontal
+velocity after physics runs. The behavior reverses at walls and probes the
+next ground tile so a grounded snake turns around at an unsupported ledge.
 
 The player has a separate, invisible controller entity. It retains the legacy
 ability to re-add a normally removed player at its `(64, 64)` checkpoint, but
@@ -435,15 +436,14 @@ dispatch each typed tile's Y handler
 The handler is selected by the tile's `type`:
 
 - `ground` obstructs on all four sides.
-- `brick` also obstructs. If a player hits one from below, the tile is deleted
-  and a Goomba is spawned upward from it.
+- `brick` also obstructs. If a player hits one from below, the tile is deleted.
 - `coin` is intended to award a coin and delete itself rather than obstruct.
 - Tiles with no recognized type are visual only.
 
 Obstruction calls every trait's `obstruct()` method. `Solid` resolves
 penetration by placing the appropriate bounding-box edge exactly against the
 tile and zeroing velocity on that axis. At the same time, `Jump` records a
-floor contact or cancels on a ceiling, and `PendulumMove` reverses at a wall.
+floor contact or cancels on a ceiling, and `SnakeBehavior` reverses at a wall.
 
 This is discrete, axis-separated collision detection rather than swept
 collision detection. The 60 Hz fixed step keeps ordinary motion increments
@@ -479,11 +479,11 @@ The principal reactions are:
   callbacks queue only one rebound and one stomp event.
 - Mario's `Carrier` records overlapping `Pickable` entities as pickup
   candidates. An explicit pickup action attaches at most one candidate; the
-  red shell opts into this behavior without reacting to collision by itself.
-- Goomba behavior either dies when approached from above or kills Mario on a
-  non-stomp collision.
-- Koopa behavior switches between walking, hiding, and fast-shell states, with
-  different stomp and side-contact outcomes.
+  rock opts into this behavior. A released rock inherits player momentum,
+  rebounds from terrain, settles under friction, and becomes dangerous above
+  its item-specific speed thresholds.
+- Snake behavior turns at walls and ledges, accepts stomps and rock hits, and
+  routes side contact through the player's health and hit-state traits.
 - Bullet behavior dies and begins falling when stomped, or kills Mario on
   other contact.
 - Trigger behavior records touching entities. On its next update it emits the
@@ -683,17 +683,12 @@ windows. It keeps Mario's rightward movement direction active with turbo
 enabled for the full run. The workload applies those states directly rather
 than dispatching browser keyboard events, so focus and browser synthetic-input
 policy cannot change the test. This exercises the normal movement, tile and
-entity collision and rendering paths. Performance-enabled runs load the
-212-tile `performance-entities` level: Mario runs and jumps on flat ground while
-123 koopas walk on three full-width brick bridges at rows 0, 2, and 4, all
-beyond turbo-jump reach. Bridge end walls keep the koopas from falling into
-Mario's lane. The workload holds jump from startup in addition to right and
-turbo. A goto trigger
-near the right edge reloads the same level inside the existing scene runner.
-The timer and `PerformanceMetrics` instance remain alive, so level-loading time
-and every loop retain one session ID. More than one completed level load is the
-completion check. Sequence 1 remains the startup/warm-up sample and sequences
-2–8 are the measured gameplay windows.
+entity collision, default-level content, and rendering paths.
+Performance-enabled runs use the same `tutorial-1-scale` level as ordinary
+startup and hold jump in addition to right and turbo. The initial level load is
+the completion prerequisite; the timer and `PerformanceMetrics` instance
+remain alive for all eight windows under one session ID. Sequence 1 remains the
+startup/warm-up sample and sequences 2–8 are the measured gameplay windows.
 
 ### Entity collision broad phase
 

@@ -74,9 +74,7 @@ animation section: idle frames 0-3 use 10 ticks per frame, walk frames 4-10 use
 6 ticks per frame, and non-looping attack frames 12-18 use 4 ticks per frame.
 Frame 11 is an empty atlas spacer. The HD range contains no dedicated snake
 reaction or death record because HD uses a blood-splatter effect and removes
-the snake; the importer therefore does not invent a corpse frame. The `flat`
-alias retained for the pre-existing Goomba behavior points to frame 16 and is
-explicitly temporary.
+the snake; the importer therefore does not invent a corpse frame or alias.
 
 A follow-up review of `effects.png`, `effectsbig.png`, `rubble.png`, the HD
 animation archive, and executable texture-name strings found no dedicated

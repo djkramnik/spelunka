@@ -1,6 +1,6 @@
 import AudioBoard from './AudioBoard.js';
 import {createMarioFactory} from './entities/Mario.js';
-import {createRedShellFactory} from './entities/RedShell.js';
+import {createRockFactory} from './entities/Rock.js';
 import Level from './Level.js';
 import {Matrix} from './math.js';
 import PerformanceMetrics from './PerformanceMetrics.js';
@@ -27,7 +27,14 @@ const sprite = {
 } as unknown as SpriteSheet;
 
 const gameContext = {
-    audioContext: {},
+    audioContext: {
+        createBufferSource: () => ({
+            connect: (): void => {},
+            start: (): void => {},
+            buffer: null,
+        }),
+        destination: {},
+    },
     deltaTime: 1 / 60,
     entityFactory: {},
     performanceMetrics: new PerformanceMetrics({
@@ -44,16 +51,18 @@ for (let x = 0; x < level.dimensions.x; x++) {
 }
 level.tileCollider.addGrid(ground);
 
-const mario = createMarioFactory(sprite, new AudioBoard())();
+const audio = new AudioBoard();
+audio.addAudio('throw-item', {} as AudioBuffer);
+const mario = createMarioFactory(sprite, audio)();
 mario.pos.set(64, 144);
-const shell = createRedShellFactory(sprite)();
-shell.pos.set(76, 136);
+const rock = createRockFactory(sprite)();
+rock.pos.set(76, 152);
 level.entities.add(mario);
-level.entities.add(shell);
+level.entities.add(rock);
 
 const carrier = mario.traits.get(Carrier);
-const pickable = shell.traits.get(Pickable);
-const shellPhysics = shell.traits.get(Physics);
+const pickable = rock.traits.get(Pickable);
+const rockPhysics = rock.traits.get(Physics);
 
 function update(count = 1): void {
     for (let step = 0; step < count; step++) {
@@ -61,41 +70,41 @@ function update(count = 1): void {
     }
 }
 
-function moveMarioIntoShellContact(): void {
-    mario.pos.set(shell.pos.x, shell.bounds.bottom - mario.size.y);
+function moveMarioIntoRockContact(): void {
+    mario.pos.set(rock.pos.x, rock.bounds.bottom - mario.size.y);
     mario.vel.set(0, 0);
     update();
 }
 
-function updateUntilShellSettles(maxUpdates: number): number {
+function updateUntilRockSettles(maxUpdates: number): number {
     for (let elapsed = 1; elapsed <= maxUpdates; elapsed++) {
         update();
-        if (shell.vel.x === 0
-            && shell.vel.y === 0
-            && shellPhysics.grounded) {
+        if (rock.vel.x === 0
+            && rock.vel.y === 0
+            && rockPhysics.grounded) {
             return elapsed;
         }
     }
 
-    throw new Error(`Shell did not settle within ${maxUpdates} updates`);
+    throw new Error(`Rock did not settle within ${maxUpdates} updates`);
 }
 
 update();
 assertEqual(
-    mario.pickupOrThrow() === shell,
+    mario.pickupOrThrow() === rock,
     true,
-    'Mario picks up a colliding shell through the real carrier lifecycle',
+    'Mario picks up a colliding rock through the real carrier lifecycle',
 );
 assertEqual(
-    [carrier.carried === shell, pickable.carrier === mario],
+    [carrier.carried === rock, pickable.carrier === mario],
     [true, true],
     'Initial pickup establishes one matching carrier relationship',
 );
 
 assertEqual(
-    mario.pickupOrThrow() === shell,
+    mario.pickupOrThrow() === rock,
     true,
-    'Mario throws the carried shell',
+    'Mario throws the carried rock',
 );
 assertEqual(
     [carrier.carried, pickable.carrier],
@@ -103,74 +112,74 @@ assertEqual(
     'Throw clears both sides of the carrier relationship',
 );
 assertEqual(
-    pickable.isThrowerProtected(shell, mario),
+    pickable.isThrowerProtected(rock, mario),
     true,
     'First throw starts thrower grace',
 );
 
 update(3);
 assertEqual(
-    shell.vel.x === 0 && shell.vel.y === 0,
+    rock.vel.x === 0 && rock.vel.y === 0,
     false,
-    'First thrown shell is still moving before re-pickup',
+    'First thrown rock is still moving before re-pickup',
 );
-moveMarioIntoShellContact();
+moveMarioIntoRockContact();
 assertEqual(
-    mario.pickupOrThrow() === shell,
+    mario.pickupOrThrow() === rock,
     true,
-    'A moving thrown shell becomes a pickup candidate again',
+    'A moving thrown rock becomes a pickup candidate again',
 );
 assertEqual(
-    [shell.vel.x, shell.vel.y],
+    [rock.vel.x, rock.vel.y],
     [0, 0],
-    'Re-pickup clears residual shell motion',
+    'Re-pickup clears residual rock motion',
 );
 assertEqual(
-    pickable.isThrowerProtected(shell, mario),
+    pickable.isThrowerProtected(rock, mario),
     false,
     'Re-pickup clears stale thrower grace',
 );
 
 assertEqual(
-    mario.pickupOrThrow() === shell,
+    mario.pickupOrThrow() === rock,
     true,
-    'Mario throws the shell for a second cycle',
+    'Mario throws the rock for a second cycle',
 );
 assertEqual(
-    pickable.isThrowerProtected(shell, mario),
+    pickable.isThrowerProtected(rock, mario),
     true,
     'Second throw starts a fresh grace period',
 );
 
-const updatesToSettle = updateUntilShellSettles(180);
+const updatesToSettle = updateUntilRockSettles(180);
 assertEqual(
     updatesToSettle < 180,
     true,
     'Second throw settles within the bounded headless simulation',
 );
 assertEqual(
-    [shell.vel.x, shell.vel.y],
+    [rock.vel.x, rock.vel.y],
     [0, 0],
-    'Thrown shell reaches exact rest before settled re-pickup',
+    'Thrown rock reaches exact rest before settled re-pickup',
 );
 assertEqual(
-    pickable.isThrowerProtected(shell, mario),
+    pickable.isThrowerProtected(rock, mario),
     false,
     'Thrower grace expires while the second throw runs',
 );
 
-moveMarioIntoShellContact();
+moveMarioIntoRockContact();
 assertEqual(
-    mario.pickupOrThrow() === shell,
+    mario.pickupOrThrow() === rock,
     true,
-    'A settled shell becomes a pickup candidate again',
+    'A settled rock becomes a pickup candidate again',
 );
 assertEqual(
     [
-        carrier.carried === shell,
+        carrier.carried === rock,
         pickable.carrier === mario,
-        shell.vel.x,
-        shell.vel.y,
+        rock.vel.x,
+        rock.vel.y,
     ],
     [true, true, 0, 0],
     'Settled re-pickup restores one stable carrier relationship',
@@ -179,13 +188,13 @@ assertEqual(
 update(2);
 assertEqual(
     [
-        carrier.carried === shell,
+        carrier.carried === rock,
         pickable.carrier === mario,
-        shell.vel.x,
-        shell.vel.y,
+        rock.vel.x,
+        rock.vel.y,
     ],
     [true, true, 0, 0],
     'Carried state remains stable across later level updates',
 );
 
-console.log('Headless pickup, throw, settle, and re-pickup lifecycle passed');
+console.log('Headless rock pickup, throw, settle, and re-pickup lifecycle passed');

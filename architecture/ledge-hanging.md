@@ -1,14 +1,16 @@
 # Spelunky ledge-hanging behavior
 
-Beads task: `spelunka-r54.32`
+Beads tasks: `spelunka-r54.32`, `spelunka-r54.45`, `spelunka-r54.46`
 
 ## Classic behavior reference
 
 The released Spelunky Classic `characterStepEvent.gml` is the behavioral
 reference. Its normal ledge grab requires the player to be airborne, moving
 down, pressing toward a contacted wall, and aligned with the exposed top of
-that wall. Entering `HANGING` snaps the player to the eight-pixel grid, clears
-vertical movement, and disables gravity.
+that wall. The HD behavior target differs at entry: horizontal input need not
+remain held once the player's existing momentum carries them into the ledge.
+Entering `HANGING` aligns the player to the corner, clears vertical movement,
+and disables gravity.
 
 While hanging, Classic provides three relevant exits:
 
@@ -26,21 +28,27 @@ the ticket's jump-away requirement has a clear, testable result.
 
 ## Logical geometry
 
-`LedgeHang` runs after movement traits. A falling player pressing toward a
-wall probes three logical pixels below the collider top. The contacted tile
-must have empty space directly above it, the player must not already be below
-the corner beyond a four-pixel fixed-step tolerance, and all four inset corners
-of the snapped 14x16 collider must remain outside solid terrain.
+`LedgeHang` runs after movement traits. A falling player moving toward a wall
+probes three logical pixels below the collider top. It derives the side from
+horizontal velocity, or from the wall contact recorded before `Solid` resolves
+that velocity to zero. The contacted tile must have empty space directly above
+it, the player must not already be below the corner beyond a four-pixel
+fixed-step tolerance, and all four inset corners of the aligned 14x16 collider
+must remain outside solid terrain.
 
 On a right grab, the collider's right edge aligns to the tile's left edge. A
 left grab mirrors that relationship. Its top aligns with the tile top. Physics
 is disabled and velocity is reset every update while hanging or climbing, so
 air control and gravity cannot accumulate hidden drift.
 
-The player cannot enter a hang while rising, grounded, dead, carrying an item,
-moving away from the wall, or not pressing toward it. Damage, death, removal of
-the supporting tile, or newly occupied corner space releases the player rather
-than embedding the collider. Pickup is unavailable during a hang or climb.
+The player cannot enter a hang while rising, grounded, dead, stationary on the
+horizontal axis, or moving away from the wall. A carried item remains attached
+and continues to follow the player through the snap, suspended hang, and climb
+or release. While attached, both the player pose and carried-item side stay
+oriented toward the supporting ledge; Left and Right do not turn either one.
+Damage, death, removal of the supporting tile, or newly occupied
+corner space releases the player rather than embedding the collider. Starting
+a new pickup or throw remains unavailable during a hang or climb.
 
 ## Controls and exits
 

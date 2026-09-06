@@ -1,6 +1,6 @@
 # Spelunky ladder climbing and HD animation
 
-Beads task: `spelunka-r54.33`
+Beads tasks: `spelunka-r54.33`, `spelunka-r54.46`
 
 The runtime separates ladder terrain from ordinary solid terrain. A ladder
 entity owns a `Climbable` marker over its full bounds and installs one one-way
@@ -30,10 +30,11 @@ rates converted from its 30 Hz update loop to Spelunka's time-based units:
   tick horizontal departure velocity, represented as 120 pixels per second;
   Down plus Jump instead cancels the jump and falls from the current position.
 
-Carrying blocks a new mount. Carrying or death while attached releases the
-player back to ordinary airborne physics. Horizontal input while attached
-changes facing; it does not defeat ladder centering until a jump-off, matching
-Classic.
+Carrying does not block mounting or release an attached player. The item stays
+in front of the player throughout clinging, climbing, and ladder exits. Left
+and Right move it to the matching side even though ladder centering keeps the
+player fixed until a jump-off. Death or an active ledge attachment still
+releases or prevents the ladder state.
 
 ## HD visual model
 
@@ -46,7 +47,9 @@ The player atlas and animation archive provide the rendering contract:
 
 Up and Down both enter on frame 72. The climb clock advances only while the
 player is moving, so a stopped player returns to the static cling pose without
-gravity drift. Frames retain the player's existing bottom-center pivot.
+gravity drift. Ladder cling and climb frames retain precedence while carrying;
+there is no separate carry-ladder pose. Frames retain the player's existing
+bottom-center pivot.
 
 There is no separate ladder top-out record in the validated HD player metadata.
 Reaching the cap therefore transitions directly from the climb loop to the

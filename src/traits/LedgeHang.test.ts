@@ -1,7 +1,9 @@
 import Entity from '../Entity.js';
+import {createRockFactory} from '../entities/Rock.js';
 import Level from '../Level.js';
 import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
+import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
 import Carrier from './Carrier.js';
 import Go from './Go.js';
@@ -15,6 +17,7 @@ import LedgeHang, {
     SPELUNKY_LEDGE_REGRAB_DELAY,
 } from './LedgeHang.js';
 import Physics from './Physics.js';
+import Pickable from './Pickable.js';
 import Solid from './Solid.js';
 
 function assertEqual<Value>(
@@ -55,7 +58,7 @@ function createFixture(side: -1 | 1 = 1): LedgeFixture {
     const ledge = new LedgeHang();
     entity.size.set(14, 16);
     entity.pos.set(side > 0 ? 50 : 64, 61);
-    entity.vel.set(0, 60);
+    entity.vel.set(side * 60, 60);
     go.dir = side;
     go.heading = side;
     jump.phase = 'falling';
@@ -112,6 +115,7 @@ assertEqual(
 
 const left = createFixture(-1);
 const leftLevel = createLevel(-1);
+left.go.dir = 0;
 grab(left, leftLevel.level);
 assertEqual(
     [left.ledge.phase, left.ledge.side, left.entity.bounds.top, left.entity.bounds.left],
@@ -139,7 +143,42 @@ assertEqual(rising.ledge.phase, 'airborne', 'Rising player cannot grab');
 const noInput = createFixture();
 noInput.go.dir = 0;
 grab(noInput, createLevel().level);
-assertEqual(noInput.ledge.phase, 'airborne', 'Corner grab requires input toward the wall');
+assertEqual(
+    noInput.ledge.phase,
+    'hanging',
+    'Approach momentum grabs the corner without held horizontal input',
+);
+
+const inputWithoutApproach = createFixture();
+inputWithoutApproach.entity.vel.x = 0;
+grab(inputWithoutApproach, createLevel().level);
+assertEqual(
+    inputWithoutApproach.ledge.phase,
+    'airborne',
+    'Directional input without approach motion cannot grab a corner',
+);
+
+const resolvedContact = createFixture();
+resolvedContact.go.dir = 0;
+resolvedContact.entity.pos.x = 49;
+resolvedContact.entity.vel.set(120, 60);
+const resolvedContactLevel = createLevel();
+resolvedContact.physics.update(
+    resolvedContact.entity,
+    context,
+    resolvedContactLevel.level,
+);
+assertEqual(
+    resolvedContact.entity.vel.x,
+    0,
+    'Solid collision consumes horizontal approach velocity before ledge update',
+);
+grab(resolvedContact, resolvedContactLevel.level);
+assertEqual(
+    resolvedContact.ledge.phase,
+    'hanging',
+    'Wall contact preserves the approach side after collision resolution',
+);
 
 const movingAway = createFixture();
 movingAway.entity.vel.x = -1;
@@ -159,9 +198,53 @@ grab(embedded, embeddedLevel.level);
 assertEqual(embedded.ledge.phase, 'airborne', 'Blocked hanging space rejects the grab');
 
 const carrying = createFixture();
-carrying.carrier.carried = new Entity();
-grab(carrying, createLevel().level);
-assertEqual(carrying.ledge.phase, 'airborne', 'Carrying player cannot grab a ledge');
+carrying.go.dir = 0;
+const carriedRock = createRockFactory({
+    drawFrame: (): void => {},
+} as unknown as SpriteSheet)();
+const pickable = carriedRock.traits.get(Pickable);
+pickable.attach(carriedRock, carrying.entity, 1);
+carrying.carrier.carried = carriedRock;
+const carryingLevel = createLevel();
+grab(carrying, carryingLevel.level);
+carrying.carrier.update(carrying.entity, context, carryingLevel.level);
+grab(carrying, carryingLevel.level);
+assertEqual(
+    [
+        carrying.ledge.phase,
+        carrying.carrier.carried === carriedRock,
+        pickable.carrier === carrying.entity,
+        carriedRock.pos.x,
+        carriedRock.pos.y,
+    ],
+    ['hanging', true, true, carrying.entity.pos.x + 7, carrying.entity.pos.y + 6],
+    'Carried rock remains attached and follows the player into a ledge hang',
+);
+carrying.ledge.setVerticalInput(-1, true);
+grab(carrying, carryingLevel.level);
+for (let frame = 0; frame < Math.ceil(SPELUNKY_LEDGE_CLIMB_TIME / DELTA_TIME); frame++) {
+    grab(carrying, carryingLevel.level);
+}
+carriedRock.finalize();
+assertEqual(
+    [
+        carrying.ledge.phase,
+        carrying.physics.grounded,
+        carrying.carrier.carried === carriedRock,
+        pickable.carrier === carrying.entity,
+        carriedRock.pos.x,
+        carriedRock.pos.y,
+    ],
+    [
+        'airborne',
+        true,
+        true,
+        true,
+        carrying.entity.pos.x + 7,
+        carrying.entity.pos.y + 6,
+    ],
+    'Carried rock remains attached through the ledge climb exit',
+);
 
 const dead = createFixture();
 dead.killable.dead = true;
@@ -281,4 +364,4 @@ assertEqual(
     'Damage or death interrupts hanging',
 );
 
-console.log('Spelunky Classic ledge-hang geometry and transitions passed');
+console.log('Spelunky ledge-hang geometry and transitions passed');

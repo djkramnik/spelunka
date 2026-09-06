@@ -2,7 +2,6 @@ import type Entity from '../Entity.js';
 import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
-import Carrier from './Carrier.js';
 import Climbable from './Climbable.js';
 import Crouch from './Crouch.js';
 import Go from './Go.js';
@@ -39,7 +38,6 @@ export default class LadderClimb extends Trait {
 
     private isUnavailable(entity: Entity): boolean {
         return entity.traits.get(Killable).dead
-            || entity.traits.get(Carrier).carried !== null
             || entity.traits.get(LedgeHang).active;
     }
 

@@ -1,7 +1,9 @@
 import Entity from '../Entity.js';
+import {createRockFactory} from '../entities/Rock.js';
 import Level from '../Level.js';
 import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
+import type SpriteSheet from '../SpriteSheet.js';
 import Carrier from './Carrier.js';
 import Climbable from './Climbable.js';
 import Crouch from './Crouch.js';
@@ -16,6 +18,7 @@ import LadderClimb, {
 } from './LadderClimb.js';
 import LedgeHang from './LedgeHang.js';
 import Physics from './Physics.js';
+import Pickable from './Pickable.js';
 
 function assertEqual<Value>(
     actual: Value,
@@ -299,10 +302,52 @@ assertEqual(
 
 const carrying = createPlayer();
 carrying.entity.pos.set(33, 48);
-carrying.carrier.carried = new Entity();
+const carriedRock = createRockFactory({
+    drawFrame: (): void => {},
+} as unknown as SpriteSheet)();
+const carriedPickable = carriedRock.traits.get(Pickable);
+carriedPickable.attach(carriedRock, carrying.entity, 1);
+carrying.carrier.carried = carriedRock;
 carrying.climb.setVerticalInput(-1, true);
 update(carrying.climb, carrying.entity, level);
-assertEqual(carrying.climb.active, false, 'Carrying blocks ladder mounting');
+assertEqual(
+    [
+        carrying.climb.phase,
+        carrying.carrier.carried === carriedRock,
+        carriedPickable.carrier === carrying.entity,
+        carriedRock.traits.get(Physics).enabled,
+        carriedRock.zIndex,
+    ],
+    ['clinging', true, true, false, carrying.entity.zIndex + 1],
+    'A carried rock stays attached while mounting a ladder',
+);
+carrying.go.dir = -1;
+carrying.carrier.update(carrying.entity, gameContext, level);
+assertEqual(
+    [carriedRock.pos.x, carriedRock.pos.y],
+    [carrying.entity.pos.x - 1, carrying.entity.pos.y + 6],
+    'Left input places the carried rock on the left while clinging',
+);
+carrying.go.dir = 1;
+carrying.carrier.update(carrying.entity, gameContext, level);
+assertEqual(
+    [carriedRock.pos.x, carriedRock.pos.y],
+    [carrying.entity.pos.x + 7, carrying.entity.pos.y + 6],
+    'Right input places the carried rock on the right while clinging',
+);
+update(carrying.climb, carrying.entity, level);
+assertEqual(
+    [carrying.climb.phase, carrying.carrier.carried === carriedRock],
+    ['climbing', true],
+    'A carried rock stays attached during ladder traversal',
+);
+carrying.jump.start();
+update(carrying.climb, carrying.entity, level);
+assertEqual(
+    [carrying.climb.phase, carrying.carrier.carried === carriedRock],
+    ['inactive', true],
+    'A carried rock stays attached when jumping away from the ladder',
+);
 
 const killed = createPlayer();
 killed.entity.pos.set(33, 48);

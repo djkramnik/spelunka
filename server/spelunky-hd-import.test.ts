@@ -95,6 +95,28 @@ function makeMonsterPng(): Buffer {
     });
 }
 
+function makeItemPng(): Buffer {
+    const image = new PNG({
+        width: 1440,
+        height: 80,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    image.data.fill(0);
+    const rockPixel = (25 * image.width + 1360 + 19) * 4;
+    image.data.set([73, 83, 93, 143], rockPixel);
+    return PNG.sync.write(image, {
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        filterType: 4,
+        deflateLevel: 9,
+        deflateStrategy: 3,
+    });
+}
+
 function makeTerrainPng(): Buffer {
     const image = new PNG({
         width: 512,
@@ -333,6 +355,7 @@ try {
     const sourceEntries = [
         {group: 'PLAYERS', name: 'char_white.png', data: makePlayerPng()},
         {group: 'MONSTERS', name: 'monsters.png', data: makeMonsterPng()},
+        {group: 'ITEMS', name: 'items.png', data: makeItemPng()},
         {group: 'ALLTILES', name: 'alltiles.png', data: makeTerrainPng()},
         {group: 'ALLTILES', name: 'alltilesN.jpg', data: Buffer.from('normal fixture')},
         {group: 'MINE', name: 'minesmallbg.png', data: makeMineDecorationPng()},
@@ -363,6 +386,7 @@ try {
     const wadPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad');
     const wixPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad.wix');
     const snakebiteSound = Buffer.from('synthetic snake bite wave');
+    const throwSound = Buffer.from('synthetic throw item wave');
     const soundWadPath = join(
         sourceRoot,
         'Data',
@@ -383,10 +407,15 @@ try {
     );
     write(wadPath, wad);
     write(wixPath, wix);
-    write(soundWadPath, snakebiteSound);
+    write(soundWadPath, Buffer.concat([snakebiteSound, throwSound]));
     write(
         soundWixPath,
-        `!group ALLSOUNDS\r\nsnakebite.wav 0 ${snakebiteSound.length}\r\n`,
+        [
+            '!group ALLSOUNDS',
+            `snakebite.wav 0 ${snakebiteSound.length}`,
+            `throw_item.wav ${snakebiteSound.length} ${throwSound.length}`,
+            '',
+        ].join('\r\n'),
     );
     write(animationsPath, animationText);
 
@@ -405,16 +434,23 @@ try {
             group: 'ALLSOUNDS',
             name: 'snakebite.wav',
             sha256: sha256(snakebiteSound),
+        }, {
+            group: 'ALLSOUNDS',
+            name: 'throw_item.wav',
+            sha256: sha256(throwSound),
         }],
     };
     const result = await importSpelunkyHd({sourceRoot, outputRoot, profile});
     const firstImage = readFileSync(result.playerImagePath);
     const firstSpec = readFileSync(result.playerSpecPath);
     const firstEnemySpec = readFileSync(result.enemySpecPath);
+    const firstRockImage = readFileSync(result.rockImagePath);
+    const firstRockSpec = readFileSync(result.rockSpecPath);
     const firstTerrainImage = readFileSync(result.terrainImagePath);
     const firstHudImage = readFileSync(result.hudImagePath);
     const firstHudSpec = readFileSync(result.hudSpecPath);
     const firstSnakebiteSound = readFileSync(result.snakebiteSoundPath);
+    const firstThrowSound = readFileSync(result.throwSoundPath);
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
@@ -628,6 +664,23 @@ try {
         snakebiteSound,
         'The generated snake-bite effect preserves its source bytes',
     );
+    assert.deepEqual(
+        readFileSync(join(
+            outputRoot,
+            '.local',
+            'spelunky-hd',
+            'source',
+            'ALLSOUNDS',
+            'throw_item.wav',
+        )),
+        throwSound,
+        'The allow-listed HD throw source is copied unchanged',
+    );
+    assert.deepEqual(
+        firstThrowSound,
+        throwSound,
+        'The generated throw effect preserves its source bytes',
+    );
 
     const enemyImage = readFileSync(result.enemyImagePath);
     const enemy = PNG.sync.read(enemyImage);
@@ -651,7 +704,6 @@ try {
             [(index + 11) * 80, 0, 80, 80],
             [40, 72],
         ]),
-        ['flat', [15 * 80, 0, 80, 80], [40, 72]],
     ];
     assert.deepEqual(
         enemySpec.frames.map(frame => [frame.name, frame.rect, frame.pivot]),
@@ -700,6 +752,25 @@ try {
         [...enemy.data.subarray(lastEnemyPixel, lastEnemyPixel + 4)],
         [18, 200, 100, 82],
         'The terminal HD attack frame is packed in source order',
+    );
+
+    const rock = PNG.sync.read(firstRockImage);
+    assert.deepEqual([rock.width, rock.height], [80, 80]);
+    const rockSpec = SpriteSheetSchema.parse(JSON.parse(
+        firstRockSpec.toString('utf8'),
+    ));
+    assert.equal(rockSpec.imageURL, '/generated/spelunky-hd/rock.png');
+    assert.equal(rockSpec.frameScale, 0.25);
+    assert.deepEqual(rockSpec.frames, [{
+        name: 'idle',
+        rect: [0, 0, 80, 80],
+        pivot: [40, 40],
+    }]);
+    const rockPixel = (25 * rock.width + 19) * 4;
+    assert.deepEqual(
+        [...rock.data.subarray(rockPixel, rockPixel + 4)],
+        [73, 83, 93, 143],
+        'The HD rock cell is selected intact from frame 17 of the item atlas',
     );
 
     const terrainImage = PNG.sync.read(firstTerrainImage);
@@ -810,6 +881,8 @@ try {
     assert.deepEqual(readFileSync(result.playerSpecPath), firstSpec);
     assert.deepEqual(readFileSync(result.enemyImagePath), enemyImage);
     assert.deepEqual(readFileSync(result.enemySpecPath), firstEnemySpec);
+    assert.deepEqual(readFileSync(result.rockImagePath), firstRockImage);
+    assert.deepEqual(readFileSync(result.rockSpecPath), firstRockSpec);
     assert.deepEqual(readFileSync(result.terrainImagePath), firstTerrainImage);
     assert.deepEqual(readFileSync(result.hudImagePath), firstHudImage);
     assert.deepEqual(readFileSync(result.hudSpecPath), firstHudSpec);
@@ -817,6 +890,7 @@ try {
         readFileSync(result.snakebiteSoundPath),
         firstSnakebiteSound,
     );
+    assert.deepEqual(readFileSync(result.throwSoundPath), firstThrowSound);
     assert.deepEqual(readFileSync(result.reportPath), firstReport);
 
     const badProfile: ImportProfile = {...profile, wadSha256: '0'.repeat(64)};

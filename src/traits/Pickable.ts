@@ -10,11 +10,13 @@ const DEFAULT_THROWER_GRACE_UPDATES = 10;
 
 export default class Pickable extends Trait {
     readonly carryOffset = new Vec2(8, -8);
+    alignCarryCenters = false;
     readonly throwVelocity = new Vec2(
         DEFAULT_HORIZONTAL_THROW_SPEED,
         DEFAULT_UPWARD_THROW_SPEED,
     );
     throwerGraceUpdates = DEFAULT_THROWER_GRACE_UPDATES;
+    clearThrowerProtectionOnDirectionChange = true;
     carrier: Entity | null = null;
     private carryDirection = 1;
     private uncarriedZIndex = 0;
@@ -61,6 +63,7 @@ export default class Pickable extends Trait {
             carrier.vel.x + this.throwVelocity.x * this.carryDirection,
             this.throwVelocity.y,
         );
+        carrier.sounds.add('throw-item');
         this.throwDirection = Math.sign(entity.vel.x) || this.carryDirection;
         entity.zIndex = this.uncarriedZIndex;
         return true;
@@ -86,7 +89,9 @@ export default class Pickable extends Trait {
         }
 
         const motionDirection = Math.sign(entity.vel.x);
-        if (motionDirection !== 0 && motionDirection !== this.throwDirection) {
+        if (this.clearThrowerProtectionOnDirectionChange
+            && motionDirection !== 0
+            && motionDirection !== this.throwDirection) {
             this.clearThrowerProtection();
             return false;
         }
@@ -101,8 +106,12 @@ export default class Pickable extends Trait {
 
         this.carryDirection = direction < 0 ? -1 : 1;
 
+        const horizontalOffset = this.alignCarryCenters
+            ? (this.carrier.size.x - entity.size.x) / 2
+                + this.carryOffset.x * this.carryDirection
+            : this.carryOffset.x * this.carryDirection;
         entity.pos.set(
-            this.carrier.pos.x + this.carryOffset.x * this.carryDirection,
+            this.carrier.pos.x + horizontalOffset,
             this.carrier.pos.y + this.carryOffset.y,
         );
         entity.vel.set(0, 0);

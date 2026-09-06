@@ -183,6 +183,28 @@ ledgeHang.phase = 'hanging';
 ledgeHang.side = -1;
 assertEqual(draw(), 'ledge-hang-1', 'Left ledge starts the dedicated HD grab sequence');
 assertEqual(draws.at(-1)?.flip, true, 'Hang facing follows the supporting ledge');
+go.dir = 1;
+draw();
+assertEqual(
+    draws.at(-1)?.flip,
+    true,
+    'Right input cannot turn the player sprite away from a left ledge',
+);
+go.dir = -1;
+draw();
+assertEqual(
+    draws.at(-1)?.flip,
+    true,
+    'Left input leaves the player sprite facing the same left ledge',
+);
+go.dir = 0;
+carrier.carried = new Entity();
+assertEqual(
+    draw(),
+    'ledge-hang-1',
+    'Carrying preserves the ledge-hang animation while attached',
+);
+carrier.carried = null;
 animationClock.animationState = 'ledge-hang';
 animationClock.animationStateTime = 1;
 assertEqual(draw(), 'ledge-hang-4', 'Hanging holds the terminal HD suspended pose');
@@ -197,13 +219,23 @@ ledgeHang.side = 0;
 
 ladderClimb.phase = 'clinging';
 assertEqual(draw(), 'ladder-cling', 'Ladder mount holds the dedicated HD cling pose');
+carrier.carried = new Entity();
+assertEqual(
+    draw(),
+    'ladder-cling',
+    'Ladder cling sprite remains active while carrying an item',
+);
 ladderClimb.phase = 'climbing';
 ladderClimb.animationTime = 0.11;
 assertEqual(draw(), 'ladder-climb-3', 'Ladder motion advances through the HD climb loop');
+assertEqual(
+    draw(),
+    'ladder-climb-3',
+    'Ladder climbing sprite remains active while carrying an item',
+);
 ladderClimb.phase = 'inactive';
 ladderClimb.animationTime = 0;
 
-carrier.carried = new Entity();
 jump.ready = 1;
 jump.phase = 'grounded';
 go.distance = 0;

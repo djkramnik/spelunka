@@ -109,7 +109,7 @@ assertEqual(
 
 const gotoSpec = LevelSpecSchema.parse({
     ...baseLevelSpec,
-    triggers: [{type: 'goto', name: '1-2', pos: [64, 64]}],
+    triggers: [{type: 'goto', name: 'tutorial-1-scale', pos: [64, 64]}],
 });
 const gotoLevel = new Level();
 setupTriggers(gotoSpec, gotoLevel);
@@ -124,7 +124,7 @@ let gotoEvents = 0;
 gotoLevel.events.listen(Level.EVENT_TRIGGER, (spec, entity, touches) => {
     if (
         spec.type !== 'goto'
-        || spec.name !== '1-2'
+        || spec.name !== 'tutorial-1-scale'
         || entity !== gotoEntity
         || !touches.has(gotoPlayer)
     ) {

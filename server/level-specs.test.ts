@@ -8,75 +8,11 @@ const levelFiles = (await readdir(levelsDirectory))
     .filter(fileName => fileName.endsWith('.json'))
     .sort();
 
-assert.ok(levelFiles.length > 0, 'Expected at least one level definition');
-
-const specialLevelSizes = new Map<string, readonly [number, number]>([
-    ['vertical-shaft.json', [16, 75]],
-    ['room.json', [32, 15]],
-    ['tutorial-1-scale.json', [42, 19]],
-    ['spelunky-hd-entities.json', [32, 15]],
-]);
-
-for (const levelFile of levelFiles) {
-    const levelUrl = new URL(levelFile, levelsDirectory);
-    const level = LevelSpecSchema.parse(JSON.parse(await readFile(levelUrl, 'utf8')));
-    const expectedSize = specialLevelSizes.get(levelFile) ?? [212, 15];
-    assert.deepEqual(
-        level.size,
-        expectedSize,
-        `Unexpected dimensions for level ${levelFile}`,
-    );
-}
-
-const shaftUrl = new URL('vertical-shaft.json', levelsDirectory);
-const shaft = LevelSpecSchema.parse(JSON.parse(await readFile(shaftUrl, 'utf8')));
-assert.equal(shaft.name, 'THE SHAFT');
-assert.deepEqual(shaft.playerSpawn, [64, 64]);
-assert.deepEqual(shaft.triggers, [{
-    type: 'teleport',
-    pos: [224, 1168],
-    size: [16, 16],
-    destination: [64, 64],
-}]);
-
-const shaftGround = shaft.layers
-    .flatMap(layer => layer.tiles)
-    .find(tile => 'name' in tile && tile.name === 'ground');
-assert.deepEqual(shaftGround, {
-    name: 'ground',
-    type: 'ground',
-    ranges: [
-        [0, 16, 0],
-        [0, 1, 1, 73],
-        [15, 1, 1, 73],
-        [0, 16, 74],
-    ],
-});
-
-const roomUrl = new URL('room.json', levelsDirectory);
-const room = LevelSpecSchema.parse(JSON.parse(await readFile(roomUrl, 'utf8')));
-assert.equal(room.name, 'THE ROOM');
-assert.deepEqual(room.size, [32, 15]);
-assert.deepEqual(room.playerSpawn, [16, 208]);
-assert.deepEqual(room.entities, [
-    {name: 'redShell', pos: [64, 200]},
-    {name: 'goomba', pos: [480, 208]},
-]);
-assert.deepEqual(room.triggers, []);
-
-const roomGround = room.layers
-    .flatMap(layer => layer.tiles)
-    .find(tile => 'name' in tile && tile.name === 'ground');
-assert.deepEqual(roomGround, {
-    name: 'ground',
-    type: 'ground',
-    ranges: [
-        [0, 32, 0],
-        [0, 1, 1, 13],
-        [31, 1, 1, 13],
-        [0, 32, 14],
-    ],
-});
+assert.deepEqual(
+    levelFiles,
+    ['tutorial-1-scale.json'],
+    'The project exposes only its current default level',
+);
 
 const tutorialUrl = new URL('tutorial-1-scale.json', levelsDirectory);
 const tutorial = LevelSpecSchema.parse(JSON.parse(await readFile(tutorialUrl, 'utf8')));
@@ -86,11 +22,18 @@ assert.deepEqual(tutorial.size, [42, 19]);
 // entities use top-left positions, so [16, 64] preserves the same bounds.
 assert.deepEqual(tutorial.playerSpawn, [16, 64]);
 assert.deepEqual(tutorial.entities, [
+    {name: 'rock', pos: [48, 104]},
     {name: 'ladder', pos: [368, 80]},
     {name: 'ladder4', pos: [480, 208]},
     {name: 'snake', pos: [352, 64]},
     {name: 'snake', pos: [464, 96]},
 ]);
+const tutorialRock = tutorial.entities.find(entity => entity.name === 'rock');
+assert.deepEqual(
+    tutorialRock?.pos,
+    [3 * 16, 7 * 16 - 8],
+    'Tutorial rock rests two tiles to the right of the player spawn',
+);
 const tutorialLadder = tutorial.entities.find(entity => entity.name === 'ladder');
 assert.deepEqual(
     tutorialLadder?.pos,

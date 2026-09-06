@@ -57,10 +57,13 @@ export interface ImportResult {
     readonly playerSpecPath: string;
     readonly enemyImagePath: string;
     readonly enemySpecPath: string;
+    readonly rockImagePath: string;
+    readonly rockSpecPath: string;
     readonly terrainImagePath: string;
     readonly hudImagePath: string;
     readonly hudSpecPath: string;
     readonly snakebiteSoundPath: string;
+    readonly throwSoundPath: string;
     readonly reportPath: string;
 }
 
@@ -70,6 +73,10 @@ const PLAYER_COLUMNS = 12;
 const OUTPUT_COLUMNS = 5;
 const PLAYER_PIVOT = [40, 72] as const;
 const ENEMY_PIVOT = [40, 72] as const;
+const ITEM_CELL_SIZE = 80;
+const ITEM_COLUMNS = 24;
+const ROCK_SOURCE_FRAME = 17;
+const ROCK_PIVOT = [40, 40] as const;
 const TERRAIN_CELL_SIZE = 64;
 const MINE_TERRAIN_SIZE = 512;
 const MINE_BACKGROUND_FILL_SIZE = 256;
@@ -169,9 +176,6 @@ const ENEMY_FRAME_SOURCES = [
     ...namedFrames('idle', SNAKE_IDLE_SOURCE_FRAMES),
     ...namedFrames('walk', SNAKE_WALK_SOURCE_FRAMES),
     ...namedFrames('attack', SNAKE_ATTACK_SOURCE_FRAMES),
-    // The Goomba behavior still requests `flat` when defeated. Keep this
-    // temporary alias until the dedicated snake entity owns death rendering.
-    ['flat', 16] as const,
 ] as const;
 
 const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
@@ -220,6 +224,11 @@ export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
             sha256: '2a4be04b44406d18f74f71da2e42777ab32d2d4393613cf2b2c3ffa54372ceb4',
         },
         {
+            group: 'ITEMS',
+            name: 'items.png',
+            sha256: '81ef2c38f249803b078dc61bffd47156f346a7fc74433b61b67f654d7d754119',
+        },
+        {
             group: 'ALLTILES',
             name: 'alltiles.png',
             sha256: '40a35533cf481f371855bdbfeab206aed7e1bee24078a6a8f27103c029b7860c',
@@ -255,6 +264,11 @@ export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
             group: 'ALLSOUNDS',
             name: 'snakebite.wav',
             sha256: '5149006b05e3f62179a0626f3043bc72966107a163ba28a056c192510a6f9677',
+        },
+        {
+            group: 'ALLSOUNDS',
+            name: 'throw_item.wav',
+            sha256: 'ef777ca18fa59fadd542fdfb2c33c1e738f427e843eaa450554b84bf2d21a081',
         },
     ],
 };
@@ -772,6 +786,63 @@ function createEnemyAssets(sourceData: Buffer): {
     };
 }
 
+export function createRockAssets(sourceData: Buffer): {
+    readonly png: Buffer;
+    readonly spec: unknown;
+} {
+    const source = PNG.sync.read(sourceData, {skipRescale: true});
+    const sourceX = (ROCK_SOURCE_FRAME % ITEM_COLUMNS) * ITEM_CELL_SIZE;
+    const sourceY = Math.floor(ROCK_SOURCE_FRAME / ITEM_COLUMNS)
+        * ITEM_CELL_SIZE;
+    const requiredWidth = sourceX + ITEM_CELL_SIZE;
+    const requiredHeight = sourceY + ITEM_CELL_SIZE;
+    if (source.width < requiredWidth || source.height < requiredHeight) {
+        throw new Error(
+            `Unsupported item atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${source.width}x${source.height}`,
+        );
+    }
+
+    const output = new PNG({
+        width: ITEM_CELL_SIZE,
+        height: ITEM_CELL_SIZE,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    output.data.fill(0);
+    PNG.bitblt(
+        source,
+        output,
+        sourceX,
+        sourceY,
+        ITEM_CELL_SIZE,
+        ITEM_CELL_SIZE,
+        0,
+        0,
+    );
+
+    return {
+        png: PNG.sync.write(output, {
+            colorType: 6,
+            inputColorType: 6,
+            bitDepth: 8,
+            filterType: 4,
+            deflateLevel: 9,
+            deflateStrategy: 3,
+        }),
+        spec: {
+            imageURL: '/generated/spelunky-hd/rock.png',
+            frameScale: 0.25,
+            frames: [{
+                name: 'idle',
+                rect: [0, 0, ITEM_CELL_SIZE, ITEM_CELL_SIZE],
+                pivot: ROCK_PIVOT,
+            }],
+        },
+    };
+}
+
 export function createHudAssets(
     playerHudProData: Buffer,
     hudIconsData: Buffer,
@@ -1129,6 +1200,30 @@ export async function importSpelunkyHd(
     writeFileSync(enemyImagePath, enemyAssets.png);
     writeDeterministicJson(enemySpecPath, enemyAssets.spec);
 
+    const itemSource = selected.find(entry => entry.key === 'ITEMS/items.png');
+    if (itemSource === undefined) {
+        throw new Error('Import profile does not contain ITEMS/items.png');
+    }
+    const rockAssets = createRockAssets(itemSource.data);
+    const rockImagePath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'rock.png',
+    );
+    const rockSpecPath = join(
+        outputRoot,
+        'public',
+        'sprites',
+        'generated',
+        'spelunky-hd',
+        'rock.json',
+    );
+    ensureParent(rockImagePath);
+    writeFileSync(rockImagePath, rockAssets.png);
+    writeDeterministicJson(rockSpecPath, rockAssets.spec);
+
     const terrainSource = selected.find(
         entry => entry.key === 'ALLTILES/alltiles.png',
     );
@@ -1217,6 +1312,24 @@ export async function importSpelunkyHd(
     ensureParent(snakebiteSoundPath);
     writeFileSync(snakebiteSoundPath, snakebiteSource.data);
 
+    const throwSoundSource = selectedSounds.find(
+        entry => entry.key === 'ALLSOUNDS/throw_item.wav',
+    );
+    if (throwSoundSource === undefined) {
+        throw new Error(
+            'Import profile does not contain ALLSOUNDS/throw_item.wav',
+        );
+    }
+    const throwSoundPath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'throw_item.wav',
+    );
+    ensureParent(throwSoundPath);
+    writeFileSync(throwSoundPath, throwSoundSource.data);
+
     const reportPath = join(
         outputRoot,
         '.local',
@@ -1262,6 +1375,14 @@ export async function importSpelunkyHd(
                 sha256: await sha256File(enemySpecPath),
             },
             {
+                path: 'public/generated/spelunky-hd/rock.png',
+                sha256: sha256(rockAssets.png),
+            },
+            {
+                path: 'public/sprites/generated/spelunky-hd/rock.json',
+                sha256: await sha256File(rockSpecPath),
+            },
+            {
                 path: 'public/generated/spelunky-hd/mines.png',
                 sha256: sha256(terrainImage),
             },
@@ -1277,6 +1398,10 @@ export async function importSpelunkyHd(
                 path: 'public/generated/spelunky-hd/snakebite.wav',
                 sha256: sha256(snakebiteSource.data),
             },
+            {
+                path: 'public/generated/spelunky-hd/throw_item.wav',
+                sha256: sha256(throwSoundSource.data),
+            },
         ],
     });
 
@@ -1285,10 +1410,13 @@ export async function importSpelunkyHd(
         playerSpecPath,
         enemyImagePath,
         enemySpecPath,
+        rockImagePath,
+        rockSpecPath,
         terrainImagePath,
         hudImagePath,
         hudSpecPath,
         snakebiteSoundPath,
+        throwSoundPath,
         reportPath,
     };
 }

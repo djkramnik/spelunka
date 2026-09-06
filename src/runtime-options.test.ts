@@ -8,7 +8,7 @@ const options = parseRuntimeOptions(
 
 if (
     !options.performanceEnabled
-    || options.initialLevelName !== 'performance-entities'
+    || options.initialLevelName !== 'tutorial-1-scale'
     || !options.autoStart
     || options.inputEnabled
     || options.audioEnabled
@@ -29,7 +29,7 @@ const runRightOptions = parseRuntimeOptions(
 );
 if (
     runRightOptions.benchmark?.name !== 'run-right'
-    || runRightOptions.initialLevelName !== 'performance-entities'
+    || runRightOptions.initialLevelName !== 'tutorial-1-scale'
     || runRightOptions.benchmark.sampleCount !== 8
     || runRightOptions.benchmark.warmupSamples !== 1
     || runRightOptions.inputEnabled
@@ -64,19 +64,20 @@ if (!rejectedBenchmarkWithoutMetrics) {
 }
 
 const tutorialOptions = parseRuntimeOptions(
-    new URLSearchParams('level=spelunky-hd-entities&debug=collision'),
+    new URLSearchParams('level=tutorial-1-scale&debug=collision'),
     commit,
 );
 if (
-    tutorialOptions.initialLevelName !== 'spelunky-hd-entities'
+    tutorialOptions.initialLevelName !== 'tutorial-1-scale'
     || !tutorialOptions.collisionDebugEnabled
     || tutorialOptions.performanceEnabled
 ) {
-    throw new Error('Spelunky HD entity prototype was not selected directly');
+    throw new Error('The only level can still be selected directly');
 }
 
 for (const search of [
     'level=../room',
+    'level=room',
     'level=tutorial-1-scale&perf=1',
 ]) {
     let rejected = false;

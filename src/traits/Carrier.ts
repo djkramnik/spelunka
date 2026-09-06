@@ -3,6 +3,7 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 import Go from './Go.js';
+import LedgeHang from './LedgeHang.js';
 import Pickable from './Pickable.js';
 
 export default class Carrier extends Trait {
@@ -10,11 +11,22 @@ export default class Carrier extends Trait {
     carried: Entity | null = null;
 
     private getCarryDirection(carrier: Entity): number {
+        if (carrier.traits.has(LedgeHang)) {
+            const ledgeHang = carrier.traits.get(LedgeHang);
+            if (ledgeHang.active && ledgeHang.side !== 0) {
+                return ledgeHang.side;
+            }
+        }
+
         if (!carrier.traits.has(Go)) {
             return 1;
         }
 
-        return carrier.traits.get(Go).heading < 0 ? -1 : 1;
+        const go = carrier.traits.get(Go);
+        if (go.dir !== 0) {
+            return go.dir < 0 ? -1 : 1;
+        }
+        return go.heading < 0 ? -1 : 1;
     }
 
     override collides(_carrier: Entity, candidate: Entity): void {

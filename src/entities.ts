@@ -3,16 +3,12 @@ import {loadBullet} from './entities/Bullet.js';
 import type {BulletFactory} from './entities/Bullet.js';
 import {loadCannon} from './entities/Cannon.js';
 import type {CannonFactory} from './entities/Cannon.js';
-import {loadGoomba} from './entities/Goomba.js';
-import type {GoombaFactory} from './entities/Goomba.js';
-import {loadKoopa} from './entities/Koopa.js';
-import type {KoopaFactory} from './entities/Koopa.js';
 import {loadLadder} from './entities/Ladder.js';
 import type {LadderFactory} from './entities/Ladder.js';
 import {loadMario} from './entities/Mario.js';
 import type {MarioFactory} from './entities/Mario.js';
-import {loadRedShell} from './entities/RedShell.js';
-import type {RedShellFactory} from './entities/RedShell.js';
+import {loadRock} from './entities/Rock.js';
+import type {RockFactory} from './entities/Rock.js';
 import {loadSnake} from './entities/Snake.js';
 import type {SnakeFactory} from './entities/Snake.js';
 
@@ -21,13 +17,11 @@ type ProgressCallback = () => void;
 export interface EntityFactories {
     [name: string]: () => Entity;
     mario: MarioFactory;
-    goomba: GoombaFactory;
-    koopa: KoopaFactory;
     ladder: LadderFactory;
     ladder4: () => Entity;
     bullet: BulletFactory;
     cannon: CannonFactory;
-    redShell: RedShellFactory;
+    rock: RockFactory;
     snake: SnakeFactory;
 }
 
@@ -43,33 +37,27 @@ export async function loadEntities(
 
     const [
         mario,
-        goomba,
-        koopa,
         ladder,
         bullet,
         cannon,
-        redShell,
+        rock,
         snake,
     ] = await Promise.all([
         track(loadMario(audioContext)),
-        track(loadGoomba()),
-        track(loadKoopa()),
         track(loadLadder()),
         track(loadBullet()),
         track(loadCannon(audioContext)),
-        track(loadRedShell()),
+        track(loadRock()),
         track(loadSnake()),
     ]);
 
     return {
         mario,
-        goomba,
-        koopa,
         ladder,
         ladder4: () => ladder(4),
         bullet,
         cannon,
-        redShell,
+        rock,
         snake,
     };
 }

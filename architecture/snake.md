@@ -115,10 +115,9 @@ player damage.
 
 The reviewed HD range has no dedicated hit-reaction or death record because HD
 presents snake death as a blood-splatter effect followed by removal. Spelunka
-must not mislabel a living attack pose as a corpse. The current `flat` frame
-name remains only as a temporary compatibility alias to source frame 16 for the
-Goomba behavior; the dedicated snake entity should emit an HD-style blood
-splatter and remove the snake instead of fabricating a death animation.
+must not mislabel a living attack pose as a corpse; the dedicated snake entity
+should emit an HD-style blood splatter and remove the snake instead of
+fabricating a death animation.
 
 ### HD blood-effect asset review
 
@@ -278,6 +277,4 @@ The HD visual mapping and import constraints are documented separately in:
 - [Spelunky HD graphics assessment](spelunky-hd-graphics-assessment.md), which
   identifies the monster atlas and contiguous snake states;
 - [Spelunky HD import workflow](spelunky-hd-import-workflow.md), which defines
-  the owned-local-source and ignored-generated-output process; and
-- [Spelunky HD entity prototype](spelunky-hd-entity-prototype.md), which records
-  the current snake frame indices, scale, pivot, facing, and collider isolation.
+  the owned-local-source and ignored-generated-output process.

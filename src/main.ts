@@ -43,7 +43,7 @@ declare global {
     }
 }
 
-const INITIAL_LOAD_TASKS = 13;
+const INITIAL_LOAD_TASKS = 11;
 const LEVEL_LOAD_TASKS = 4;
 
 async function main(
@@ -178,7 +178,7 @@ async function main(
             onComplete: (summary: PerformanceSummary): void => {
                 timer?.stop();
                 const workloadComplete = runtimeOptions.benchmark?.name !== 'run-right'
-                    || benchmarkLevelLoads > 1;
+                    || benchmarkLevelLoads > 0;
                 window.performanceBenchmark = {
                     name: runtimeOptions.benchmark?.name ?? 'idle-start',
                     gitCommit: runtimeOptions.benchmark?.gitCommit ?? __GIT_COMMIT__,

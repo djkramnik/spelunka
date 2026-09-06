@@ -4,6 +4,7 @@ const IDLE_START_SAMPLE_COUNT = 4;
 const IDLE_START_WARMUP_SAMPLES = 1;
 const RUN_RIGHT_SAMPLE_COUNT = 8;
 const RUN_RIGHT_WARMUP_SAMPLES = 1;
+const DEFAULT_LEVEL_NAME = 'tutorial-1-scale';
 
 export interface RuntimeOptions {
     performanceEnabled: boolean;
@@ -28,6 +29,10 @@ export function parseRuntimeOptions(
         && !/^[a-z0-9](?:[a-z0-9-]{0,62})$/.test(requestedLevelName)
     ) {
         throw new Error(`Invalid level name: ${requestedLevelName}`);
+    }
+    if (requestedLevelName !== null
+        && requestedLevelName !== DEFAULT_LEVEL_NAME) {
+        throw new Error(`Unknown level name: ${requestedLevelName}`);
     }
     if (requestedLevelName && performanceEnabled) {
         throw new Error('Custom levels cannot be combined with ?perf=1');
@@ -66,8 +71,7 @@ export function parseRuntimeOptions(
 
     return {
         performanceEnabled,
-        initialLevelName: requestedLevelName
-            ?? (performanceEnabled ? 'performance-entities' : 'tutorial-1-scale'),
+        initialLevelName: requestedLevelName ?? DEFAULT_LEVEL_NAME,
         collisionDebugEnabled: searchParams.get('debug') === 'collision',
         audioEnabled: benchmark === undefined,
         autoStart: benchmark !== undefined,

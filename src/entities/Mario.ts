@@ -348,9 +348,11 @@ export function createMarioFactory(
             killable.removeAfter = Infinity;
             this.addTrait(killable);
             this.addTrait(new Stomper());
-            this.addTrait(new Carrier());
             this.addTrait(new LadderClimb());
             this.addTrait(new LedgeHang());
+            // Follow after attachment traits so a carried item observes a
+            // same-frame ladder move or newly entered ledge orientation.
+            this.addTrait(new Carrier());
 
             this.turbo(false);
         }

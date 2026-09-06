@@ -11,6 +11,9 @@
         },
         "snakebite": {
             "url": "/generated/spelunky-hd/snakebite.wav"
+        },
+        "throw-item": {
+            "url": "/generated/spelunky-hd/throw_item.wav"
         }
     }
 }

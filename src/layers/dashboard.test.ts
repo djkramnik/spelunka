@@ -48,7 +48,7 @@ const hud = {
 } as SpriteSheet;
 
 const level = new Level();
-level.name = '1-1';
+level.name = 'tutorial-1-scale';
 const timerEntity = new Entity();
 timerEntity.addTrait(new LevelTimer());
 level.entities.add(timerEntity);
@@ -89,11 +89,11 @@ assertEqual(
     fontPrints,
     [
         ['WORLD', 152, 8],
-        ['1-1', 160, 16],
+        ['tutorial-1-scale', 160, 16],
         ['TIME', 208, 8],
         ['300', 216, 16],
         ['WORLD', 152, 8],
-        ['1-1', 160, 16],
+        ['tutorial-1-scale', 160, 16],
         ['TIME', 208, 8],
         ['300', 216, 16],
     ],

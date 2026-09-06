@@ -3,6 +3,7 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Carrier from './Carrier.js';
 import Go from './Go.js';
+import LedgeHang from './LedgeHang.js';
 import Pickable from './Pickable.js';
 
 function assertEqual<Value>(
@@ -85,6 +86,36 @@ assertEqual([shell.vel.x, shell.vel.y], [0, 0], 'Final carry velocity neutraliza
 movement.heading = 1;
 carrier.update(mario, gameContext, level);
 assertEqual([shell.pos.x, shell.pos.y], [128, 152], 'Return to right-facing position');
+
+const ledgeHang = new LedgeHang();
+mario.addTrait(ledgeHang);
+ledgeHang.phase = 'hanging';
+ledgeHang.side = -1;
+movement.dir = 1;
+carrier.update(mario, gameContext, level);
+assertEqual(
+    [shell.pos.x, shell.pos.y],
+    [112, 152],
+    'Right input cannot turn a carried item away from a left ledge',
+);
+movement.dir = -1;
+carrier.update(mario, gameContext, level);
+assertEqual(
+    [shell.pos.x, shell.pos.y],
+    [112, 152],
+    'Left input leaves the item oriented toward the same left ledge',
+);
+ledgeHang.side = 1;
+movement.dir = -1;
+carrier.update(mario, gameContext, level);
+assertEqual(
+    [shell.pos.x, shell.pos.y],
+    [128, 152],
+    'Left input cannot turn a carried item away from a right ledge',
+);
+ledgeHang.phase = 'airborne';
+ledgeHang.side = 0;
+movement.dir = 0;
 
 mario.vel.set(35, 0);
 const releasePosition = [shell.pos.x, shell.pos.y];

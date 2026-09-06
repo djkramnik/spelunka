@@ -78,6 +78,10 @@
 
     "entities": [
         {
+            "name": "rock",
+            "pos": [48, 104]
+        },
+        {
             "name": "ladder",
             "pos": [368, 80]
         },

@@ -73,10 +73,13 @@ async function main(): Promise<void> {
         console.log(`Player metadata: ${result.playerSpecPath}`);
         console.log(`Enemy PNG: ${result.enemyImagePath}`);
         console.log(`Enemy metadata: ${result.enemySpecPath}`);
+        console.log(`Rock PNG: ${result.rockImagePath}`);
+        console.log(`Rock metadata: ${result.rockSpecPath}`);
         console.log(`Mines terrain PNG: ${result.terrainImagePath}`);
         console.log(`HUD PNG: ${result.hudImagePath}`);
         console.log(`HUD metadata: ${result.hudSpecPath}`);
         console.log(`Snake-bite WAV: ${result.snakebiteSoundPath}`);
+        console.log(`Throw-item WAV: ${result.throwSoundPath}`);
         console.log(`Import report: ${result.reportPath}`);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

@@ -41,8 +41,7 @@ button:
 Heavy objects use the same variations but leave the player's hands more slowly
 and do not rise as high. The Pitcher's Mitt power-up is a separate enhancement:
 it makes ordinary throws much faster and flatter. These variations are useful
-future behavior, but they are not necessary to establish the first red-shell
-throw.
+future behavior, but they are not necessary to establish the first rock throw.
 
 ## What happens after release
 
@@ -75,47 +74,84 @@ returns at speed—for example, after rebounding from a wall.
 Damage rules vary for special items and enemy types. Arrows can stick into
 walls, jars can break, bombs can become sticky, and weapons use their primary
 action instead of being thrown normally. Those exceptions are outside the
-ordinary red-shell case.
+ordinary throwable-rock case.
 
-## Proposed first red-shell slice
+## Implemented rock baseline
 
-The smallest behavior that preserves the recognizable Spelunky feel is:
+`spelunka-r54.15` replaced the temporary throwable verification target with a
+dedicated rock. Classic is a starting point for tuning and interaction design,
+not a requirement for frame-perfect compatibility. The implementation keeps
+the parts that make a small thrown object legible and satisfying in this
+time-based engine while preserving project-native health, rendering, and
+collision architecture.
 
-1. Pressing D with empty hands continues to attempt a pickup.
-2. Pressing D while carrying the red shell releases it immediately.
-3. The shell travels in Mario's facing direction, inherits Mario's horizontal
-   movement, and begins with a small upward lift.
-4. The shell stops tracking Mario as soon as it is released.
-5. After release, gravity pulls the shell downward and floors, walls, and
-   ceilings prevent it from passing through terrain.
-6. Terrain impacts use diminishing rebounds rather than hard stops: the shell
-   bounces off walls and floors, floor friction reduces its horizontal speed,
-   and small remaining movement eventually settles to zero.
-7. A resting shell remains eligible to be picked up again.
-8. A short post-release grace period prevents an immediate collision with
-   Mario.
+The locally owned HD source is `ITEMS/items.png`. The validated WAD profile
+checks that entry's SHA-256 (`81ef2c38f249803b078dc61bffd47156f346a7fc74433b61b67f654d7d754119`)
+and extracts source cell 17 (`[1360, 0, 80, 80]`) as a generated, ignored
+80-by-80 rock frame. It renders at quarter scale around a `[40, 40]` centre
+pivot. This keeps the actual rock art aligned with its 8-by-8 gameplay bounds
+without committing owned pixels. `ALLSOUNDS/throw_item.wav` is validated and
+copied through the same local-only workflow.
 
-Up/down throw modifiers, heavy-item tuning, the Pitcher's Mitt, item damage,
-breakable items, and weapon-specific actions should remain separate follow-up
-work. They add breadth but are not required to prove the pickup-carry-throw loop.
+While carried, the rock uses a centre-relative horizontal offset: its centre is
+four pixels to either side of the player's centre and six pixels below the
+player's top. This avoids the size-dependent left/right asymmetry of the legacy
+origin-relative offset while leaving older pickable entities unchanged.
+Loose rocks use the same one-step foreground priority as carried items. Their
+world position remains governed only by physics, while the explicit draw order
+prevents the larger HD artwork from being partially occluded by a nearby player
+and appearing to wobble as the sprites overlap.
 
-These are separate pieces of implementation work in this project. The current
-red shell only has pickup behavior. Existing physics and solid-terrain behavior
-can provide gravity and prevent terrain penetration, but solid collisions
-currently stop movement outright. Diminishing rebounds and floor friction must
-therefore be added deliberately, and should be verified independently from the
-initial release velocity and carrier detachment.
+The first tuning pass uses these comparisons:
 
-The work is tracked as a flat dependency chain beneath the conversion epic:
+| Property | Classic observation | Project rock |
+| --- | --- | --- |
+| Bounds | 8 by 8 around the sprite origin | 8 by 8 |
+| Normal launch | 8 horizontal and -3 vertical px per 30 Hz tick | 240 and -90 px/s, plus player horizontal velocity |
+| Gravity / fall cap | 0.6 px/tick²; 8 px/tick maximum fall | 540 px/s²; 240 px/s cap |
+| Wall / floor / ceiling rebound | 0.5 / 0.5 / 0.8 retained velocity | 0.5 / 0.5 / 0.8 |
+| Ground friction | 0.3 retained horizontal velocity | 0.3 |
+| Settle thresholds | 0.1 horizontal; 1 vertical px/tick | 3 horizontal; 30 vertical px/s |
+| Enemy projectile threshold | Either axis exceeds 2 px/tick | Either axis exceeds 60 px/s |
+| Player rock threshold | Horizontal speed exceeds 4 px/tick | Horizontal speed exceeds 120 px/s |
+| Thrower grace | 10 updates at Classic's 30 Hz | 20 fixed updates at this project's 60 Hz |
+
+Reversing direction does not end a rock's grace early. The elapsed grace
+window is easier to reason about and prevents a
+nearby wall from turning the release overlap into an immediate self-hit. A fast
+rock removes two hearts and gives the player the familiar horizontal/upward hit
+launch; project-native invulnerability and hit presentation replace Classic's
+full stunned state. Generic converted enemies currently expose one-hit
+`Killable` behavior, so a qualifying rock impact defeats them rather than
+modelling per-enemy health and stun. A stationary or slow rock stays harmless.
+
+The default tutorial places a resting rock two tiles to the right of the player
+spawn, so the normal startup path reaches the feature immediately. Focused
+tests cover left and right release with inherited momentum, the HD render
+anchor, item-specific gravity and fall cap, terrain coefficients, stable
+settling, horizontal and vertical projectile eligibility, player damage, the
+complete grace window, moving re-pickup, settled re-pickup, and repeated
+carry/throw cycles.
+
+The original implementation work remains recorded as a flat dependency chain
+beneath the conversion epic:
 
 - `spelunka-r54.16`: release the carried item and launch it with D;
 - `spelunka-r54.17`: apply gravity and prevent terrain penetration;
 - `spelunka-r54.18`: add diminishing terrain rebounds;
-- `spelunka-r54.21`: make sufficiently fast red shells dangerous to Mario and
+- `spelunka-r54.21`: make sufficiently fast projectiles dangerous to Mario and
   define the stomp response;
 - `spelunka-r54.19`: add floor friction and stable settling; and
 - `spelunka-r54.20`: support repeated throw and re-pickup cycles, including
   thrower grace-period state.
+
+The fidelity review also created direct follow-ups beneath the conversion epic:
+
+- `spelunka-r54.41`: crouched pickup and collision-safe release beside walls;
+- `spelunka-r54.42`: reusable nonterminal enemy damage, stun, and momentum
+  transfer for projectiles; and
+- `spelunka-r54.43`: up/down throws plus later heavy-item and Pitcher's Mitt
+  modifiers.
 
 ## Source observations
 
@@ -140,10 +176,9 @@ The main behavior is spread across these extracted resources:
   keeps a carried item visually in front of the player.
 
 For orientation only, Classic's ordinary light-item throw starts at roughly
-eight horizontal pixels per 60 Hz update plus the player's horizontal speed,
+eight horizontal pixels per 30 Hz update plus the player's horizontal speed,
 with about three pixels per update of initial upward speed. Gravity adds roughly
 0.6 pixels per update to downward speed; wall rebounds retain half the speed,
 and floor contact retains about half the vertical and thirty percent of the
-horizontal speed. These values describe the original GameMaker simulation and
-should be translated and tuned for this project's time-based physics rather
-than copied literally.
+horizontal speed. They remain tuning references: play feel in this project's
+60 Hz, HD-rendered runtime takes precedence over literal reproduction.

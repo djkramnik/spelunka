@@ -1,8 +1,8 @@
+import {Sides} from '../Entity.js';
 import type Entity from '../Entity.js';
 import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
-import Carrier from './Carrier.js';
 import Go from './Go.js';
 import Jump from './Jump.js';
 import Killable from './Killable.js';
@@ -40,6 +40,7 @@ export default class LedgeHang extends Trait {
     private wallLeft = 0;
     private wallRight = 0;
     private climbRequested = false;
+    private wallContactSide: -1 | 0 | 1 = 0;
 
     get active(): boolean {
         return this.phase !== 'airborne';
@@ -53,8 +54,27 @@ export default class LedgeHang extends Trait {
     }
 
     private isUnavailable(entity: Entity): boolean {
-        return entity.traits.get(Killable).dead
-            || entity.traits.get(Carrier).carried !== null;
+        return entity.traits.get(Killable).dead;
+    }
+
+    override obstruct(_entity: Entity, side: symbol): void {
+        if (this.phase !== 'airborne') {
+            return;
+        }
+
+        if (side === Sides.LEFT) {
+            this.wallContactSide = -1;
+        } else if (side === Sides.RIGHT) {
+            this.wallContactSide = 1;
+        }
+    }
+
+    private approachSide(entity: Entity): -1 | 0 | 1 {
+        if (this.wallContactSide !== 0) {
+            return this.wallContactSide;
+        }
+
+        return entity.vel.x < 0 ? -1 : entity.vel.x > 0 ? 1 : 0;
     }
 
     private supportX(entity: Entity): number {
@@ -241,18 +261,13 @@ export default class LedgeHang extends Trait {
     private tryGrab(entity: Entity, level: Level): void {
         const physics = entity.traits.get(Physics);
         const jump = entity.traits.get(Jump);
-        const go = entity.traits.get(Go);
+        const side = this.approachSide(entity);
         if (this.cooldown > 0
             || physics.grounded
             || jump.phase !== 'falling'
             || entity.vel.y <= 0
-            || go.dir === 0
+            || side === 0
             || this.isUnavailable(entity)) {
-            return;
-        }
-
-        const side = go.dir < 0 ? -1 : 1;
-        if (entity.vel.x * side < 0) {
             return;
         }
 
@@ -374,6 +389,7 @@ export default class LedgeHang extends Trait {
             this.tryGrab(entity, level);
         }
 
+        this.wallContactSide = 0;
         this.previousTop = entity.bounds.top;
     }
 }
