@@ -373,19 +373,33 @@ export function createMarioFactory(
         }
 
         pickupOrThrow(): Entity | null {
+            const ledgeHang = this.traits.get(LedgeHang);
+            const ladderClimb = this.traits.get(LadderClimb);
+            const crouch = this.traits.get(Crouch);
             if (this.traits.get(PlayerDeath).terminal
-                || this.traits.get(LedgeHang).active
-                || this.traits.get(LadderClimb).active
-                || this.traits.get(Crouch).active) {
+                || ledgeHang.active
+                || ladderClimb.active) {
                 return null;
             }
             const carrier = this.traits.get(Carrier);
             const wasCarrying = carrier.carried !== null;
-            const throwMode = this.traits.get(LadderClimb).verticalDirection < 0
+            const physics = this.traits.get(Physics);
+            const jump = this.traits.get(Jump);
+            const placing = wasCarrying
+                && crouch.downHeld
+                && jump.phase === 'grounded'
+                && physics.grounded
+                && this.vel.y === 0;
+            if (crouch.active && !placing) {
+                return null;
+            }
+            const throwMode = ladderClimb.verticalDirection < 0
                 ? 'upward'
                 : 'forward';
-            const result = carrier.pickupOrThrow(this, throwMode);
-            if (wasCarrying && result !== null) {
+            const result = placing
+                ? carrier.place(this)
+                : carrier.pickupOrThrow(this, throwMode);
+            if (wasCarrying && result !== null && !placing) {
                 this.throwFrameTime = THROW_FRAME_DURATION;
             }
             return result;

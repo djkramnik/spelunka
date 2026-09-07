@@ -5,6 +5,7 @@ import Carrier from './Carrier.js';
 import Go from './Go.js';
 import LedgeHang from './LedgeHang.js';
 import Pickable from './Pickable.js';
+import Physics from './Physics.js';
 
 function assertEqual<Value>(
     actual: Value,
@@ -35,6 +36,13 @@ function createPickable(): [Entity, Pickable] {
     const pickable = new Pickable();
     entity.addTrait(pickable);
     return [entity, pickable];
+}
+
+function createPhysicalPickable(): [Entity, Pickable, Physics] {
+    const [entity, pickable] = createPickable();
+    const physics = new Physics();
+    entity.addTrait(physics);
+    return [entity, pickable, physics];
 }
 
 const movement = new Go();
@@ -200,6 +208,52 @@ assertEqual(
     separateCarrier.pickup(separateMario),
     null,
     'Leaving collision expires pickup eligibility',
+);
+
+const placeMovement = new Go();
+placeMovement.heading = 1;
+const [placeMario, placeCarrier] = createCarrier(placeMovement);
+placeMario.pos.set(100, 50);
+placeMario.size.set(14, 16);
+const [placedRight, placedRightPickable, placedRightPhysics] = createPhysicalPickable();
+placedRight.size.set(8, 8);
+placedRightPickable.alignCarryCenters = true;
+placedRightPickable.carryOffset.set(4, 6);
+placedRight.zIndex = 2;
+placeCarrier.collides(placeMario, placedRight);
+placeCarrier.pickup(placeMario);
+assertEqual(placeCarrier.place(placeMario), placedRight, 'Right placement releases the item');
+assertEqual(
+    [
+        placedRight.bounds.left,
+        placedRight.bounds.bottom,
+        placedRight.vel.x,
+        placedRight.vel.y,
+        placedRightPhysics.enabled,
+        placedRightPhysics.grounded,
+        placedRight.zIndex,
+    ],
+    [107, 66, 0, 0, true, true, 2],
+    'Right placement lowers the carried pose directly in front at floor height',
+);
+assertEqual(
+    placedRightPickable.isThrowerProtected(placedRight, placeMario),
+    false,
+    'Placement does not create thrower protection',
+);
+
+placeMovement.heading = -1;
+const [placedLeft, placedLeftPickable, placedLeftPhysics] = createPhysicalPickable();
+placedLeft.size.set(8, 8);
+placedLeftPickable.alignCarryCenters = true;
+placedLeftPickable.carryOffset.set(4, 6);
+placeCarrier.collides(placeMario, placedLeft);
+placeCarrier.pickup(placeMario);
+assertEqual(placeCarrier.place(placeMario), placedLeft, 'Left placement releases the item');
+assertEqual(
+    [placedLeft.bounds.right, placedLeft.bounds.bottom, placedLeftPhysics.grounded],
+    [107, 66, true],
+    'Left placement mirrors the carried pose directly in front at floor height',
 );
 
 console.log('Pickup and carrying regression passed');

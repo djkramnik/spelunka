@@ -42,6 +42,13 @@ export default class Pickable extends Trait {
         }
     }
 
+    private horizontalCarryOffset(entity: Entity, carrier: Entity): number {
+        return this.alignCarryCenters
+            ? (carrier.size.x - entity.size.x) / 2
+                + this.carryOffset.x * this.carryDirection
+            : this.carryOffset.x * this.carryDirection;
+    }
+
     attach(entity: Entity, carrier: Entity, direction = 1): boolean {
         if (this.carrier !== null) {
             return false;
@@ -96,6 +103,30 @@ export default class Pickable extends Trait {
         return true;
     }
 
+    place(
+        entity: Entity,
+        carrier: Entity,
+        direction = this.carryDirection,
+    ): boolean {
+        if (this.carrier !== carrier) {
+            return false;
+        }
+
+        this.carryDirection = direction < 0 ? -1 : 1;
+        const horizontalOffset = this.horizontalCarryOffset(entity, carrier);
+        this.carrier = null;
+        this.clearThrowerProtection();
+        this.setPhysicsEnabled(entity, true);
+        entity.pos.x = carrier.pos.x + horizontalOffset;
+        entity.bounds.bottom = carrier.bounds.bottom;
+        entity.vel.set(0, 0);
+        if (entity.traits.has(Physics)) {
+            entity.traits.get(Physics).grounded = true;
+        }
+        entity.zIndex = this.uncarriedZIndex;
+        return true;
+    }
+
     isThrowerProtected(entity: Entity, candidate: Entity): boolean {
         if (this.recentThrower !== candidate
             || this.throwerGraceUpdatesRemaining <= 0) {
@@ -120,10 +151,10 @@ export default class Pickable extends Trait {
 
         this.carryDirection = direction < 0 ? -1 : 1;
 
-        const horizontalOffset = this.alignCarryCenters
-            ? (this.carrier.size.x - entity.size.x) / 2
-                + this.carryOffset.x * this.carryDirection
-            : this.carryOffset.x * this.carryDirection;
+        const horizontalOffset = this.horizontalCarryOffset(
+            entity,
+            this.carrier,
+        );
         entity.pos.set(
             this.carrier.pos.x + horizontalOffset,
             this.carrier.pos.y + this.carryOffset.y,

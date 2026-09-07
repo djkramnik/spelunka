@@ -98,6 +98,25 @@ export default class Carrier extends Trait {
         return carried;
     }
 
+    place(carrier: Entity): Entity | null {
+        if (this.carried === null) {
+            return null;
+        }
+
+        const carried = this.carried;
+        if (!carried.traits.get(Pickable).place(
+            carried,
+            carrier,
+            this.getCarryDirection(carrier),
+        )) {
+            return null;
+        }
+
+        this.carried = null;
+        this.candidates.clear();
+        return carried;
+    }
+
     pickupOrThrow(
         carrier: Entity,
         mode: ThrowMode = 'forward',

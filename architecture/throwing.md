@@ -141,6 +141,13 @@ settling, horizontal and vertical projectile eligibility, player damage, the
 complete grace window, moving re-pickup, settled re-pickup, and repeated
 carry/throw cycles.
 
+A grounded player can hold Down and press D to place a carried item at floor
+height while retaining its carried horizontal alignment directly in front of
+the player. Placement releases the carrier relationship with zero item
+velocity, does not play the throw animation, and does not create thrower
+protection. Down plus D while rising or falling remains a normal airborne
+throw; it cannot use the grounded placement path.
+
 The original implementation work remains recorded as a flat dependency chain
 beneath the conversion epic:
 

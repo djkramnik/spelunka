@@ -17,6 +17,7 @@ import PlayerHit, {
     SPELUNKY_SMALL_HIT_REACTION_DURATION,
 } from '../traits/PlayerHit.js';
 import Pickable from '../traits/Pickable.js';
+import Physics from '../traits/Physics.js';
 import {
     createMarioFactory,
     PLAYER_FRAME_NAMES,
@@ -301,6 +302,63 @@ assertEqual(
 );
 ladderClimb.verticalDirection = 0;
 (mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0;
+
+const placedItem = new Entity();
+placedItem.size.set(8, 8);
+const placedPickable = new Pickable();
+const placedPhysics = new Physics();
+placedItem.addTrait(placedPickable);
+placedItem.addTrait(placedPhysics);
+mario.pos.set(100, 50);
+mario.size.set(14, 16);
+mario.vel.set(0, 0);
+go.dir = 0;
+go.heading = 1;
+jump.phase = 'grounded';
+jump.ready = 1;
+mario.traits.get(Physics).grounded = true;
+carrier.collides(mario, placedItem);
+assertEqual(mario.pickupOrThrow(), placedItem, 'Player picks up a placement test item');
+crouch.downHeld = true;
+assertEqual(mario.pickupOrThrow(), placedItem, 'Grounded Down plus D places the item');
+assertEqual(
+    [placedItem.bounds.left, placedItem.bounds.bottom, placedItem.vel.x, placedItem.vel.y],
+    [108, 66, 0, 0],
+    'Grounded placement lowers the item directly in front at floor height',
+);
+assertEqual(
+    (mario as typeof mario & {throwFrameTime: number}).throwFrameTime,
+    0,
+    'Placement does not play the throw animation',
+);
+
+const airborneItem = new Entity();
+airborneItem.addTrait(new Pickable());
+carrier.collides(mario, airborneItem);
+crouch.downHeld = false;
+assertEqual(mario.pickupOrThrow(), airborneItem, 'Player picks up an airborne test item');
+crouch.downHeld = true;
+jump.phase = 'falling';
+jump.ready = -1;
+mario.traits.get(Physics).grounded = false;
+mario.vel.y = 30;
+assertEqual(mario.pickupOrThrow(), airborneItem, 'Airborne Down plus D still releases the item');
+assertEqual(
+    [
+        airborneItem.pos.x,
+        airborneItem.pos.y,
+        airborneItem.vel.x,
+        airborneItem.vel.y,
+    ],
+    [108, 42, 480, -180],
+    'Airborne Down plus D remains a normal throw from the carried position',
+);
+crouch.downHeld = false;
+(mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0;
+jump.phase = 'grounded';
+jump.ready = 1;
+mario.traits.get(Physics).grounded = true;
+mario.vel.set(0, 0);
 
 health.takeDamage(1, 1);
 playerHit.start(-1);
