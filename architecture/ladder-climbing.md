@@ -1,6 +1,6 @@
 # Spelunky ladder climbing and HD animation
 
-Beads tasks: `spelunka-r54.33`, `spelunka-r54.46`
+Beads tasks: `spelunka-r54.33`, `spelunka-r54.46`, `spelunka-r54.47`
 
 The runtime separates ladder terrain from ordinary solid terrain. A ladder
 entity owns a `Climbable` marker over its full bounds and installs one one-way
@@ -15,8 +15,9 @@ rates converted from its 30 Hz update loop to Spelunka's time-based units:
 
 - the player's horizontal center must be less than four logical pixels from
   the ladder center;
-- an air or ground mount requires the player's center to be inside the ladder
-  column, preventing a shallow head-only overlap from snapping the player;
+- an airborne mount requires Up and the player's center to be inside the ladder
+  column, preventing both a shallow head-only overlap and an accidental
+  Down-triggered re-grab during a jump;
 - Down also mounts a stationary grounded player whose center is anywhere over
   the ladder cap, using a more forgiving eight-pixel top-entry tolerance;
 - mounting centers the player, clears velocity, and suspends physics and

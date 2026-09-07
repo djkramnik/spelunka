@@ -72,7 +72,6 @@ export default class LadderClimb extends Trait {
     }
 
     private findMountableLadder(entity: Entity, level: Level): Entity | null {
-        const physics = entity.traits.get(Physics);
         let closest: Entity | null = null;
         let closestDistance = Infinity;
         for (const candidate of level.entities) {
@@ -87,8 +86,7 @@ export default class LadderClimb extends Trait {
             const canEnterWithinColumn = this.isHorizontallyAligned(
                 entity,
                 candidate,
-            ) && centerInside
-                && (this.verticalDirection < 0 || !physics.grounded);
+            ) && centerInside && this.verticalDirection < 0;
             if (!canEnterFromTop && !canEnterWithinColumn) {
                 continue;
             }

@@ -107,6 +107,30 @@ assertEqual(
     'Up mounts an aligned airborne player, centers them, and suspends gravity',
 );
 
+for (const [phase, velocityY] of [
+    ['rising', -40],
+    ['falling', 40],
+] as const) {
+    const airborneDown = createPlayer();
+    airborneDown.entity.pos.set(33, 48);
+    airborneDown.entity.vel.y = velocityY;
+    airborneDown.jump.phase = phase;
+    airborneDown.jump.ready = -1;
+    airborneDown.climb.setVerticalInput(1, true);
+    update(airborneDown.climb, airborneDown.entity, level);
+    assertEqual(
+        [
+            airborneDown.climb.active,
+            airborneDown.entity.pos.x,
+            airborneDown.entity.vel.y,
+            airborneDown.physics.enabled,
+            airborneDown.jump.phase,
+        ],
+        [false, 33, velocityY, true, phase],
+        `Down cannot remount the ladder while ${phase}`,
+    );
+}
+
 const mountedY = airborne.entity.pos.y;
 update(airborne.climb, airborne.entity, level);
 assertEqual(airborne.climb.phase, 'climbing', 'Held Up begins vertical traversal after the cling frame');
@@ -233,8 +257,10 @@ bottomLevel.tileCollider.addGrid(terrain);
 const bottomOut = createPlayer();
 bottomOut.entity.pos.set(33, 76);
 bottomOut.jump.phase = 'falling';
-bottomOut.climb.setVerticalInput(1, true);
+bottomOut.climb.setVerticalInput(-1, true);
 update(bottomOut.climb, bottomOut.entity, bottomLevel);
+bottomOut.climb.setVerticalInput(-1, false);
+bottomOut.climb.setVerticalInput(1, true);
 for (let index = 0; index < 30 && bottomOut.climb.active; index++) {
     update(bottomOut.climb, bottomOut.entity, bottomLevel);
 }
