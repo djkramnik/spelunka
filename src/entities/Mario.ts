@@ -381,7 +381,10 @@ export function createMarioFactory(
             }
             const carrier = this.traits.get(Carrier);
             const wasCarrying = carrier.carried !== null;
-            const result = carrier.pickupOrThrow(this);
+            const throwMode = this.traits.get(LadderClimb).verticalDirection < 0
+                ? 'upward'
+                : 'forward';
+            const result = carrier.pickupOrThrow(this, throwMode);
             if (wasCarrying && result !== null) {
                 this.throwFrameTime = THROW_FRAME_DURATION;
             }

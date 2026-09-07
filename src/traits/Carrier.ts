@@ -5,6 +5,7 @@ import Trait from '../Trait.js';
 import Go from './Go.js';
 import LedgeHang from './LedgeHang.js';
 import Pickable from './Pickable.js';
+import type {ThrowMode} from './Pickable.js';
 
 export default class Carrier extends Trait {
     private readonly candidates = new Set<Entity>();
@@ -61,7 +62,7 @@ export default class Carrier extends Trait {
         return null;
     }
 
-    throw(carrier: Entity): Entity | null {
+    throw(carrier: Entity, mode: ThrowMode = 'forward'): Entity | null {
         if (this.carried === null) {
             return null;
         }
@@ -72,6 +73,7 @@ export default class Carrier extends Trait {
             carried,
             carrier,
             this.getCarryDirection(carrier),
+            mode,
         )) {
             return null;
         }
@@ -96,9 +98,12 @@ export default class Carrier extends Trait {
         return carried;
     }
 
-    pickupOrThrow(carrier: Entity): Entity | null {
+    pickupOrThrow(
+        carrier: Entity,
+        mode: ThrowMode = 'forward',
+    ): Entity | null {
         if (this.carried !== null) {
-            return this.throw(carrier);
+            return this.throw(carrier, mode);
         }
 
         return this.pickup(carrier);

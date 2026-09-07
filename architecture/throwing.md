@@ -97,10 +97,16 @@ While carried, the rock uses a centre-relative horizontal offset: its centre is
 four pixels to either side of the player's centre and six pixels below the
 player's top. This avoids the size-dependent left/right asymmetry of the legacy
 origin-relative offset while leaving older pickable entities unchanged.
+
 Loose rocks use the same one-step foreground priority as carried items. Their
 world position remains governed only by physics, while the explicit draw order
 prevents the larger HD artwork from being partially occluded by a nearby player
 and appearing to wobble as the sprites overlap.
+When floor friction reduces a rock to exact rest, its horizontal position is
+also rounded to the nearest logical pixel. Thrown rocks otherwise commonly
+stop at a fractional world coordinate; as a moving camera pixel-snaps that
+entity against integer-aligned terrain, their relative screen positions can
+alternate by one pixel even though the rock's physics position is unchanged.
 
 The first tuning pass uses these comparisons:
 
@@ -108,6 +114,7 @@ The first tuning pass uses these comparisons:
 | --- | --- | --- |
 | Bounds | 8 by 8 around the sprite origin | 8 by 8 |
 | Normal launch | 8 horizontal and -3 vertical px per 30 Hz tick | 240 and -90 px/s, plus player horizontal velocity |
+| Up launch | 8 horizontal and -9 vertical px per 30 Hz tick | 216 and -270 px/s, plus player horizontal velocity |
 | Gravity / fall cap | 0.6 px/tick²; 8 px/tick maximum fall | 540 px/s²; 240 px/s cap |
 | Wall / floor / ceiling rebound | 0.5 / 0.5 / 0.8 retained velocity | 0.5 / 0.5 / 0.8 |
 | Ground friction | 0.3 retained horizontal velocity | 0.3 |
@@ -127,7 +134,8 @@ modelling per-enemy health and stun. A stationary or slow rock stays harmless.
 
 The default tutorial places a resting rock two tiles to the right of the player
 spawn, so the normal startup path reaches the feature immediately. Focused
-tests cover left and right release with inherited momentum, the HD render
+tests cover left and right release with inherited momentum, Up plus D routing,
+the higher and longer upward arc, the HD render
 anchor, item-specific gravity and fall cap, terrain coefficients, stable
 settling, horizontal and vertical projectile eligibility, player damage, the
 complete grace window, moving re-pickup, settled re-pickup, and repeated

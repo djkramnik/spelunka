@@ -27,6 +27,8 @@ import {
     ROCK_THROW_LIFT,
     ROCK_THROW_SPEED,
     ROCK_THROWER_GRACE_UPDATES,
+    ROCK_UPWARD_THROW_LIFT,
+    ROCK_UPWARD_THROW_SPEED,
     ROCK_VERTICAL_SETTLE_SPEED,
     ROCK_WALL_REBOUND,
     ROCK_Z_INDEX,
@@ -70,6 +72,8 @@ assertEqual(
         pickable.alignCarryCenters,
         pickable.throwVelocity.x,
         pickable.throwVelocity.y,
+        pickable.upwardThrowVelocity.x,
+        pickable.upwardThrowVelocity.y,
         pickable.throwerGraceUpdates,
         pickable.clearThrowerProtectionOnDirectionChange,
     ],
@@ -79,6 +83,8 @@ assertEqual(
         true,
         ROCK_THROW_SPEED,
         ROCK_THROW_LIFT,
+        ROCK_UPWARD_THROW_SPEED,
+        ROCK_UPWARD_THROW_LIFT,
         ROCK_THROWER_GRACE_UPDATES,
         false,
     ],
@@ -132,7 +138,11 @@ assertEqual(
     'Left-facing carry spacing is measured from entity centres, not left edges',
 );
 
-function throwRock(direction: -1 | 1, carrierSpeed: number): Entity {
+function throwRock(
+    direction: -1 | 1,
+    carrierSpeed: number,
+    upward = false,
+): Entity {
     const thrown = createRock();
     const carrier = new Entity();
     const movement = new Go();
@@ -146,7 +156,12 @@ function throwRock(direction: -1 | 1, carrierSpeed: number): Entity {
         'Rock attaches before its direction test',
     );
     assertEqual(
-        thrownPickable.release(thrown, carrier, direction),
+        thrownPickable.release(
+            thrown,
+            carrier,
+            direction,
+            upward ? 'upward' : 'forward',
+        ),
         true,
         'Rock releases for its direction test',
     );
@@ -170,12 +185,42 @@ assertEqual(
     [-30 - ROCK_THROW_SPEED, ROCK_THROW_LIFT],
     'Left throw inherits forward carrier momentum',
 );
+const upwardThrow = throwRock(1, 30, true);
+assertEqual(
+    [upwardThrow.vel.x, upwardThrow.vel.y],
+    [30 + ROCK_UPWARD_THROW_SPEED, ROCK_UPWARD_THROW_LIFT],
+    'Up throw retains momentum with slightly less forward speed and much more lift',
+);
 
 const gameContext = {
     deltaTime: 1 / 60,
     performanceMetrics: {recordTileCandidates: (): void => {}},
 } as unknown as GameContext;
 const flightLevel = new Level();
+
+function horizontalDistanceUntilReturn(thrown: Entity): number {
+    const startX = thrown.pos.x;
+    const startY = thrown.pos.y;
+    for (let update = 0; update < 180; update++) {
+        thrown.update(gameContext, flightLevel);
+        if (thrown.vel.y > 0 && thrown.pos.y >= startY) {
+            return thrown.pos.x - startX;
+        }
+    }
+    throw new Error('Rock did not descend to its launch height');
+}
+
+const normalArcRock = createRock();
+normalArcRock.vel.set(ROCK_THROW_SPEED, ROCK_THROW_LIFT);
+const upwardArcRock = createRock();
+upwardArcRock.vel.set(ROCK_UPWARD_THROW_SPEED, ROCK_UPWARD_THROW_LIFT);
+assertEqual(
+    horizontalDistanceUntilReturn(upwardArcRock)
+        > horizontalDistanceUntilReturn(normalArcRock),
+    true,
+    'Up throw travels farther before descending to launch height despite reduced forward speed',
+);
+
 const flyingRock = createRock();
 flyingRock.pos.set(40, 80);
 flyingRock.vel.set(120, ROCK_THROW_LIFT);
@@ -231,7 +276,7 @@ function createFloorLevel(): Level {
 }
 
 const restingRock = createRock();
-restingRock.pos.set(64, 152);
+restingRock.pos.set(64.4, 152);
 restingRock.vel.set(
     ROCK_HORIZONTAL_SETTLE_SPEED - 0.1,
     ROCK_VERTICAL_SETTLE_SPEED - 0.1,
@@ -239,13 +284,14 @@ restingRock.vel.set(
 restingRock.update(gameContext, createFloorLevel());
 assertEqual(
     [
+        restingRock.pos.x,
         restingRock.pos.y,
         restingRock.vel.x,
         restingRock.vel.y,
         restingRock.traits.get(Physics).grounded,
     ],
-    [152, 0, 0, true],
-    'Low floor motion settles to an exact, grounded rest',
+    [64, 152, 0, 0, true],
+    'Low floor motion settles to an exact pixel-aligned grounded rest',
 );
 
 function createTarget(player = false, hearts?: number): Entity {

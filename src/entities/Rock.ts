@@ -18,6 +18,8 @@ const GAME_UPDATES_PER_SECOND = 60;
 
 export const ROCK_THROW_SPEED = 8 * CLASSIC_UPDATES_PER_SECOND;
 export const ROCK_THROW_LIFT = -3 * CLASSIC_UPDATES_PER_SECOND;
+export const ROCK_UPWARD_THROW_SPEED = ROCK_THROW_SPEED * 0.9;
+export const ROCK_UPWARD_THROW_LIFT = -9 * CLASSIC_UPDATES_PER_SECOND;
 export const ROCK_GRAVITY = 0.6
     * CLASSIC_UPDATES_PER_SECOND
     * CLASSIC_UPDATES_PER_SECOND;
@@ -110,7 +112,13 @@ export class RockBehavior extends Trait {
     ): void {
         const pickable = rock.traits.get(Pickable);
         const physics = rock.traits.get(Physics);
-        if (pickable.carrier !== null || physics.grounded) {
+        if (pickable.carrier !== null) {
+            return;
+        }
+        if (physics.grounded) {
+            if (rock.vel.x === 0) {
+                rock.pos.x = Math.round(rock.pos.x);
+            }
             return;
         }
 
@@ -133,6 +141,10 @@ export function createRockFactory(sprite: SpriteSheet): RockFactory {
         pickable.carryOffset.set(4, 6);
         pickable.alignCarryCenters = true;
         pickable.throwVelocity.set(ROCK_THROW_SPEED, ROCK_THROW_LIFT);
+        pickable.upwardThrowVelocity.set(
+            ROCK_UPWARD_THROW_SPEED,
+            ROCK_UPWARD_THROW_LIFT,
+        );
         pickable.throwerGraceUpdates = ROCK_THROWER_GRACE_UPDATES;
         pickable.clearThrowerProtectionOnDirectionChange = false;
 

@@ -16,6 +16,7 @@ import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit, {
     SPELUNKY_SMALL_HIT_REACTION_DURATION,
 } from '../traits/PlayerHit.js';
+import Pickable from '../traits/Pickable.js';
 import {
     createMarioFactory,
     PLAYER_FRAME_NAMES,
@@ -282,6 +283,23 @@ go.distance = 0;
 animationClock.animationState = 'throw';
 animationClock.animationStateTime = 1;
 assertEqual(draw(), 'throw-5', 'Throw animation holds its terminal source frame');
+(mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0;
+
+const aimedItem = new Entity();
+const aimedPickable = new Pickable();
+aimedPickable.throwVelocity.set(100, -20);
+aimedPickable.upwardThrowVelocity.set(90, -200);
+aimedItem.addTrait(aimedPickable);
+carrier.collides(mario, aimedItem);
+assertEqual(mario.pickupOrThrow(), aimedItem, 'Player picks up an aimed-throw test item');
+ladderClimb.verticalDirection = -1;
+assertEqual(mario.pickupOrThrow(), aimedItem, 'Up plus action releases the carried item');
+assertEqual(
+    [aimedItem.vel.x, aimedItem.vel.y],
+    [90, -200],
+    'Held Up routes the item-specific upward throw through the player action',
+);
+ladderClimb.verticalDirection = 0;
 (mario as typeof mario & {throwFrameTime: number}).throwFrameTime = 0;
 
 health.takeDamage(1, 1);

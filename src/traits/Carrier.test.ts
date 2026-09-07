@@ -176,6 +176,21 @@ assertEqual(
     'Carrier without movement defaults to right-facing offset',
 );
 
+const upwardMovement = new Go();
+upwardMovement.heading = 1;
+const [upwardMario, upwardCarrier] = createCarrier(upwardMovement);
+const [upwardShell, upwardPickable] = createPickable();
+upwardPickable.upwardThrowVelocity.set(360, -540);
+upwardMario.vel.x = 25;
+upwardCarrier.collides(upwardMario, upwardShell);
+upwardCarrier.pickup(upwardMario);
+upwardCarrier.throw(upwardMario, 'upward');
+assertEqual(
+    [upwardShell.vel.x, upwardShell.vel.y],
+    [385, -540],
+    'Upward mode selects the item-specific launch while inheriting momentum',
+);
+
 const [separateMario, separateCarrier] = createCarrier();
 const [separatedShell] = createPickable();
 separateCarrier.update(separateMario, gameContext, level);

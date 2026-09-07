@@ -8,10 +8,16 @@ const DEFAULT_HORIZONTAL_THROW_SPEED = 480;
 const DEFAULT_UPWARD_THROW_SPEED = -180;
 const DEFAULT_THROWER_GRACE_UPDATES = 10;
 
+export type ThrowMode = 'forward' | 'upward';
+
 export default class Pickable extends Trait {
     readonly carryOffset = new Vec2(8, -8);
     alignCarryCenters = false;
     readonly throwVelocity = new Vec2(
+        DEFAULT_HORIZONTAL_THROW_SPEED,
+        DEFAULT_UPWARD_THROW_SPEED,
+    );
+    readonly upwardThrowVelocity = new Vec2(
         DEFAULT_HORIZONTAL_THROW_SPEED,
         DEFAULT_UPWARD_THROW_SPEED,
     );
@@ -49,7 +55,12 @@ export default class Pickable extends Trait {
         return true;
     }
 
-    release(entity: Entity, carrier: Entity, direction = this.carryDirection): boolean {
+    release(
+        entity: Entity,
+        carrier: Entity,
+        direction = this.carryDirection,
+        mode: ThrowMode = 'forward',
+    ): boolean {
         if (this.carrier !== carrier) {
             return false;
         }
@@ -59,9 +70,12 @@ export default class Pickable extends Trait {
         this.recentThrower = carrier;
         this.throwerGraceUpdatesRemaining = this.throwerGraceUpdates;
         this.setPhysicsEnabled(entity, true);
+        const throwVelocity = mode === 'upward'
+            ? this.upwardThrowVelocity
+            : this.throwVelocity;
         entity.vel.set(
-            carrier.vel.x + this.throwVelocity.x * this.carryDirection,
-            this.throwVelocity.y,
+            carrier.vel.x + throwVelocity.x * this.carryDirection,
+            throwVelocity.y,
         );
         carrier.sounds.add('throw-item');
         this.throwDirection = Math.sign(entity.vel.x) || this.carryDirection;
