@@ -11,14 +11,19 @@ export const HEALTH_HUD_HEART_POSITION = [8, 4] as const;
 export const HEALTH_HUD_NUMBER_POSITION = [24, 4] as const;
 export const HEALTH_HUD_DIGIT_ADVANCE = 14.4;
 export const TIMER_HUD_POSITION = [216, 16] as const;
+export const PLAYER_POSITION_HUD_POSITION = [168, 24] as const;
 
-function getPlayerHealth(entities: ReadonlySet<Entity>): Health | undefined {
+function getPlayer(entities: ReadonlySet<Entity>): Entity | undefined {
     for (const entity of entities) {
-        if (entity.traits.has(Player) && entity.traits.has(Health)) {
-            return entity.traits.get(Health);
+        if (entity.traits.has(Player)) {
+            return entity;
         }
     }
     return undefined;
+}
+
+function formatCoordinate(value: number): string {
+    return Math.round(value).toString().padStart(3, '0');
 }
 
 function getTimerTrait(entities: ReadonlySet<Entity>): LevelTimer {
@@ -38,8 +43,9 @@ export function createDashboardLayer(
     const timer = getTimerTrait(level.entities);
 
     return function drawDashboard(context): void {
-        const health = getPlayerHealth(level.entities);
-        if (health !== undefined) {
+        const player = getPlayer(level.entities);
+        if (player?.traits.has(Health)) {
+            const health = player.traits.get(Health);
             hud.draw(
                 'heart',
                 context,
@@ -63,5 +69,13 @@ export function createDashboardLayer(
             TIMER_HUD_POSITION[0],
             TIMER_HUD_POSITION[1],
         );
+        if (player !== undefined) {
+            font.print(
+                `X${formatCoordinate(player.pos.x)} Y${formatCoordinate(player.pos.y)}`,
+                context,
+                PLAYER_POSITION_HUD_POSITION[0],
+                PLAYER_POSITION_HUD_POSITION[1],
+            );
+        }
     };
 }

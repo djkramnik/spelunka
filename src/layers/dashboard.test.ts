@@ -10,6 +10,7 @@ import {
     HEALTH_HUD_DIGIT_ADVANCE,
     HEALTH_HUD_HEART_POSITION,
     HEALTH_HUD_NUMBER_POSITION,
+    PLAYER_POSITION_HUD_POSITION,
     TIMER_HUD_POSITION,
 } from './dashboard.js';
 
@@ -54,6 +55,7 @@ const timerEntity = new Entity();
 timerEntity.addTrait(new LevelTimer());
 level.entities.add(timerEntity);
 const playerEntity = new Entity();
+playerEntity.pos.set(64, 48);
 playerEntity.addTrait(new Player());
 const health = new Health();
 playerEntity.addTrait(health);
@@ -72,6 +74,7 @@ assertEqual(
 
 hudDraws.length = 0;
 health.heal(8);
+playerEntity.pos.set(77.6, 49.2);
 draw({} as CanvasRenderingContext2D);
 assertEqual(
     hudDraws,
@@ -90,9 +93,11 @@ assertEqual(
     fontPrints,
     [
         ['300', ...TIMER_HUD_POSITION],
+        ['X064 Y048', ...PLAYER_POSITION_HUD_POSITION],
         ['300', ...TIMER_HUD_POSITION],
+        ['X078 Y049', ...PLAYER_POSITION_HUD_POSITION],
     ],
-    'Top-right HUD contains only the remaining timer value',
+    'Top-right HUD contains the timer and live rounded player coordinates',
 );
 
 hudDraws.length = 0;
@@ -102,6 +107,11 @@ assertEqual(
     hudDraws,
     [],
     'Health HUD disappears cleanly after the player is removed',
+);
+assertEqual(
+    fontPrints.at(-1),
+    ['300', ...TIMER_HUD_POSITION],
+    'Coordinate readout disappears cleanly after the player is removed',
 );
 
 console.log('Spelunky HD health HUD rendering regression passed');
