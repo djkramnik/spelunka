@@ -2,6 +2,9 @@ import Entity from './Entity.js';
 import Level, {focusPlayer} from './Level.js';
 import {makePlayer} from './player.js';
 import Crouch from './traits/Crouch.js';
+import LookUp, {
+    SPELUNKY_LOOK_UP_CAMERA_DISTANCE,
+} from './traits/LookUp.js';
 import type {GameContext} from './Scene.js';
 
 function assertEqual<Value>(
@@ -103,6 +106,37 @@ assertEqual(
     cameraBeforeTransition,
     'Scripted crawl-to-hang correction preserves the camera focus anchor',
 );
+
+const lookLevel = new Level();
+lookLevel.setDimensions(30, 30);
+const lookingMario = new Entity();
+lookingMario.size.set(14, 16);
+lookingMario.pos.set(200, 240);
+const lookUp = new LookUp();
+lookingMario.addTrait(lookUp);
+makePlayer(lookingMario, 'MARIO');
+lookLevel.entities.add(lookingMario);
+focusPlayer(lookLevel);
+assertEqual(lookLevel.camera.pos.y, 92, 'Look-up test starts at ordinary framing');
+lookUp.cameraOffset = SPELUNKY_LOOK_UP_CAMERA_DISTANCE / 2;
+focusPlayer(lookLevel);
+assertEqual(
+    lookLevel.camera.pos.y,
+    60,
+    'Partial look-up offset pans upward without accumulating between frames',
+);
+lookUp.cameraOffset = SPELUNKY_LOOK_UP_CAMERA_DISTANCE;
+focusPlayer(lookLevel);
+assertEqual(lookLevel.camera.pos.y, 28, 'Full look-up offset reaches four tiles upward');
+lookUp.cameraOffset = 0;
+focusPlayer(lookLevel);
+assertEqual(lookLevel.camera.pos.y, 92, 'Removing look-up offset restores ordinary framing');
+lookingMario.pos.y = 64;
+lookUp.cameraOffset = SPELUNKY_LOOK_UP_CAMERA_DISTANCE;
+focusPlayer(lookLevel);
+assertEqual(lookLevel.camera.pos.y, 0, 'Upward look clamps at the level ceiling');
+focusPlayer(lookLevel);
+assertEqual(lookLevel.camera.pos.y, 0, 'Ceiling clamp remains stable across frames');
 
 const drawEvents: string[] = [];
 const videoContext = {

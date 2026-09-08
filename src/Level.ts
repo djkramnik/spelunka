@@ -12,6 +12,7 @@ import {LOGICAL_HEIGHT, LOGICAL_WIDTH} from './Renderer.js';
 import {findPlayers} from './player.js';
 import {Vec2} from './math.js';
 import Crouch from './traits/Crouch.js';
+import LookUp from './traits/LookUp.js';
 
 type LevelTrigger = LevelSpec['triggers'][number];
 
@@ -25,6 +26,11 @@ const VERTICAL_CAMERA_TOP_MARGIN = 64;
 const VERTICAL_CAMERA_BOTTOM_MARGIN = TILE_SIZE;
 
 export function focusPlayer(level: Level): void {
+    // Remove the prior frame's deliberate look displacement before applying
+    // ordinary player following, then reapply the current requested offset.
+    level.camera.pos.y += level.appliedPlayerLookOffsetY;
+    level.appliedPlayerLookOffsetY = 0;
+    let requestedLookOffsetY = 0;
     for (const player of findPlayers(level.entities)) {
         const crouch = player.traits.has(Crouch)
             ? player.traits.get(Crouch)
@@ -36,6 +42,12 @@ export function focusPlayer(level: Level): void {
         const focusTop = player.bounds.top + (transitionOffset?.y ?? 0);
         const focusBottom = player.bounds.bottom + (transitionOffset?.y ?? 0);
         level.camera.pos.x = focusX - 100;
+        if (player.traits.has(LookUp)) {
+            requestedLookOffsetY = Math.max(
+                requestedLookOffsetY,
+                player.traits.get(LookUp).cameraOffset,
+            );
+        }
 
         const cameraTop = level.camera.pos.y + VERTICAL_CAMERA_TOP_MARGIN;
         const cameraBottom = level.camera.pos.y
@@ -52,6 +64,10 @@ export function focusPlayer(level: Level): void {
     }
 
     level.camera.clampTo(level.size);
+    const ordinaryCameraY = level.camera.pos.y;
+    level.camera.pos.y -= requestedLookOffsetY;
+    level.camera.clampTo(level.size);
+    level.appliedPlayerLookOffsetY = ordinaryCameraY - level.camera.pos.y;
 }
 
 export default class Level extends Scene<Camera> {
@@ -63,6 +79,7 @@ export default class Level extends Scene<Camera> {
     readonly dimensions = new Vec2(0, 0);
     readonly size = new Vec2(0, 0);
     readonly playerSpawn = new Vec2(0, 0);
+    appliedPlayerLookOffsetY = 0;
 
     readonly camera = new Camera();
     readonly music = new MusicController();
@@ -71,6 +88,8 @@ export default class Level extends Scene<Camera> {
     readonly tileCollider = new TileCollider();
 
     setDimensions(widthInTiles: number, heightInTiles: number): void {
+        this.camera.pos.y += this.appliedPlayerLookOffsetY;
+        this.appliedPlayerLookOffsetY = 0;
         this.dimensions.set(widthInTiles, heightInTiles);
         this.size.set(
             widthInTiles * TILE_SIZE,

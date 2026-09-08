@@ -7,6 +7,7 @@ import LedgeHang from './traits/LedgeHang.js';
 import Crouch from './traits/Crouch.js';
 import LadderClimb from './traits/LadderClimb.js';
 import Killable from './traits/Killable.js';
+import LookUp from './traits/LookUp.js';
 
 interface InputTraits {
     get(trait: typeof Killable): Killable;
@@ -15,6 +16,7 @@ interface InputTraits {
     get(trait: typeof LedgeHang): LedgeHang;
     get(trait: typeof Crouch): Crouch;
     get(trait: typeof LadderClimb): LadderClimb;
+    get(trait: typeof LookUp): LookUp;
 }
 
 interface KeyboardControlledEntity {
@@ -82,6 +84,7 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
             }
             entity.traits.get(LadderClimb).setVerticalInput(-1, Boolean(keyState));
             entity.traits.get(LedgeHang).setVerticalInput(-1, Boolean(keyState));
+            entity.traits.get(LookUp).setUp(Boolean(keyState));
         });
     });
 

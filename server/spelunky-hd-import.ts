@@ -115,6 +115,8 @@ const SKID_SOURCE_FRAMES = [36, 37, 38, 39, 40, 41, 42, 43] as const;
 const TEETER_SOURCE_FRAMES = SKID_SOURCE_FRAMES;
 const JUMP_SOURCE_FRAMES = [108, 109, 110, 111] as const;
 const FALL_SOURCE_FRAMES = [112, 113, 114, 115] as const;
+const LOOK_UP_ENTER_SOURCE_FRAMES = [96, 97, 98, 99] as const;
+const LOOK_UP_EXIT_SOURCE_FRAMES = [99, 100, 101, 102] as const;
 const CROUCH_ENTER_SOURCE_FRAMES = [12, 13, 14] as const;
 const CROUCH_EXIT_SOURCE_FRAMES = [14, 15, 16] as const;
 const CRAWL_SOURCE_FRAMES = [17, 18, 19, 20, 21, 22, 23] as const;
@@ -151,6 +153,9 @@ const PLAYER_FRAME_SOURCES = [
     ...namedFrames('teeter', TEETER_SOURCE_FRAMES),
     ...namedFrames('jump', JUMP_SOURCE_FRAMES),
     ...namedFrames('fall', FALL_SOURCE_FRAMES),
+    ...namedFrames('look-up-enter', LOOK_UP_ENTER_SOURCE_FRAMES),
+    ['look-up', 99] as const,
+    ...namedFrames('look-up-exit', LOOK_UP_EXIT_SOURCE_FRAMES),
     ...namedFrames('crouch-enter', CROUCH_ENTER_SOURCE_FRAMES),
     ['crouch', 14] as const,
     ...namedFrames('crouch-exit', CROUCH_EXIT_SOURCE_FRAMES),
@@ -185,6 +190,9 @@ const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [1, [1, 8]],
     [2, [108, 111]],
     [3, [112, 115]],
+    [11, [99, 99]],
+    [27, [96, 99]],
+    [28, [99, 102]],
     [8, [54, 58]],
     [9, [9, 9]],
     [33, [103, 103]],
@@ -423,6 +431,19 @@ function validatePlayerAnimations(sections: readonly (readonly AnimationRecord[]
             'Unsupported HD hit-reaction timing; expected animation 18 to begin with frames 36-37 at four ticks per frame',
         );
     }
+    const lookUp = byId.get(11);
+    const lookUpEnter = byId.get(27);
+    const lookUpExit = byId.get(28);
+    if (lookUp?.frameLength !== 1
+        || lookUp.terminalFrame !== 99
+        || lookUpEnter?.frameLength !== 2
+        || lookUpEnter.terminalFrame !== 99
+        || lookUpExit?.frameLength !== 4
+        || lookUpExit.terminalFrame !== 102) {
+        throw new Error(
+            'Unsupported HD look-up timing; expected held pose 99, entry 96-99 at two ticks, and exit 99-102 at four ticks',
+        );
+    }
 }
 
 function validateSnakeAnimations(sections: readonly (readonly AnimationRecord[])[]): void {
@@ -614,6 +635,24 @@ export function createPlayerAssets(sourceData: Buffer): {
                 frameLen: 4 * HD_TICK_SECONDS,
                 frames: namedFrames('fall', FALL_SOURCE_FRAMES)
                     .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'look-up-enter',
+                frameLen: 2 * HD_TICK_SECONDS,
+                frames: namedFrames(
+                    'look-up-enter',
+                    LOOK_UP_ENTER_SOURCE_FRAMES,
+                ).map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'look-up-exit',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames(
+                    'look-up-exit',
+                    LOOK_UP_EXIT_SOURCE_FRAMES,
+                ).map(([name]) => name),
                 loop: false,
             },
             {

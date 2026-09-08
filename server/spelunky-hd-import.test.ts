@@ -243,6 +243,9 @@ const animationText = [
     '* 1 1 8 4 1 0',
     '* 2 108 111 3 111 0',
     '* 3 112 115 4 115 0',
+    '* 11 99 99 1 99 0',
+    '* 27 96 99 2 99 0',
+    '* 28 99 102 4 102 0',
     '* 4 72 72 1 72 0',
     '* 5 72 77 4 72 0',
     '* 8 54 58 4 58 0',
@@ -454,10 +457,10 @@ try {
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 1040]);
+    assert.deepEqual([generated.width, generated.height], [400, 1120]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 100);
+    assert.equal(spec.frames.length, 109);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -505,6 +508,36 @@ try {
             loop: false,
         },
         'Rising animation uses the complete non-looping HD source record',
+    );
+    assert.deepEqual(
+        animation('look-up-enter'),
+        {
+            name: 'look-up-enter',
+            frameLen: 2 / 60,
+            frames: [
+                'look-up-enter-1',
+                'look-up-enter-2',
+                'look-up-enter-3',
+                'look-up-enter-4',
+            ],
+            loop: false,
+        },
+        'Look-up entry uses the complete HD animation 27 record',
+    );
+    assert.deepEqual(
+        animation('look-up-exit'),
+        {
+            name: 'look-up-exit',
+            frameLen: 4 / 60,
+            frames: [
+                'look-up-exit-1',
+                'look-up-exit-2',
+                'look-up-exit-3',
+                'look-up-exit-4',
+            ],
+            loop: false,
+        },
+        'Look-up exit uses the complete HD animation 28 record',
     );
     assert.deepEqual(
         animation('throw'),
@@ -924,6 +957,20 @@ try {
     await assert.rejects(
         importSpelunkyHd({sourceRoot, outputRoot, profile: badLadderProfile}),
         /Unsupported HD ladder animation timing/,
+    );
+
+    const unsupportedLookUpAnimations = animationText.replace(
+        '* 27 96 99 2 99 0',
+        '* 27 96 99 3 99 0',
+    );
+    write(animationsPath, unsupportedLookUpAnimations);
+    const badLookUpProfile: ImportProfile = {
+        ...profile,
+        animationsSha256: await sha256File(animationsPath),
+    };
+    await assert.rejects(
+        importSpelunkyHd({sourceRoot, outputRoot, profile: badLookUpProfile}),
+        /Unsupported HD look-up timing/,
     );
 
     const unsupportedSnakeAnimations = animationText.replace(

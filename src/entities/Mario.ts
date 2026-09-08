@@ -15,6 +15,7 @@ import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import LedgeTeeter from '../traits/LedgeTeeter.js';
+import LookUp from '../traits/LookUp.js';
 import Physics from '../traits/Physics.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit from '../traits/PlayerHit.js';
@@ -70,6 +71,15 @@ export const PLAYER_FRAME_NAMES = [
     'fall-2',
     'fall-3',
     'fall-4',
+    'look-up-enter-1',
+    'look-up-enter-2',
+    'look-up-enter-3',
+    'look-up-enter-4',
+    'look-up',
+    'look-up-exit-1',
+    'look-up-exit-2',
+    'look-up-exit-3',
+    'look-up-exit-4',
     'crouch-enter-1',
     'crouch-enter-2',
     'crouch-enter-3',
@@ -141,6 +151,9 @@ type PlayerAnimationState =
     | 'teeter'
     | 'jump'
     | 'fall'
+    | 'look-up-enter'
+    | 'look-up'
+    | 'look-up-exit'
     | 'crouch-enter'
     | 'crouch'
     | 'crouch-exit'
@@ -187,6 +200,8 @@ export function createMarioFactory(
     const teeterAnimation = sprite.getAnimation('teeter');
     const jumpAnimation = sprite.getAnimation('jump');
     const fallAnimation = sprite.getAnimation('fall');
+    const lookUpEnterAnimation = sprite.getAnimation('look-up-enter');
+    const lookUpExitAnimation = sprite.getAnimation('look-up-exit');
     const crouchEnterAnimation = sprite.getAnimation('crouch-enter');
     const crouchExitAnimation = sprite.getAnimation('crouch-exit');
     const crawlAnimation = sprite.getAnimation('crawl');
@@ -209,6 +224,7 @@ export function createMarioFactory(
         const ladderClimb = mario.traits.get(LadderClimb);
         const playerDeath = mario.traits.get(PlayerDeath);
         const playerHit = mario.traits.get(PlayerHit);
+        const lookUp = mario.traits.get(LookUp);
 
         if (killable.dead || playerDeath.terminal) {
             return 'dead';
@@ -283,6 +299,18 @@ export function createMarioFactory(
             return mario.running ? 'run' : 'walk';
         }
 
+        if (lookUp.phase === 'entering') {
+            return 'look-up-enter';
+        }
+
+        if (lookUp.phase === 'looking') {
+            return 'look-up';
+        }
+
+        if (lookUp.phase === 'exiting') {
+            return 'look-up-exit';
+        }
+
         return 'idle';
     }
 
@@ -316,6 +344,10 @@ export function createMarioFactory(
                 return jumpAnimation(stateTime) as PlayerFrameName;
             case 'fall':
                 return fallAnimation(stateTime) as PlayerFrameName;
+            case 'look-up-enter':
+                return lookUpEnterAnimation(stateTime) as PlayerFrameName;
+            case 'look-up-exit':
+                return lookUpExitAnimation(stateTime) as PlayerFrameName;
             case 'crouch-enter':
                 return crouchEnterAnimation(stateTime) as PlayerFrameName;
             case 'crouch-exit':
@@ -374,6 +406,9 @@ export function createMarioFactory(
             // Follow after attachment traits so a carried item observes a
             // same-frame ladder move or newly entered ledge orientation.
             this.addTrait(new Carrier());
+            // Observe all movement, attachment, and carrying states before
+            // deciding whether this frame remains eligible for look-up.
+            this.addTrait(new LookUp());
 
             this.turbo(false);
         }

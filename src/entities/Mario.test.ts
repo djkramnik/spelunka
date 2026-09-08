@@ -13,6 +13,9 @@ import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
 import LedgeTeeter from '../traits/LedgeTeeter.js';
+import LookUp, {
+    SPELUNKY_LOOK_UP_ENTER_TIME,
+} from '../traits/LookUp.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit, {
     SPELUNKY_SMALL_HIT_REACTION_DURATION,
@@ -51,6 +54,8 @@ const sprite = {
             teeter: 8,
             jump: 4,
             fall: 4,
+            'look-up-enter': 4,
+            'look-up-exit': 4,
             'crouch-enter': 3,
             'crouch-exit': 3,
             crawl: 7,
@@ -71,6 +76,8 @@ const sprite = {
             'teeter',
             'jump',
             'fall',
+            'look-up-enter',
+            'look-up-exit',
             'crouch-enter',
             'crouch-exit',
             'crawl',
@@ -86,10 +93,16 @@ const sprite = {
                 {length: frameCount},
                 (_, index) => `${name}-${index + 1}`,
             ),
-            name === 'reaction-hit' ? 4 / 60 : timed ? 0.05 : 3,
+            name === 'look-up-enter'
+                ? 2 / 60
+                : name === 'look-up-exit' || name === 'reaction-hit'
+                    ? 4 / 60
+                    : timed ? 0.05 : 3,
             ![
                 'jump',
                 'fall',
+                'look-up-enter',
+                'look-up-exit',
                 'crouch-enter',
                 'crouch-exit',
                 'ledge-flip',
@@ -123,6 +136,8 @@ const ladderClimb = mario.traits.get(LadderClimb);
 const crouch = mario.traits.get(Crouch);
 const playerDeath = mario.traits.get(PlayerDeath);
 const playerHit = mario.traits.get(PlayerHit);
+const lookUp = mario.traits.get(LookUp);
+const physics = mario.traits.get(Physics);
 const animationClock = mario as typeof mario & {
     animationState: string;
     animationStateTime: number;
@@ -144,6 +159,36 @@ assertEqual(
 );
 
 assertEqual(draw(), 'idle', 'Idle frame');
+physics.grounded = true;
+lookUp.setUp(true);
+lookUp.update(
+    mario,
+    {deltaTime: 1 / 60} as GameContext,
+    new Level(),
+);
+assertEqual(draw(), 'look-up-enter-1', 'Grounded Up starts the HD look-up entry');
+animationClock.animationState = 'look-up-enter';
+animationClock.animationStateTime = SPELUNKY_LOOK_UP_ENTER_TIME;
+assertEqual(draw(), 'look-up-enter-4', 'Look-up entry holds its terminal source frame');
+lookUp.update(
+    mario,
+    {deltaTime: SPELUNKY_LOOK_UP_ENTER_TIME} as GameContext,
+    new Level(),
+);
+assertEqual(draw(), 'look-up', 'Held grounded Up uses the dedicated HD look pose');
+lookUp.setUp(false);
+lookUp.update(
+    mario,
+    {deltaTime: 1 / 60} as GameContext,
+    new Level(),
+);
+assertEqual(draw(), 'look-up-exit-1', 'Up release starts the HD look-up exit');
+lookUp.update(
+    mario,
+    {deltaTime: 1} as GameContext,
+    new Level(),
+);
+assertEqual(draw(), 'idle', 'Idle pose returns after look-up exit');
 go.distance = 7;
 assertEqual(draw(), 'walk-3', 'Walk animation uses the dense source sequence');
 mario.turbo(true);
@@ -577,7 +622,7 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    100,
+    109,
     'The expanded HD player frame catalogue remains explicit',
 );
 

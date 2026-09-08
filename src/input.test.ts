@@ -10,6 +10,7 @@ import Jump from './traits/Jump.js';
 import LadderClimb from './traits/LadderClimb.js';
 import LedgeHang from './traits/LedgeHang.js';
 import Killable from './traits/Killable.js';
+import LookUp from './traits/LookUp.js';
 import Pickable from './traits/Pickable.js';
 
 function assertEqual<Value>(
@@ -63,6 +64,7 @@ const ledgeHang = new LedgeHang();
 const ladderClimb = new LadderClimb();
 const crouch = new Crouch();
 const killable = new Killable();
+const lookUp = new LookUp();
 receiver.addTrait(carrier);
 receiver.addTrait(jump);
 receiver.addTrait(go);
@@ -70,6 +72,7 @@ receiver.addTrait(ledgeHang);
 receiver.addTrait(ladderClimb);
 receiver.addTrait(crouch);
 receiver.addTrait(killable);
+receiver.addTrait(lookUp);
 
 let pickupOrThrowCalls = 0;
 const turboStates: KeyState[] = [];
@@ -145,9 +148,11 @@ assertEqual(go.dir, 0, 'Left release remains unchanged');
 dispatch('keydown', 'ArrowUp');
 assertEqual(ladderClimb.verticalDirection, -1, 'Up press is available to ladder climb');
 assertEqual(ledgeHang.verticalDirection, -1, 'Up press is available to ledge climb');
+assertEqual(lookUp.upHeld, true, 'Up press is available to grounded look-up');
 dispatch('keyup', 'ArrowUp');
 assertEqual(ladderClimb.verticalDirection, 0, 'Up release clears ladder input');
 assertEqual(ledgeHang.verticalDirection, 0, 'Up release clears ledge input');
+assertEqual(lookUp.upHeld, false, 'Up release clears grounded look-up input');
 dispatch('keydown', 'ArrowDown');
 assertEqual(ladderClimb.verticalDirection, 1, 'Down press is available to ladder climb');
 assertEqual(ledgeHang.verticalDirection, 1, 'Down press is available to ledge drop');
@@ -172,9 +177,10 @@ assertEqual(
         go.dir,
         ladderClimb.verticalDirection,
         ledgeHang.verticalDirection,
+        lookUp.upHeld,
         crouch.downHeld,
     ],
-    [0, [1, 0], 3, 0, 0, 0, false],
+    [0, [1, 0], 3, 0, 0, 0, false, false],
     'Dead players ignore movement and action presses',
 );
 
