@@ -1,7 +1,9 @@
 import Entity from '../Entity.js';
+import {createRockFactory} from '../entities/Rock.js';
 import Level from '../Level.js';
 import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
+import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
 import Carrier from './Carrier.js';
 import Crouch, {
@@ -19,6 +21,7 @@ import LedgeHang, {
     SPELUNKY_LEDGE_HANG_VERTICAL_OFFSET,
 } from './LedgeHang.js';
 import Physics from './Physics.js';
+import Pickable from './Pickable.js';
 import Solid from './Solid.js';
 
 function assertEqual<Value>(
@@ -154,10 +157,30 @@ for (let frame = 0; frame < 10; frame++) {
 assertEqual(crawling.entity.vel.x, 0, 'Stationary crouch brakes crawl motion');
 
 const carrying = createFixture();
-carrying.carrier.carried = new Entity();
+const carriedRock = createRockFactory({
+    drawFrame: (): void => {},
+} as unknown as SpriteSheet)();
+const carriedPickable = carriedRock.traits.get(Pickable);
+carriedPickable.attach(carriedRock, carrying.entity, 1);
+carrying.carrier.carried = carriedRock;
 carrying.crouch.setDown(true);
-carrying.crouch.update(carrying.entity, context, createLevel().level);
-assertEqual(carrying.crouch.phase, 'standing', 'Carrying blocks unsupported crouch artwork');
+const carryingLevel = createLevel().level;
+carrying.crouch.update(carrying.entity, context, carryingLevel);
+advanceCrouch(carrying, carryingLevel, SPELUNKY_CROUCH_TRANSITION_TIME);
+carrying.go.dir = 1;
+carrying.crouch.update(carrying.entity, context, carryingLevel);
+carrying.carrier.update(carrying.entity, context, carryingLevel);
+assertEqual(
+    [
+        carrying.crouch.phase,
+        carrying.entity.size.y,
+        carrying.entity.vel.x > 0,
+        carrying.carrier.carried === carriedRock,
+        carriedRock.bounds.bottom,
+    ],
+    ['crouched', SPELUNKY_CROUCH_HEIGHT, true, true, carrying.entity.bounds.bottom - 2],
+    'Carrying permits crawling while the rock stays in front above floor height',
+);
 
 const jumping = createFixture();
 jumping.crouch.setDown(true);
@@ -202,10 +225,11 @@ for (const reason of ['airborne', 'dead'] as const) {
     );
 }
 
-function prepareFlip(direction: -1 | 1): {
+function prepareFlip(direction: -1 | 1, carrying = false): {
     fixture: Fixture;
     level: Level;
     tiles: Matrix<CollisionTile>;
+    rock: Entity | null;
 } {
     const fixture = createFixture();
     const {level, tiles} = createLevel();
@@ -215,10 +239,18 @@ function prepareFlip(direction: -1 | 1): {
     fixture.crouch.setDown(true);
     fixture.crouch.update(fixture.entity, context, level);
     fixture.crouch.phase = 'crouched';
+    let rock: Entity | null = null;
+    if (carrying) {
+        rock = createRockFactory({
+            drawFrame: (): void => {},
+        } as unknown as SpriteSheet)();
+        rock.traits.get(Pickable).attach(rock, fixture.entity, direction);
+        fixture.carrier.carried = rock;
+    }
     fixture.go.dir = direction;
     fixture.entity.vel.x = direction * SPELUNKY_CRAWL_SPEED;
     fixture.crouch.update(fixture.entity, context, level);
-    return {fixture, level, tiles};
+    return {fixture, level, tiles, rock};
 }
 
 for (const direction of [-1, 1] as const) {
@@ -273,6 +305,38 @@ for (const direction of [-1, 1] as const) {
         ],
         [false, 0, 0],
         'Four HD ticks restore the original authoritative hanging position',
+    );
+}
+
+for (const direction of [-1, 1] as const) {
+    const {fixture, level, rock} = prepareFlip(direction, true);
+    if (!rock) {
+        throw new Error('Carrying flip fixture did not create its rock');
+    }
+    const rockPickable = rock.traits.get(Pickable);
+    advanceCrouch(fixture, level, SPELUNKY_LEDGE_FLIP_TIME);
+    fixture.carrier.update(fixture.entity, context, level);
+    assertEqual(
+        [
+            fixture.ledge.phase,
+            fixture.ledge.side,
+            fixture.carrier.carried === rock,
+            rockPickable.carrier === fixture.entity,
+            rock.bounds.bottom,
+            Math.abs(
+                (rock.bounds.left + rock.bounds.right) / 2
+                - (fixture.entity.bounds.left + fixture.entity.bounds.right) / 2,
+            ),
+        ],
+        [
+            'hanging',
+            -direction,
+            true,
+            true,
+            fixture.entity.bounds.bottom - 2,
+            4,
+        ],
+        `${direction < 0 ? 'Left' : 'Right'} carrying flip preserves the rock and ledge-facing alignment`,
     );
 }
 

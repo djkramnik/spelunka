@@ -1,6 +1,6 @@
 # Spelunky crouch, crawl, and top-to-hang transition
 
-Beads task: `spelunka-r54.35`
+Beads tasks: `spelunka-r54.35`, `spelunka-r54.41`
 
 ## Classic behavior reference
 
@@ -34,10 +34,11 @@ solid tile.
 While crouched, `Crouch` temporarily owns horizontal acceleration and disables
 the ordinary `Go` update. It approaches the Classic-derived 22.5 px/s crawl
 speed, preserves mirrored heading, advances crawl distance, and brakes toward
-zero without input. Carrying prevents entry because no verified HD
-carry-crouch record is mapped, and pickup/throw is unavailable until the
-player leaves the low posture. Damage, airborne movement, and ledge hanging
-restore the standing collider as soon as clearance permits.
+zero without input. Down plus D can pick up an eligible nearby item from this
+grounded posture. Carrying no longer blocks the crouch or crawl states: the
+ordinary crouch and crawl records remain authoritative while the item stays in
+front of the player. Damage, airborne movement, and ledge hanging restore the
+standing collider as soon as clearance permits.
 
 ## HD animation mapping
 
@@ -80,6 +81,7 @@ tile lip and use the same held HD frame; crawl entry has no separate final
 placement.
 
 If support disappears during the transition, the handoff fails safely and
-ordinary falling resumes. Adjacent floor, occupied hanging space, wrong input,
-excessive speed, carrying, death, cooldown, or an already active ledge state
-prevents the flip.
+ordinary falling resumes. A carried item remains attached throughout the
+reversed flip and adopts the supporting-wall orientation when the handoff
+enters the hang. Adjacent floor, occupied hanging space, wrong input, excessive
+speed, death, cooldown, or an already active ledge state prevents the flip.

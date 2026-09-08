@@ -3,7 +3,6 @@ import type Level from '../Level.js';
 import {Vec2} from '../math.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
-import Carrier from './Carrier.js';
 import Go from './Go.js';
 import Jump from './Jump.js';
 import Killable from './Killable.js';
@@ -223,8 +222,7 @@ export default class Crouch extends Trait {
         const go = entity.traits.get(Go);
         const jump = entity.traits.get(Jump);
         const ledgeHang = entity.traits.get(LedgeHang);
-        const unavailable = entity.traits.get(Killable).dead
-            || entity.traits.get(Carrier).carried !== null;
+        const unavailable = entity.traits.get(Killable).dead;
 
         if (this.phase === 'flipping') {
             entity.vel.set(0, 0);

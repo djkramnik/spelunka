@@ -40,6 +40,7 @@ const handlers: Record<string, readonly TileHandler[]> = {
 };
 
 const solidTileTypes = new Set(['brick', 'ground']);
+const supportTileTypes = new Set(['brick', 'ground', 'platform']);
 
 export default class TileCollider {
     readonly resolvers: Array<TileResolver<CollisionTile>> = [];
@@ -50,6 +51,17 @@ export default class TileCollider {
 
     hasSolidAt(x: number, y: number): boolean {
         return this.getSolidAt(x, y) !== undefined;
+    }
+
+    hasSupportAt(x: number, y: number): boolean {
+        for (const resolver of this.resolvers) {
+            const match = resolver.searchByPosition(x, y);
+            if (match?.tile.type !== undefined
+                && supportTileTypes.has(match.tile.type)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     getSolidAt(x: number, y: number): TileMatch<CollisionTile> | undefined {
@@ -97,6 +109,7 @@ export default class TileCollider {
         gameContext: GameContext,
         level: Level,
         previousBottom: number,
+        horizontalInset = 0,
     ): void {
         let y: number;
         if (entity.vel.y > 0) {
@@ -107,10 +120,15 @@ export default class TileCollider {
             return;
         }
 
+        const maximumInset = Math.max(0, entity.size.x / 2);
+        const clampedInset = Math.min(
+            Math.max(0, horizontalInset),
+            maximumInset,
+        );
         for (const resolver of this.resolvers) {
             const {matches, candidateCount} = resolver.searchByRange(
-                entity.bounds.left,
-                entity.bounds.right,
+                entity.bounds.left + clampedInset,
+                entity.bounds.right - clampedInset,
                 y,
                 y,
             );

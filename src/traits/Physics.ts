@@ -13,9 +13,12 @@ function stepCount(distance: number): number {
 export default class Physics extends Trait {
     enabled = true;
     grounded = false;
+    groundSupportWidth: number | null = null;
+    private groundDepartureActive = false;
 
     override update(entity: Entity, gameContext: GameContext, level: Level): void {
         if (!this.enabled) {
+            this.groundDepartureActive = false;
             return;
         }
 
@@ -43,6 +46,16 @@ export default class Physics extends Trait {
         const yDistance = entity.vel.y * deltaTime;
         const ySteps = stepCount(yDistance);
         const yStep = yDistance / ySteps;
+        const useGroundSupportProbe = (startsGrounded
+            || this.groundDepartureActive)
+            && this.groundSupportWidth !== null
+            && entity.vel.y > 0;
+        const groundSupportInset = useGroundSupportProbe
+            ? Math.max(
+                0,
+                (entity.size.x - (this.groundSupportWidth ?? entity.size.x)) / 2,
+            )
+            : 0;
         for (let step = 0; step < ySteps; ++step) {
             const previousBottom = entity.bounds.bottom;
             entity.pos.y += yStep;
@@ -51,6 +64,7 @@ export default class Physics extends Trait {
                 gameContext,
                 level,
                 previousBottom,
+                groundSupportInset,
             );
             if (entity.vel.y !== initialYVelocity) {
                 break;
@@ -59,6 +73,14 @@ export default class Physics extends Trait {
 
         if (!startsGrounded && !this.grounded) {
             entity.vel.y += level.gravity * deltaTime;
+        }
+
+        if (this.grounded) {
+            this.groundDepartureActive = false;
+        } else if (startsGrounded) {
+            this.groundDepartureActive = true;
+        } else if (entity.vel.y < 0) {
+            this.groundDepartureActive = false;
         }
     }
 }

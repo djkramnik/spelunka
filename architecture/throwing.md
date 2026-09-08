@@ -96,7 +96,9 @@ copied through the same local-only workflow.
 While carried, the rock uses a centre-relative horizontal offset: its centre is
 four pixels to either side of the player's centre and six pixels below the
 player's top. This avoids the size-dependent left/right asymmetry of the legacy
-origin-relative offset while leaving older pickable entities unchanged.
+origin-relative offset while leaving older pickable entities unchanged. Its
+bottom also remains two pixels above the player's floor line, so changing to
+the shorter crouch collider does not push the rock through the ground.
 
 Loose rocks use the same one-step foreground priority as carried items. Their
 world position remains governed only by physics, while the explicit draw order
@@ -148,6 +150,14 @@ velocity, does not play the throw animation, and does not create thrower
 protection. Down plus D while rising or falling remains a normal airborne
 throw; it cannot use the grounded placement path.
 
+If a throw, placement, or ledge drop begins with the carried collider
+overlapping a wall, the item first moves one item-width back toward the player.
+This preserves the intended launch velocity while preventing release overlap
+from looking like an immediate wall rebound. While attached to a ladder, D
+uses the same normal or Up-directed throw without releasing the player's ladder
+state. While hanging from a ledge, D instead drops the item with no throw
+impulse and leaves the player attached.
+
 The original implementation work remains recorded as a flat dependency chain
 beneath the conversion epic:
 
@@ -162,7 +172,8 @@ beneath the conversion epic:
 
 The fidelity review also created direct follow-ups beneath the conversion epic:
 
-- `spelunka-r54.41`: crouched pickup and collision-safe release beside walls;
+- `spelunka-r54.41`: crouched/crawling carry interactions, ledge and ladder
+  item actions, and collision-safe release beside walls;
 - `spelunka-r54.42`: reusable nonterminal enemy damage, stun, and momentum
   transfer for projectiles; and
 - `spelunka-r54.43`: up/down throws plus later heavy-item and Pitcher's Mitt

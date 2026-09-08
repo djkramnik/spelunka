@@ -12,6 +12,7 @@ import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
+import LedgeTeeter from '../traits/LedgeTeeter.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit, {
     SPELUNKY_SMALL_HIT_REACTION_DURATION,
@@ -47,6 +48,7 @@ const sprite = {
             walk: 8,
             run: 8,
             skid: 8,
+            teeter: 8,
             jump: 4,
             fall: 4,
             'crouch-enter': 3,
@@ -66,6 +68,7 @@ const sprite = {
         }
         const timed = [
             'skid',
+            'teeter',
             'jump',
             'fall',
             'crouch-enter',
@@ -115,6 +118,7 @@ const health = mario.traits.get(Health);
 const carrier = mario.traits.get(Carrier);
 const killable = mario.traits.get(Killable);
 const ledgeHang = mario.traits.get(LedgeHang);
+const ledgeTeeter = mario.traits.get(LedgeTeeter);
 const ladderClimb = mario.traits.get(LadderClimb);
 const crouch = mario.traits.get(Crouch);
 const playerDeath = mario.traits.get(PlayerDeath);
@@ -148,6 +152,18 @@ mario.turbo(false);
 go.dir = -1;
 mario.vel.x = 10;
 assertEqual(draw(), 'skid-1', 'Skid animation starts at its first source frame');
+go.dir = 0;
+go.distance = 0;
+mario.vel.x = 0;
+ledgeTeeter.active = true;
+ledgeTeeter.side = 1;
+assertEqual(draw(), 'teeter-1', 'Paused ledge margin starts the HD Lost Balance strip');
+assertEqual(draws.at(-1)?.flip, false, 'Right-edge teeter faces out over the ledge');
+ledgeTeeter.side = -1;
+draw();
+assertEqual(draws.at(-1)?.flip, true, 'Left-edge teeter mirrors toward the open edge');
+ledgeTeeter.active = false;
+ledgeTeeter.side = 0;
 
 jump.ready = -1;
 mario.vel.y = -10;
@@ -244,6 +260,11 @@ go.distance = 0;
 assertEqual(draw(), 'carry-idle', 'Carry idle frame');
 go.distance = 7;
 assertEqual(draw(), 'carry-run-3', 'Carry run fallback uses dense movement frames');
+crouch.phase = 'crouched';
+go.dir = 1;
+assertEqual(draw(), 'crawl-1', 'Carrying crawl keeps the ordinary crawl artwork');
+crouch.phase = 'standing';
+go.dir = 0;
 jump.ready = -1;
 mario.vel.y = -10;
 assertEqual(draw(), 'carry-jump', 'Carry rising frame');
@@ -360,6 +381,99 @@ jump.ready = 1;
 mario.traits.get(Physics).grounded = true;
 mario.vel.set(0, 0);
 
+const crouchedPickupItem = new Entity();
+const crouchedPickupPickable = new Pickable();
+crouchedPickupItem.addTrait(crouchedPickupPickable);
+crouch.phase = 'crouched';
+crouch.downHeld = true;
+jump.phase = 'grounded';
+jump.ready = 1;
+mario.traits.get(Physics).grounded = true;
+carrier.collides(mario, crouchedPickupItem);
+assertEqual(
+    mario.pickupOrThrow(),
+    crouchedPickupItem,
+    'Grounded Down plus D picks up an item from crouch',
+);
+assertEqual(
+    crouchedPickupPickable.carrier,
+    mario,
+    'Crouched pickup establishes the normal carrier relationship',
+);
+carrier.drop(mario);
+crouch.phase = 'standing';
+crouch.downHeld = false;
+
+const hangingDropItem = new Entity();
+const hangingDropPickable = new Pickable();
+hangingDropItem.addTrait(hangingDropPickable);
+carrier.collides(mario, hangingDropItem);
+assertEqual(mario.pickupOrThrow(), hangingDropItem, 'Player picks up the ledge-drop item');
+ledgeHang.phase = 'hanging';
+ledgeHang.side = 1;
+assertEqual(mario.pickupOrThrow(), hangingDropItem, 'D drops the carried item while hanging');
+assertEqual(
+    [
+        ledgeHang.phase,
+        carrier.carried,
+        hangingDropPickable.carrier,
+        hangingDropItem.vel.x,
+        hangingDropItem.vel.y,
+    ],
+    ['hanging', null, null, 0, 0],
+    'Item drop leaves the player attached to the ledge without throw velocity',
+);
+ledgeHang.phase = 'airborne';
+ledgeHang.side = 0;
+
+function attachLadderThrowItem(): [Entity, Pickable] {
+    const item = new Entity();
+    const itemPickable = new Pickable();
+    item.addTrait(itemPickable);
+    carrier.collides(mario, item);
+    assertEqual(mario.pickupOrThrow(), item, 'Player picks up a ladder-throw item');
+    return [item, itemPickable];
+}
+
+go.heading = -1;
+const [ladderThrowItem, ladderThrowPickable] = attachLadderThrowItem();
+ladderClimb.phase = 'clinging';
+ladderClimb.verticalDirection = 0;
+assertEqual(mario.pickupOrThrow(), ladderThrowItem, 'D throws while clinging to a ladder');
+assertEqual(
+    [
+        ladderClimb.phase,
+        ladderThrowItem.vel.x,
+        ladderThrowItem.vel.y,
+        (mario as typeof mario & {throwFrameTime: number}).throwFrameTime,
+    ],
+    [
+        'clinging',
+        -ladderThrowPickable.throwVelocity.x,
+        ladderThrowPickable.throwVelocity.y,
+        0,
+    ],
+    'Ladder throw follows facing without detaching or starting ground throw artwork',
+);
+
+ladderClimb.phase = 'inactive';
+go.heading = 1;
+const [ladderUpItem, ladderUpPickable] = attachLadderThrowItem();
+ladderClimb.phase = 'climbing';
+ladderClimb.verticalDirection = -1;
+assertEqual(mario.pickupOrThrow(), ladderUpItem, 'Up plus D throws while climbing');
+assertEqual(
+    [ladderClimb.phase, ladderUpItem.vel.x, ladderUpItem.vel.y],
+    [
+        'climbing',
+        ladderUpPickable.upwardThrowVelocity.x,
+        ladderUpPickable.upwardThrowVelocity.y,
+    ],
+    'Ladder Up throw uses the item-specific high trajectory without detaching',
+);
+ladderClimb.phase = 'inactive';
+ladderClimb.verticalDirection = 0;
+
 health.takeDamage(1, 1);
 playerHit.start(-1);
 assertEqual(draw(), 'reaction-hit-1', 'Small damage starts the upright HD reaction');
@@ -442,7 +556,7 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    92,
+    100,
     'The expanded HD player frame catalogue remains explicit',
 );
 

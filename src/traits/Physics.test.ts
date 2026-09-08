@@ -67,4 +67,69 @@ assertEqual(
     'Fast horizontal movement stops at the first crossed wall tile',
 );
 
-console.log('Physics tile tunneling regression passed');
+const edgeLevel = new Level();
+edgeLevel.gravity = 900;
+const ledge = new Matrix<CollisionTile>();
+ledge.set(4, 4, {type: 'ground'});
+edgeLevel.tileCollider.addGrid(ledge);
+
+const insetSupported = createSolidEntity(75, 48);
+insetSupported.physics.grounded = true;
+insetSupported.physics.groundSupportWidth = 10;
+insetSupported.physics.update(insetSupported.entity, gameContext, edgeLevel);
+assertEqual(
+    [insetSupported.entity.pos.y, insetSupported.entity.vel.y, insetSupported.physics.grounded],
+    [48, 0, true],
+    'Inset foot probe remains grounded until only the edge margin is supported',
+);
+
+const walkedOff = createSolidEntity(76, 48);
+walkedOff.physics.grounded = true;
+walkedOff.physics.groundSupportWidth = 10;
+walkedOff.entity.vel.x = 120;
+walkedOff.physics.update(walkedOff.entity, gameContext, edgeLevel);
+assertEqual(
+    [walkedOff.entity.pos.x, walkedOff.entity.pos.y, walkedOff.entity.vel.y, walkedOff.physics.grounded],
+    [78, 48.25, 15, false],
+    'Player falls two pixels before the full collider clears the ledge',
+);
+walkedOff.entity.vel.x = 0;
+walkedOff.physics.update(walkedOff.entity, gameContext, edgeLevel);
+assertEqual(
+    [walkedOff.entity.pos.x, walkedOff.entity.pos.y, walkedOff.entity.vel.y, walkedOff.physics.grounded],
+    [78, 48.5, 30, false],
+    'Walk-off probe persists instead of snapping the player back onto the ledge',
+);
+
+const platformLevel = new Level();
+platformLevel.gravity = 900;
+const platformLedge = new Matrix<CollisionTile>();
+platformLedge.set(4, 4, {type: 'platform'});
+platformLevel.tileCollider.addGrid(platformLedge);
+
+const walkedOffPlatform = createSolidEntity(76, 48);
+walkedOffPlatform.physics.grounded = true;
+walkedOffPlatform.physics.groundSupportWidth = 10;
+walkedOffPlatform.entity.vel.x = 120;
+walkedOffPlatform.physics.update(
+    walkedOffPlatform.entity,
+    gameContext,
+    platformLevel,
+);
+assertEqual(
+    [walkedOffPlatform.entity.pos.y, walkedOffPlatform.physics.grounded],
+    [48.25, false],
+    'Inset foot support also releases slightly early at a one-way platform edge',
+);
+
+const forgivingLanding = createSolidEntity(74, 47.8);
+forgivingLanding.physics.groundSupportWidth = 10;
+forgivingLanding.entity.vel.y = 15;
+forgivingLanding.physics.update(forgivingLanding.entity, gameContext, edgeLevel);
+assertEqual(
+    [forgivingLanding.entity.pos.y, forgivingLanding.entity.vel.y, forgivingLanding.physics.grounded],
+    [48, 0, true],
+    'Airborne landing continues to use the full-width collision probe',
+);
+
+console.log('Physics collision regressions passed');

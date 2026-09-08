@@ -1,11 +1,14 @@
 import Entity from '../Entity.js';
-import type Level from '../Level.js';
+import Level from '../Level.js';
+import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
+import type {CollisionTile} from '../TileCollider.js';
 import Carrier from './Carrier.js';
 import Go from './Go.js';
 import LedgeHang from './LedgeHang.js';
 import Pickable from './Pickable.js';
 import Physics from './Physics.js';
+import Solid from './Solid.js';
 
 function assertEqual<Value>(
     actual: Value,
@@ -19,6 +22,10 @@ function assertEqual<Value>(
 
 const gameContext = {} as GameContext;
 const level = {} as Level;
+const physicsContext = {
+    deltaTime: 1 / 60,
+    performanceMetrics: {recordTileCandidates: (): void => {}},
+} as unknown as GameContext;
 
 function createCarrier(movement?: Go): [Entity, Carrier] {
     const entity = new Entity();
@@ -255,5 +262,86 @@ assertEqual(
     [107, 66, true],
     'Left placement mirrors the carried pose directly in front at floor height',
 );
+
+function createWallSafeItem(): [Entity, Pickable] {
+    const [entity, itemPickable] = createPhysicalPickable();
+    entity.size.set(8, 8);
+    itemPickable.alignCarryCenters = true;
+    itemPickable.carryOffset.set(4, 6);
+    itemPickable.carryBottomOffset = -2;
+    itemPickable.throwVelocity.set(240, -90);
+    entity.addTrait(new Solid());
+    return [entity, itemPickable];
+}
+
+function createWallLevel(tileX: number): Level {
+    const wallLevel = new Level();
+    wallLevel.gravity = 0;
+    const wall = new Matrix<CollisionTile>();
+    wall.set(tileX, 3, {type: 'ground'});
+    wallLevel.tileCollider.addGrid(wall);
+    return wallLevel;
+}
+
+for (const direction of [-1, 1] as const) {
+    const wallMovement = new Go();
+    wallMovement.heading = direction;
+    const [wallPlayer, wallCarrier] = createCarrier(wallMovement);
+    wallPlayer.size.set(14, 16);
+    wallPlayer.pos.set(direction > 0 ? 98 : 112, 48);
+    const wallLevel = createWallLevel(direction > 0 ? 7 : 6);
+    const [wallItem] = createWallSafeItem();
+    wallCarrier.update(wallPlayer, physicsContext, wallLevel);
+    wallCarrier.collides(wallPlayer, wallItem);
+    wallCarrier.pickup(wallPlayer);
+    wallCarrier.throw(wallPlayer);
+    assertEqual(
+        wallItem.pos.x,
+        direction > 0 ? 97 : 119,
+        `${direction < 0 ? 'Left' : 'Right'} wall overlap moves the throw one rock width toward the player`,
+    );
+    wallItem.update(physicsContext, wallLevel);
+    assertEqual(
+        wallItem.vel.x,
+        direction * 240,
+        `${direction < 0 ? 'Left' : 'Right'} corrected throw does not rebound on its first update`,
+    );
+
+    const [wallPlacementItem] = createWallSafeItem();
+    wallCarrier.collides(wallPlayer, wallPlacementItem);
+    wallCarrier.pickup(wallPlayer);
+    wallCarrier.place(wallPlayer);
+    assertEqual(
+        [wallPlacementItem.pos.x, wallPlacementItem.bounds.bottom],
+        [direction > 0 ? 97 : 119, wallPlayer.bounds.bottom],
+        `${direction < 0 ? 'Left' : 'Right'} wall placement moves one rock width back toward the player`,
+    );
+}
+
+for (const direction of [-1, 1] as const) {
+    const ledgeWallMovement = new Go();
+    ledgeWallMovement.heading = direction;
+    const [ledgeWallPlayer, ledgeWallCarrier] = createCarrier(
+        ledgeWallMovement,
+    );
+    const ledgeWall = new LedgeHang();
+    ledgeWall.phase = 'hanging';
+    ledgeWall.side = direction;
+    ledgeWallPlayer.addTrait(ledgeWall);
+    ledgeWallPlayer.size.set(14, 16);
+    ledgeWallPlayer.pos.set(direction > 0 ? 98 : 112, 48);
+    const ledgeWallLevel = createWallLevel(direction > 0 ? 7 : 6);
+    const [ledgeWallItem] = createWallSafeItem();
+    ledgeWallCarrier.update(ledgeWallPlayer, physicsContext, ledgeWallLevel);
+    ledgeWallCarrier.collides(ledgeWallPlayer, ledgeWallItem);
+    ledgeWallCarrier.pickup(ledgeWallPlayer);
+    ledgeWallCarrier.update(ledgeWallPlayer, physicsContext, ledgeWallLevel);
+    ledgeWallCarrier.drop(ledgeWallPlayer);
+    assertEqual(
+        [ledgeWallItem.pos.x, ledgeWallItem.vel.x, ledgeWallItem.vel.y],
+        [direction > 0 ? 97 : 119, 0, 0],
+        `${direction < 0 ? 'Left' : 'Right'} ledge drop moves the rock clear without throw velocity`,
+    );
+}
 
 console.log('Pickup and carrying regression passed');

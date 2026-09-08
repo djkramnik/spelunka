@@ -9,6 +9,7 @@ import type {ThrowMode} from './Pickable.js';
 
 export default class Carrier extends Trait {
     private readonly candidates = new Set<Entity>();
+    private level: Level | null = null;
     carried: Entity | null = null;
 
     private getCarryDirection(carrier: Entity): number {
@@ -74,6 +75,7 @@ export default class Carrier extends Trait {
             carrier,
             this.getCarryDirection(carrier),
             mode,
+            this.level,
         )) {
             return null;
         }
@@ -83,13 +85,18 @@ export default class Carrier extends Trait {
         return carried;
     }
 
-    drop(carrier: Entity): Entity | null {
+    drop(carrier: Entity, level: Level | null = this.level): Entity | null {
         if (this.carried === null) {
             return null;
         }
 
         const carried = this.carried;
-        if (!carried.traits.get(Pickable).drop(carried, carrier)) {
+        if (!carried.traits.get(Pickable).drop(
+            carried,
+            carrier,
+            this.getCarryDirection(carrier),
+            level,
+        )) {
             return null;
         }
 
@@ -108,6 +115,7 @@ export default class Carrier extends Trait {
             carried,
             carrier,
             this.getCarryDirection(carrier),
+            this.level,
         )) {
             return null;
         }
@@ -131,8 +139,11 @@ export default class Carrier extends Trait {
     override update(
         carrier: Entity,
         _gameContext: GameContext,
-        _level: Level,
+        level: Level,
     ): void {
+        if (level.tileCollider) {
+            this.level = level;
+        }
         this.candidates.clear();
         if (this.carried !== null) {
             this.carried.traits.get(Pickable).followCarrier(

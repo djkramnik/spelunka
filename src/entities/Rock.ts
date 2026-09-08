@@ -140,6 +140,7 @@ export function createRockFactory(sprite: SpriteSheet): RockFactory {
         const pickable = new Pickable();
         pickable.carryOffset.set(4, 6);
         pickable.alignCarryCenters = true;
+        pickable.carryBottomOffset = -2;
         pickable.throwVelocity.set(ROCK_THROW_SPEED, ROCK_THROW_LIFT);
         pickable.upwardThrowVelocity.set(
             ROCK_UPWARD_THROW_SPEED,

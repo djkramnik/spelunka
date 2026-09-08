@@ -3,6 +3,7 @@
 ## Behavior references
 
 - [Spelunky Classic ledge-hanging behavior and HD animation](ledge-hanging.md)
+- [Spelunky ledge-edge teeter behavior](ledge-teeter.md)
 - [Spelunky ladder climbing and HD animation](ladder-climbing.md)
 - [Spelunky hearts and health HUD](health-hud.md)
 - [Nonlethal player hit and invulnerability presentation](player-hit.md)
@@ -356,6 +357,17 @@ One detail is frame-rate dependent despite the fixed timestep: the quadratic
 drag subtraction itself is not multiplied by `deltaTime`. It behaves
 consistently while the simulation remains at 60 Hz, but changing the fixed
 step would change Mario's acceleration curve and terminal speed.
+
+While already grounded, the player keeps floor contact through a centered
+10-pixel foot span inset two pixels from each side of the 14-pixel collider.
+This makes a walk-off become a fall two pixels before the full collider clears
+the edge: slightly earlier than the original behavior without releasing at the
+center or leading toe and letting most of the body descend through the wall.
+The same probe remains authoritative during that departure so the full-width
+landing check cannot snap the player back to the ledge every other frame.
+Other airborne downward collisions still use the full collider width,
+retaining the existing forgiving landing area. This spatial support rule is
+independent of the post-walk-off jump grace described below.
 
 ### Mario's jump
 

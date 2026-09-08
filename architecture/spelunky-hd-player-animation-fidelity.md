@@ -19,6 +19,7 @@ engine ticks. Timed Spelunka states convert those values at 60 ticks per second.
 | walk/run | 1 | 1-8 | 4 ticks | All eight frames; 3 logical pixels per frame |
 | rise | 2 | 108-111 | 3 ticks | 0.05 seconds per frame, non-looping |
 | fall | 3 | 112-115 | 4 ticks | 1/15 second per frame, non-looping |
+| ledge-edge teeter | 18 | 36-43 | 4 ticks | Lost Balance strip, looping while paused at the edge |
 | crouch in | 25 | 12-14 | 4 ticks | 1/15 second per frame, non-looping |
 | crouch held | 6 | 14 | 1 tick | Static |
 | crouch out | 26 | 14-16 | 4 ticks | 1/15 second per frame, non-looping |
@@ -54,7 +55,7 @@ Rather than guess, carrying continues to reuse the matching base poses:
 - terminal death uses frame 103 while its body is moving and frame 9 after it
   has physically settled. Recoverable stun animation remains future work.
 
-Focused tests cover the complete 92-name frame catalogue, dense distance-based
+Focused tests cover the complete 100-name frame catalogue, dense distance-based
 movement, state-clock advancement, terminal-frame clamping, facing and pivot
 stability, exact source-pixel preservation, deterministic repacking, and the
 unchanged 14x16 player collider. Final visual quality remains a user play-review

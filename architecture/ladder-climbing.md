@@ -1,6 +1,7 @@
 # Spelunky ladder climbing and HD animation
 
-Beads tasks: `spelunka-r54.33`, `spelunka-r54.46`, `spelunka-r54.47`
+Beads tasks: `spelunka-r54.33`, `spelunka-r54.41`, `spelunka-r54.46`,
+`spelunka-r54.47`
 
 The runtime separates ladder terrain from ordinary solid terrain. A ladder
 entity owns a `Climbable` marker over its full bounds and installs one one-way
@@ -34,8 +35,11 @@ rates converted from its 30 Hz update loop to Spelunka's time-based units:
 Carrying does not block mounting or release an attached player. The item stays
 in front of the player throughout clinging, climbing, and ladder exits. Left
 and Right move it to the matching side even though ladder centering keeps the
-player fixed until a jump-off. Death or an active ledge attachment still
-releases or prevents the ladder state.
+player fixed until a jump-off. D throws the item without detaching the player;
+holding Up selects the item's high throw trajectory. The ladder sprites remain
+authoritative during the action rather than switching to grounded throw
+artwork. Death or an active ledge attachment still releases or prevents the
+ladder state.
 
 ## HD visual model
 

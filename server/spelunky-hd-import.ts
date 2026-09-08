@@ -112,6 +112,7 @@ const HUD_DIGIT_SOURCE_CELLS = [
 
 const MOVEMENT_SOURCE_FRAMES = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const SKID_SOURCE_FRAMES = [36, 37, 38, 39, 40, 41, 42, 43] as const;
+const TEETER_SOURCE_FRAMES = SKID_SOURCE_FRAMES;
 const JUMP_SOURCE_FRAMES = [108, 109, 110, 111] as const;
 const FALL_SOURCE_FRAMES = [112, 113, 114, 115] as const;
 const CROUCH_ENTER_SOURCE_FRAMES = [12, 13, 14] as const;
@@ -147,6 +148,7 @@ const PLAYER_FRAME_SOURCES = [
     ...namedFrames('walk', MOVEMENT_SOURCE_FRAMES),
     ...namedFrames('run', MOVEMENT_SOURCE_FRAMES),
     ...namedFrames('skid', SKID_SOURCE_FRAMES),
+    ...namedFrames('teeter', TEETER_SOURCE_FRAMES),
     ...namedFrames('jump', JUMP_SOURCE_FRAMES),
     ...namedFrames('fall', FALL_SOURCE_FRAMES),
     ...namedFrames('crouch-enter', CROUCH_ENTER_SOURCE_FRAMES),
@@ -592,6 +594,12 @@ export function createPlayerAssets(sourceData: Buffer): {
                 name: 'skid',
                 frameLen: 4 * HD_TICK_SECONDS,
                 frames: namedFrames('skid', SKID_SOURCE_FRAMES)
+                    .map(([name]) => name),
+            },
+            {
+                name: 'teeter',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('teeter', TEETER_SOURCE_FRAMES)
                     .map(([name]) => name),
             },
             {

@@ -14,6 +14,7 @@ import Jump from '../traits/Jump.js';
 import Killable from '../traits/Killable.js';
 import LadderClimb from '../traits/LadderClimb.js';
 import LedgeHang from '../traits/LedgeHang.js';
+import LedgeTeeter from '../traits/LedgeTeeter.js';
 import Physics from '../traits/Physics.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit from '../traits/PlayerHit.js';
@@ -53,6 +54,14 @@ export const PLAYER_FRAME_NAMES = [
     'skid-6',
     'skid-7',
     'skid-8',
+    'teeter-1',
+    'teeter-2',
+    'teeter-3',
+    'teeter-4',
+    'teeter-5',
+    'teeter-6',
+    'teeter-7',
+    'teeter-8',
     'jump-1',
     'jump-2',
     'jump-3',
@@ -129,6 +138,7 @@ type PlayerAnimationState =
     | 'walk'
     | 'run'
     | 'skid'
+    | 'teeter'
     | 'jump'
     | 'fall'
     | 'crouch-enter'
@@ -174,6 +184,7 @@ export function createMarioFactory(
     const walkAnimation = sprite.getAnimation('walk');
     const runAnimation = sprite.getAnimation('run');
     const skidAnimation = sprite.getAnimation('skid');
+    const teeterAnimation = sprite.getAnimation('teeter');
     const jumpAnimation = sprite.getAnimation('jump');
     const fallAnimation = sprite.getAnimation('fall');
     const crouchEnterAnimation = sprite.getAnimation('crouch-enter');
@@ -194,6 +205,7 @@ export function createMarioFactory(
         const carrier = mario.traits.get(Carrier);
         const crouch = mario.traits.get(Crouch);
         const ledgeHang = mario.traits.get(LedgeHang);
+        const ledgeTeeter = mario.traits.get(LedgeTeeter);
         const ladderClimb = mario.traits.get(LadderClimb);
         const playerDeath = mario.traits.get(PlayerDeath);
         const playerHit = mario.traits.get(PlayerHit);
@@ -230,6 +242,22 @@ export function createMarioFactory(
             return 'throw';
         }
 
+        if (crouch.phase === 'entering') {
+            return 'crouch-enter';
+        }
+
+        if (crouch.phase === 'exiting') {
+            return 'crouch-exit';
+        }
+
+        if (crouch.phase === 'crouched') {
+            return go.dir === 0 ? 'crouch' : 'crawl';
+        }
+
+        if (ledgeTeeter.active) {
+            return 'teeter';
+        }
+
         if (carrier.carried !== null) {
             if (jump.falling) {
                 return mario.vel.y < 0 ? 'carry-jump' : 'carry-fall';
@@ -244,18 +272,6 @@ export function createMarioFactory(
 
         if (jump.falling) {
             return mario.vel.y < 0 ? 'jump' : 'fall';
-        }
-
-        if (crouch.phase === 'entering') {
-            return 'crouch-enter';
-        }
-
-        if (crouch.phase === 'exiting') {
-            return 'crouch-exit';
-        }
-
-        if (crouch.phase === 'crouched') {
-            return go.dir === 0 ? 'crouch' : 'crawl';
         }
 
         if (go.distance > 0) {
@@ -294,6 +310,8 @@ export function createMarioFactory(
                 return carryRunAnimation(go.distance) as PlayerFrameName;
             case 'skid':
                 return skidAnimation(stateTime) as PlayerFrameName;
+            case 'teeter':
+                return teeterAnimation(stateTime) as PlayerFrameName;
             case 'jump':
                 return jumpAnimation(stateTime) as PlayerFrameName;
             case 'fall':
@@ -336,7 +354,9 @@ export function createMarioFactory(
             this.audio = audio;
             this.size.set(14, 16);
 
-            this.addTrait(new Physics());
+            const physics = new Physics();
+            physics.groundSupportWidth = 10;
+            this.addTrait(physics);
             this.addTrait(new Solid());
             this.addTrait(new Crouch());
             this.addTrait(new PlayerDeath());
@@ -350,6 +370,7 @@ export function createMarioFactory(
             this.addTrait(new Stomper());
             this.addTrait(new LadderClimb());
             this.addTrait(new LedgeHang());
+            this.addTrait(new LedgeTeeter());
             // Follow after attachment traits so a carried item observes a
             // same-frame ladder move or newly entered ledge orientation.
             this.addTrait(new Carrier());
@@ -376,21 +397,32 @@ export function createMarioFactory(
             const ledgeHang = this.traits.get(LedgeHang);
             const ladderClimb = this.traits.get(LadderClimb);
             const crouch = this.traits.get(Crouch);
-            if (this.traits.get(PlayerDeath).terminal
-                || ledgeHang.active
-                || ladderClimb.active) {
+            if (this.traits.get(PlayerDeath).terminal) {
                 return null;
             }
             const carrier = this.traits.get(Carrier);
             const wasCarrying = carrier.carried !== null;
+            if (ledgeHang.phase === 'hanging') {
+                return wasCarrying ? carrier.drop(this) : null;
+            }
+            if (ledgeHang.active) {
+                return null;
+            }
+            if (ladderClimb.active && !wasCarrying) {
+                return null;
+            }
             const physics = this.traits.get(Physics);
             const jump = this.traits.get(Jump);
-            const placing = wasCarrying
-                && crouch.downHeld
-                && jump.phase === 'grounded'
+            const grounded = jump.phase === 'grounded'
                 && physics.grounded
                 && this.vel.y === 0;
-            if (crouch.active && !placing) {
+            const placing = wasCarrying
+                && crouch.downHeld
+                && grounded;
+            const crouchedPickup = !wasCarrying
+                && crouch.downHeld
+                && grounded;
+            if (crouch.active && !placing && !crouchedPickup) {
                 return null;
             }
             const throwMode = ladderClimb.verticalDirection < 0
@@ -399,7 +431,10 @@ export function createMarioFactory(
             const result = placing
                 ? carrier.place(this)
                 : carrier.pickupOrThrow(this, throwMode);
-            if (wasCarrying && result !== null && !placing) {
+            if (wasCarrying
+                && result !== null
+                && !placing
+                && !ladderClimb.active) {
                 this.throwFrameTime = THROW_FRAME_DURATION;
             }
             return result;
@@ -422,6 +457,7 @@ export function createMarioFactory(
 
         override draw(context: CanvasRenderingContext2D): void {
             const ledgeHang = this.traits.get(LedgeHang);
+            const ledgeTeeter = this.traits.get(LedgeTeeter);
             const crouch = this.traits.get(Crouch);
             const playerDeath = this.traits.get(PlayerDeath);
             const playerHit = this.traits.get(PlayerHit);
@@ -459,7 +495,9 @@ export function createMarioFactory(
                         ? playerHit.direction > 0
                     : ledgeHang.active
                         ? ledgeHang.side < 0
-                        : crouch.phase === 'flipping'
+                    : ledgeTeeter.active
+                        ? ledgeTeeter.side < 0
+                    : crouch.phase === 'flipping'
                             ? crouch.flipDirection > 0
                         : this.traits.get(Go).heading < 0,
                 );

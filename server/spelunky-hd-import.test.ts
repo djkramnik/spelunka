@@ -457,7 +457,7 @@ try {
     assert.deepEqual([generated.width, generated.height], [400, 1040]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 92);
+    assert.equal(spec.frames.length, 100);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -525,6 +525,19 @@ try {
             loop: false,
         },
         'Hit reaction uses the first two arms-back frames at the HD cadence',
+    );
+    assert.deepEqual(
+        animation('teeter'),
+        {
+            name: 'teeter',
+            frameLen: 4 / 60,
+            frames: Array.from(
+                {length: 8},
+                (_, index) => `teeter-${index + 1}`,
+            ),
+            loop: true,
+        },
+        'Teeter uses the complete eight-frame HD Lost Balance record',
     );
     assert.deepEqual(
         animation('ladder-climb'),

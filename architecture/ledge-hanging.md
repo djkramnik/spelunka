@@ -1,6 +1,7 @@
 # Spelunky ledge-hanging behavior
 
-Beads tasks: `spelunka-r54.32`, `spelunka-r54.45`, `spelunka-r54.46`
+Beads tasks: `spelunka-r54.32`, `spelunka-r54.41`, `spelunka-r54.45`,
+`spelunka-r54.46`
 
 ## Classic behavior reference
 
@@ -48,7 +49,9 @@ or release. While attached, both the player pose and carried-item side stay
 oriented toward the supporting ledge; Left and Right do not turn either one.
 Damage, death, removal of the supporting tile, or newly occupied
 corner space releases the player rather than embedding the collider. Starting
-a new pickup or throw remains unavailable during a hang or climb.
+a new pickup or throw remains unavailable during a hang or climb. D while
+already hanging is the carried-item exception: it drops the item with no throw
+impulse while leaving the player attached to the ledge.
 
 ## Controls and exits
 
@@ -89,4 +92,9 @@ Grounded crawl-to-hang entry is owned by `Crouch`. It plays the same ledge-flip
 cells in reverse (34-28), then calls `LedgeHang.grabFromTop` and enters directly
 at held frame 47 rather than replaying the airborne ledge-grab strip. The flip
 faces its destination wall throughout, and a shared render/camera correction
-settles to the original hanging position over four HD ticks.
+settles to the original hanging position over four HD ticks. Carrying uses the
+same player frames and preserves the item relationship through this handoff.
+
+The remaining visual discontinuity reported during runtime review is tracked
+separately by `spelunka-r54.51`; this task establishes the carried-item state
+continuity without redefining the existing reversed-flip presentation.
