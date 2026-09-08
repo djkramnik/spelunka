@@ -10,6 +10,7 @@ import {
     HEALTH_HUD_DIGIT_ADVANCE,
     HEALTH_HUD_HEART_POSITION,
     HEALTH_HUD_NUMBER_POSITION,
+    TIMER_HUD_POSITION,
 } from './dashboard.js';
 
 function assertEqual<Value>(
@@ -88,16 +89,10 @@ assertEqual(
 assertEqual(
     fontPrints,
     [
-        ['WORLD', 152, 8],
-        ['tutorial-1-scale', 160, 16],
-        ['TIME', 208, 8],
-        ['300', 216, 16],
-        ['WORLD', 152, 8],
-        ['tutorial-1-scale', 160, 16],
-        ['TIME', 208, 8],
-        ['300', 216, 16],
+        ['300', ...TIMER_HUD_POSITION],
+        ['300', ...TIMER_HUD_POSITION],
     ],
-    'Existing world and timer HUD regions remain in place',
+    'Top-right HUD contains only the remaining timer value',
 );
 
 hudDraws.length = 0;
