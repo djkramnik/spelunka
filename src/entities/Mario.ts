@@ -230,7 +230,7 @@ export function createMarioFactory(
             return 'ledge-hang';
         }
 
-        if (ledgeHang.phase === 'climbing') {
+        if (ledgeHang.phase === 'climbing' && !ledgeHang.climbIntoCrawl) {
             return 'ledge-climb';
         }
 
@@ -478,13 +478,15 @@ export function createMarioFactory(
                 );
             }
             try {
+                const applyTopFlipCorrection = crouch.transitionAnchorActive
+                    && ledgeHang.phase === 'hanging';
                 sprite.drawFrame(
                     routeFrame(this),
                     context,
-                    this.size.x / 2 + (crouch.transitionAnchorActive
+                    this.size.x / 2 + (applyTopFlipCorrection
                         ? crouch.transitionOffset.x
                         : 0),
-                    this.size.y + (crouch.transitionAnchorActive
+                    this.size.y + (applyTopFlipCorrection
                         ? crouch.transitionOffset.y
                         : 0),
                     playerDeath.terminal

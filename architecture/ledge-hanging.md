@@ -88,12 +88,34 @@ which holds its terminal suspended pose, and frames 28-34 as the non-looping
 `ledge-climb` animation. Runtime facing is anchored to the side of the
 supporting ledge rather than rapidly changing directional input.
 
+Up also has a 0.1-second ledge-climb input buffer. A press on the same update
+that an airborne collision becomes a hang is retained and starts the mantle on
+the following update; previously `enter()` discarded that boundary press. The
+request is consumed once and presses during an active climb cannot queue a
+second climb or restart its animation.
+
 Grounded crawl-to-hang entry is owned by `Crouch`. It plays the same ledge-flip
 cells in reverse (34-28), then calls `LedgeHang.grabFromTop` and enters directly
 at held frame 47 rather than replaying the airborne ledge-grab strip. The flip
 faces its destination wall throughout, and a shared render/camera correction
 settles to the original hanging position over four HD ticks. Carrying uses the
 same player frames and preserves the item relationship through this handoff.
+The short positional correction used to settle a completed top flip is drawn
+only while the resulting hang remains in its `hanging` phase. If Up begins a
+mantle during those four correction ticks, the forward climb uses its normal
+bottom-centre pivot rather than combining the old downward correction with the
+upward animation.
+
+A Down-held airborne approach has a separate, intentional crawl-entry path.
+It activates only after horizontal collision reports physical contact with an
+exposed ledge. Contact from as high as one standing collider above the lip down
+through the ordinary four-pixel ledge overshoot window starts a crawl entry
+directly, bypassing `hanging`. It immediately adopts the 10-pixel crouched
+collider and crawl artwork, moves continuously up until clear of the lip, then
+inward at 120 pixels per second. It never routes through the reverse ledge-hang
+or climb artwork. Missing the wall, approaching too low, releasing Down, or a
+blocked crouched destination retains ordinary collision and ledge behavior;
+there is no attraction across open air.
 
 The remaining visual discontinuity reported during runtime review is tracked
 separately by `spelunka-r54.51`; this task establishes the carried-item state

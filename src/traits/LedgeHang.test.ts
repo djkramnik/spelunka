@@ -6,6 +6,7 @@ import type {GameContext} from '../Scene.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
 import Carrier from './Carrier.js';
+import Crouch, {SPELUNKY_CROUCH_HEIGHT} from './Crouch.js';
 import Go from './Go.js';
 import Jump from './Jump.js';
 import Killable from './Killable.js';
@@ -45,6 +46,7 @@ interface LedgeFixture {
     jump: Jump;
     killable: Killable;
     carrier: Carrier;
+    crouch: Crouch;
     ledge: LedgeHang;
 }
 
@@ -55,6 +57,7 @@ function createFixture(side: -1 | 1 = 1): LedgeFixture {
     const jump = new Jump();
     const killable = new Killable();
     const carrier = new Carrier();
+    const crouch = new Crouch();
     const ledge = new LedgeHang();
     entity.size.set(14, 16);
     entity.pos.set(side > 0 ? 50 : 64, 61);
@@ -65,12 +68,13 @@ function createFixture(side: -1 | 1 = 1): LedgeFixture {
     jump.ready = -1;
     entity.addTrait(physics);
     entity.addTrait(new Solid());
+    entity.addTrait(crouch);
     entity.addTrait(go);
     entity.addTrait(jump);
     entity.addTrait(killable);
     entity.addTrait(carrier);
     entity.addTrait(ledge);
-    return {entity, physics, go, jump, killable, carrier, ledge};
+    return {entity, physics, go, jump, killable, carrier, crouch, ledge};
 }
 
 function createLevel(side: -1 | 1 = 1): {
@@ -85,6 +89,14 @@ function createLevel(side: -1 | 1 = 1): {
 }
 
 function grab(fixture: LedgeFixture, level: Level): void {
+    fixture.ledge.update(fixture.entity, context, level);
+}
+
+function updatePlayer(fixture: LedgeFixture, level: Level): void {
+    fixture.physics.update(fixture.entity, context, level);
+    fixture.crouch.update(fixture.entity, context, level);
+    fixture.go.update(fixture.entity, context, level);
+    fixture.jump.update(fixture.entity, context, level);
     fixture.ledge.update(fixture.entity, context, level);
 }
 
@@ -328,6 +340,194 @@ assertEqual(
     ],
     ['airborne', 48, 65, 64, true, true, 'grounded', SPELUNKY_LEDGE_REGRAB_DELAY],
     'Completed climb places the collider safely on top of the ledge',
+);
+
+function createReportedCorner(): {fixture: LedgeFixture; level: Level} {
+    const fixture = createFixture(1);
+    fixture.entity.pos.set(386, 253);
+    fixture.entity.vel.set(60, 60);
+    fixture.go.dir = 1;
+    fixture.go.heading = 1;
+    fixture.jump.phase = 'falling';
+    fixture.jump.ready = -1;
+
+    const level = new Level();
+    const tiles = new Matrix<CollisionTile>();
+    // Default-level corner: the hang is on the left face of (25, 16),
+    // with the next column rising above it at (26, 15).
+    tiles.set(25, 16, {type: 'ground'});
+    tiles.set(26, 15, {type: 'ground'});
+    level.tileCollider.addGrid(tiles);
+    return {fixture, level};
+}
+
+for (const upPressFrame of [0, 1]) {
+    const {fixture, level} = createReportedCorner();
+    const phaseTrace: string[] = [];
+    for (let frame = 0; frame < 2; frame++) {
+        if (frame === upPressFrame) {
+            fixture.ledge.setVerticalInput(-1, true);
+        }
+        fixture.ledge.update(fixture.entity, context, level);
+        phaseTrace.push(fixture.ledge.phase);
+    }
+    assertEqual(
+        [
+            fixture.entity.bounds.left,
+            fixture.entity.bounds.top,
+            phaseTrace,
+        ],
+        [386, 254, ['hanging', 'climbing']],
+        `Up on repro frame ${upPressFrame} deterministically enters the forward climb`,
+    );
+
+    fixture.ledge.setVerticalInput(-1, false);
+    for (let frame = 0; frame < 4; frame++) {
+        if (frame === 1) {
+            fixture.ledge.setVerticalInput(-1, true);
+        } else if (frame === 2) {
+            fixture.ledge.setVerticalInput(-1, false);
+        }
+        fixture.ledge.update(fixture.entity, context, level);
+        phaseTrace.push(fixture.ledge.phase);
+    }
+    while (fixture.ledge.phase === 'climbing') {
+        fixture.ledge.update(fixture.entity, context, level);
+        phaseTrace.push(fixture.ledge.phase);
+    }
+    const firstClimb = phaseTrace.indexOf('climbing');
+    assertEqual(
+        [
+            phaseTrace.slice(firstClimb).includes('hanging'),
+            fixture.ledge.phase,
+            fixture.entity.bounds.left,
+            fixture.entity.bounds.top,
+        ],
+        [false, 'airborne', 401, 240],
+        'Boundary and repeated Up input cannot reverse or restart the mantle',
+    );
+}
+
+const crouchEntry = createReportedCorner();
+crouchEntry.fixture.entity.pos.set(386, 247.5);
+crouchEntry.fixture.entity.vel.set(60, -30);
+crouchEntry.fixture.jump.phase = 'rising';
+crouchEntry.fixture.crouch.setDown(true);
+crouchEntry.fixture.ledge.setVerticalInput(1, true);
+updatePlayer(crouchEntry.fixture, crouchEntry.level);
+assertEqual(
+    [
+        crouchEntry.fixture.entity.bounds.right,
+        crouchEntry.fixture.entity.bounds.top,
+        crouchEntry.fixture.ledge.phase,
+    ],
+    [400, 253, 'climbing'],
+    'Simulated crouch jump physically contacts the reported ledge before capture',
+);
+assertEqual(
+    [
+        crouchEntry.fixture.ledge.phase,
+        crouchEntry.fixture.ledge.climbIntoCrawl,
+        crouchEntry.fixture.entity.bounds.left,
+        crouchEntry.fixture.entity.bounds.top,
+    ],
+    ['climbing', true, 386, 253],
+    'Down-held ledge contact begins a crawl entry without hanging',
+);
+const crawlEntryTrace = [crouchEntry.fixture.ledge.phase];
+let previousCrawlEntryLeft = crouchEntry.fixture.entity.bounds.left;
+let previousCrawlEntryTop = crouchEntry.fixture.entity.bounds.top;
+while (crouchEntry.fixture.ledge.phase === 'climbing') {
+    updatePlayer(crouchEntry.fixture, crouchEntry.level);
+    crawlEntryTrace.push(crouchEntry.fixture.ledge.phase);
+    if (crouchEntry.fixture.entity.bounds.left < previousCrawlEntryLeft
+        || crouchEntry.fixture.entity.bounds.top > previousCrawlEntryTop) {
+        throw new Error('Crawl entry must move continuously up, then into the ledge');
+    }
+    previousCrawlEntryLeft = crouchEntry.fixture.entity.bounds.left;
+    previousCrawlEntryTop = crouchEntry.fixture.entity.bounds.top;
+}
+assertEqual(
+    [
+        crouchEntry.fixture.ledge.phase,
+        crouchEntry.fixture.crouch.phase,
+        crouchEntry.fixture.entity.size.y,
+        crouchEntry.fixture.entity.bounds.left,
+        crouchEntry.fixture.entity.bounds.top,
+        crouchEntry.fixture.physics.grounded,
+        crouchEntry.fixture.jump.phase,
+        crawlEntryTrace.includes('hanging'),
+    ],
+    [
+        'airborne',
+        'crouched',
+        SPELUNKY_CROUCH_HEIGHT,
+        401,
+        246,
+        true,
+        'grounded',
+        false,
+    ],
+    'Continuous assisted entry settles into crawl without a reverse hang',
+);
+
+const noCrouchIntent = createReportedCorner();
+noCrouchIntent.fixture.physics.update(
+    noCrouchIntent.fixture.entity,
+    context,
+    noCrouchIntent.level,
+);
+noCrouchIntent.fixture.ledge.update(
+    noCrouchIntent.fixture.entity,
+    context,
+    noCrouchIntent.level,
+);
+assertEqual(
+    [noCrouchIntent.fixture.ledge.phase, noCrouchIntent.fixture.ledge.climbIntoCrawl],
+    ['hanging', false],
+    'Ordinary ledge contact retains the normal ledge hang',
+);
+
+const noContactAssist = createReportedCorner();
+noContactAssist.fixture.entity.pos.set(384, 247.5);
+noContactAssist.fixture.entity.vel.set(0, -30);
+noContactAssist.fixture.jump.phase = 'rising';
+noContactAssist.fixture.crouch.setDown(true);
+noContactAssist.fixture.ledge.setVerticalInput(1, true);
+noContactAssist.fixture.ledge.update(
+    noContactAssist.fixture.entity,
+    context,
+    noContactAssist.level,
+);
+assertEqual(
+    [
+        noContactAssist.fixture.ledge.phase,
+        noContactAssist.fixture.entity.bounds.left,
+        noContactAssist.fixture.entity.bounds.top,
+    ],
+    ['airborne', 384, 247.5],
+    'Crouch intent without physical ledge contact cannot pull across open air',
+);
+
+const tooLowForCrouchEntry = createReportedCorner();
+tooLowForCrouchEntry.fixture.entity.pos.set(386, 261);
+tooLowForCrouchEntry.fixture.entity.vel.set(60, 30);
+tooLowForCrouchEntry.fixture.crouch.setDown(true);
+tooLowForCrouchEntry.fixture.ledge.setVerticalInput(1, true);
+tooLowForCrouchEntry.fixture.physics.update(
+    tooLowForCrouchEntry.fixture.entity,
+    context,
+    tooLowForCrouchEntry.level,
+);
+tooLowForCrouchEntry.fixture.ledge.update(
+    tooLowForCrouchEntry.fixture.entity,
+    context,
+    tooLowForCrouchEntry.level,
+);
+assertEqual(
+    tooLowForCrouchEntry.fixture.ledge.phase,
+    'airborne',
+    'Contact below the bounded capture window cannot teleport onto the ledge',
 );
 
 const blockedClimb = createFixture();

@@ -53,6 +53,27 @@ export default class Crouch extends Trait {
         this.downHeld = pressed;
     }
 
+    settleFromLedge(
+        entity: Entity,
+        left: number,
+        top: number,
+    ): void {
+        this.beginLedgeEntry(entity);
+        entity.bounds.left = left;
+        entity.bounds.top = top;
+    }
+
+    beginLedgeEntry(entity: Entity): void {
+        this.setHeight(entity, SPELUNKY_CROUCH_HEIGHT);
+        this.phase = 'crouched';
+        this.phaseTime = 0;
+        this.flipDirection = 0;
+        this.transitionAnchorActive = false;
+        this.transitionAnchorTime = 0;
+        this.transitionOffset.set(0, 0);
+        entity.traits.get(Go).enabled = false;
+    }
+
     standImmediately(entity: Entity): void {
         this.setHeight(entity, SPELUNKY_STANDING_HEIGHT);
         this.phase = 'standing';
@@ -236,6 +257,10 @@ export default class Crouch extends Trait {
         }
 
         if (ledgeHang.active) {
+            if (ledgeHang.climbIntoCrawl) {
+                this.beginLedgeEntry(entity);
+                return;
+            }
             this.setHeight(entity, SPELUNKY_STANDING_HEIGHT);
             this.phase = 'standing';
             this.phaseTime = 0;

@@ -232,6 +232,27 @@ assertEqual(draw(), 'ledge-hang-4', 'Top flip enters directly into the held hang
 ledgeHang.enteredFromTop = false;
 ledgeHang.phase = 'climbing';
 assertEqual(draw(), 'ledge-climb-1', 'Ledge climb starts the HD ledge-flip sequence');
+ledgeHang.climbIntoCrawl = true;
+crouch.phase = 'crouched';
+go.dir = 1;
+assertEqual(
+    draw(),
+    'crawl-1',
+    'Upward crouch-jump entry never renders the reverse ledge-climb sequence',
+);
+ledgeHang.climbIntoCrawl = false;
+crouch.phase = 'standing';
+go.dir = 0;
+crouch.transitionAnchorActive = true;
+crouch.transitionOffset.set(5, -6);
+draw();
+assertEqual(
+    [draws.at(-1)?.pivotX, draws.at(-1)?.pivotY],
+    [7, 16],
+    'Forward mantle ignores the completed crawl-to-hang positional correction',
+);
+crouch.transitionAnchorActive = false;
+crouch.transitionOffset.set(0, 0);
 ledgeHang.phase = 'airborne';
 ledgeHang.side = 0;
 
