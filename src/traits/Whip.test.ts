@@ -101,6 +101,12 @@ assertEqual(
     'Whip begins at the first startup frame',
 );
 assertEqual(
+    timing.player.sounds.has('whip'),
+    true,
+    'The HD whip sound begins with the wind-up',
+);
+timing.player.sounds.clear();
+assertEqual(
     timing.whip.start(timing.player),
     false,
     'Startup rejects repeated input instead of restarting',
@@ -115,8 +121,8 @@ assertEqual(
 update(timing, 1 / 60);
 assertEqual(
     [timing.whip.phase, timedTarget.kills(), timing.player.sounds.has('whip')],
-    ['active', 1, true],
-    'The active window applies one hit and starts the HD whip sound',
+    ['active', 1, false],
+    'The active window applies one hit without replaying the HD whip sound',
 );
 update(timing, SPELUNKY_WHIP_ACTIVE_TIME);
 assertEqual(

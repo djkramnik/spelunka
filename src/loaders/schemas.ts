@@ -107,6 +107,7 @@ export const SpriteSheetSchema = z.object({
 
 const AudioTrackSchema = z.object({
     url: z.string(),
+    gain: z.number().min(0).max(1).default(1),
 });
 
 export const SoundSheetSchema = z.object({

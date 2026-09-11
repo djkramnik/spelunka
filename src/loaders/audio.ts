@@ -12,7 +12,7 @@ export async function loadAudioBoard(
 
     await Promise.all(Object.entries(audioSheet.fx).map(async ([effectName, effect]) => {
         const buffer = await loadAudio(effect.url);
-        audioBoard.addAudio(effectName, buffer);
+        audioBoard.addAudio(effectName, buffer, effect.gain);
     }));
 
     return audioBoard;

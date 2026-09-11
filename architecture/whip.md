@@ -24,8 +24,8 @@ forward snap can damage a target.
 
 | Phase | Duration | Behavior |
 | --- | ---: | --- |
-| startup | 20 ticks (1/3 second) | HD frames 48-52; no damage |
-| active | 4 ticks (1/15 second) | HD frame 53; forward hit and whip sound |
+| startup | 20 ticks (1/3 second) | HD frames 48-52; sound starts; no damage |
+| active | 4 ticks (1/15 second) | HD frame 53; forward hit |
 | recovery | 4 ticks (1/15 second) | hold frame 53; repeated input rejected |
 
 The active rectangle spans the player's full collider height and extends 16
@@ -61,8 +61,11 @@ bottom-right `[60, 80]` root, placing the initial curl above and behind the
 rocked-back, foot-extended player poses. Frames 128-133 switch to the `[0, 40]`
 left-side root so the unfurl crosses the body and the terminal 80-pixel cell
 extends forward. Mirroring moves the same motion and hit region to the left.
-`ALLSOUNDS/whip.wav` is the HD sound: it is hash-validated, copied unchanged by
-the local-only asset workflow, and played when the active snap begins.
+`ALLSOUNDS/whip.wav` is the sound directly selected by the HD executable for a
+normal whip. It is hash-validated and copied unchanged by the local-only asset
+workflow. Playback begins with the wind-up, matching HD's call site instead of
+starting late at the damaging frame, and uses a 0.55 per-effect gain so the raw
+sample does not bypass the softer effects mix heard in-game.
 
 Focused tests cover phase boundaries, active-only damage, left/right and
 vertical range, one hit per target, recovery and retriggering, movement and

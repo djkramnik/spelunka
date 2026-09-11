@@ -47,7 +47,6 @@ export default class Whip extends Trait {
     time = SPELUNKY_WHIP_DURATION;
     direction: -1 | 1 = 1;
     private readonly hitTargets = new Set<Entity>();
-    private soundPlayed = false;
 
     get active(): boolean {
         return this.time < SPELUNKY_WHIP_DURATION;
@@ -84,14 +83,13 @@ export default class Whip extends Trait {
         this.time = 0;
         this.direction = entity.traits.get(Go).heading < 0 ? -1 : 1;
         this.hitTargets.clear();
-        this.soundPlayed = false;
+        entity.sounds.add('whip');
         return true;
     }
 
     interrupt(): void {
         this.time = SPELUNKY_WHIP_DURATION;
         this.hitTargets.clear();
-        this.soundPlayed = false;
     }
 
     private hitTargetsInRange(entity: Entity, level: Level): void {
@@ -143,10 +141,6 @@ export default class Whip extends Trait {
         const activeStart = SPELUNKY_WHIP_STARTUP_TIME;
         const activeEnd = activeStart + SPELUNKY_WHIP_ACTIVE_TIME;
         if (previousTime < activeEnd && nextTime > activeStart) {
-            if (!this.soundPlayed) {
-                entity.sounds.add('whip');
-                this.soundPlayed = true;
-            }
             this.hitTargetsInRange(entity, level);
         }
         this.time = nextTime;

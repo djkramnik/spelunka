@@ -16,7 +16,8 @@
             "url": "/generated/spelunky-hd/throw_item.wav"
         },
         "whip": {
-            "url": "/generated/spelunky-hd/whip.wav"
+            "url": "/generated/spelunky-hd/whip.wav",
+            "gain": 0.55
         }
     }
 }

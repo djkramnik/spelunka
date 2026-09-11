@@ -62,7 +62,9 @@ All outputs are ignored by Git:
 - `public/generated/spelunky-hd/snakebite.wav` is the unchanged 44.1 kHz mono
   HD contact effect selected specifically for accepted snake damage.
 - `public/generated/spelunky-hd/throw_item.wav` and `whip.wav` are unchanged
-  HD action effects used by carried-item release and the whip strike.
+  HD action effects used by carried-item release and the whip strike. The
+  tracked sound metadata applies the whip's softer per-effect playback gain;
+  the imported source bytes remain untouched.
 
 The generated player metadata is loadable with:
 
