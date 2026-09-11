@@ -90,7 +90,8 @@ A follow-up review of `effects.png`, `effectsbig.png`, `rubble.png`, the HD
 animation archive, and executable texture-name strings found no dedicated
 blood-splatter animation sequence. The snake behavior should compose the
 effect procedurally rather than expanding the texture allow-list with an
-unrelated generic effect atlas.
+unrelated generic effect atlas. Task `spelunka-r54.28` now supplies that shared
+particle effect and makes it the snake death hook's default.
 
 Player carry states initially reuse the matching idle, run, jump, and fall
 poses. That remains a deliberate compatibility baseline.

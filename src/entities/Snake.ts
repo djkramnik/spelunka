@@ -1,4 +1,5 @@
 import Entity, {Sides} from '../Entity.js';
+import {emitBloodSplatter} from '../effects/BloodSplatter.js';
 import {loadSpriteSheet} from '../loaders/sprite.js';
 import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
@@ -39,6 +40,13 @@ export type SnakeFactory = () => Entity;
 
 export const noSnakeDeathEffect: SnakeDeathEffect = () => {};
 
+export const emitSnakeBloodSplatter: SnakeDeathEffect = (snake, level) => {
+    emitBloodSplatter(level, {
+        x: snake.bounds.left + snake.size.x / 2,
+        y: snake.bounds.top + snake.size.y / 2,
+    });
+};
+
 export class SnakeBehavior extends Trait {
     readonly walkSpeed = SNAKE_WALK_SPEED;
 
@@ -53,7 +61,7 @@ export class SnakeBehavior extends Trait {
 
     constructor(
         initialDirection: -1 | 1 = SNAKE_INITIAL_DIRECTION,
-        private readonly onDeath: SnakeDeathEffect = noSnakeDeathEffect,
+        private readonly onDeath: SnakeDeathEffect = emitSnakeBloodSplatter,
         readonly knockbackSpeed = SNAKE_KNOCKBACK_SPEED,
         readonly deathKnockbackSpeed = SNAKE_DEATH_KNOCKBACK_SPEED,
         readonly deathUpwardSpeed = SNAKE_DEATH_UPWARD_SPEED,

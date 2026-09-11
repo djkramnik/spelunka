@@ -1,6 +1,10 @@
 import AudioBoard from '../AudioBoard.js';
 import Entity, {Sides} from '../Entity.js';
 import EntityCollider from '../EntityCollider.js';
+import {
+    BLOOD_PARTICLE_COUNT,
+    BloodParticle,
+} from '../effects/BloodSplatter.js';
 import Level from '../Level.js';
 import {Matrix} from '../math.js';
 import type {GameContext} from '../Scene.js';
@@ -434,5 +438,26 @@ externallyKilledSnake.traits.get(Killable).kill();
 externallyKilledSnake.finalize();
 externallyKilledSnake.update(gameContext, deathLevel);
 assertEqual(deathEffects, 2, 'Projectile-compatible Killable death uses shared hook');
+
+const defaultDeathLevel = new Level();
+const splatteringSnake = createSnakeFactory(sprite)();
+splatteringSnake.pos.set(80, 96);
+defaultDeathLevel.entities.add(splatteringSnake);
+splatteringSnake.traits.get(Killable).kill();
+splatteringSnake.finalize();
+splatteringSnake.update(gameContext, defaultDeathLevel);
+splatteringSnake.finalize();
+const snakeBlood = [...defaultDeathLevel.entities].filter(
+    entity => entity instanceof BloodParticle,
+);
+assertEqual(
+    [
+        defaultDeathLevel.entities.has(splatteringSnake),
+        snakeBlood.length,
+        snakeBlood.every(particle => !particle.entityCollisionsEnabled),
+    ],
+    [false, BLOOD_PARTICLE_COUNT, true],
+    'Default snake death emits one reusable non-colliding blood burst',
+);
 
 console.log('Snake entity behavior, animation, collision, and lifecycle passed');

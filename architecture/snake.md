@@ -136,10 +136,9 @@ None contains a dedicated blood-splatter frame sequence. The HD animation
 archive likewise contains no additional snake death or named blood animation
 record, and the stripped executable exposes only the generic atlas filenames.
 The best-supported inference is that HD composes the splatter from particles
-or debris rather than playing a blood sprite animation. That effect is deferred
-to `spelunka-r54.28`. The first snake slice keeps a named death-effect callback
-whose default implementation intentionally does nothing, so the later task can
-add the procedural burst without changing snake collision or death semantics.
+or debris rather than playing a blood sprite animation. Task
+`spelunka-r54.28` implements that procedural burst without changing snake
+collision or death semantics.
 
 Classic continues to define when the snake is walking, paused, damaging, or
 dead, but does not dictate how many frames those states use or how those frames
@@ -179,11 +178,11 @@ following first slice:
 - Reuse projectile eligibility already expressed by `Killable`, so fast thrown
   items can kill the snake without naming the class in projectile code.
 - Because HD uses a particle-like blood splatter rather than a dedicated snake
-  death frame, the snake invokes a named no-op death-effect hook exactly once,
-  stops drawing, and is removed promptly. `spelunka-r54.28` can later supply a
-  reusable procedural burst through that hook. Do not use the HD attack
-  sequence or Classic pixels as a fabricated corpse; the attack sequence is
-  reserved for accepted living-player contact.
+  death frame, the snake invokes a named death-effect hook exactly once, stops
+  drawing, and is removed promptly. Its default emits the reusable procedural
+  burst from `spelunka-r54.28`. Do not use the HD attack sequence or Classic
+  pixels as a fabricated corpse; the attack sequence is reserved for accepted
+  living-player contact.
 - Continue simulating off-screen snakes. Camera-gated updates are not required
   until profiling demonstrates a need.
 
@@ -210,9 +209,9 @@ knockback, sound, or either presentation. Losing the final heart enters the
 terminal death path with an enemy-owned 180 pixel-per-second horizontal launch
 and 120 pixel-per-second upward lift; surviving contact leaves normal player
 control intact. The snake dies through the common `Killable` path. Death
-suppresses drawing, invokes the no-op future-splatter hook once, and removes it
-on its next update. The imported HD idle frames remain available for future
-behavior but are not used by this simple patrol. The existing `goomba` factory
+suppresses drawing, invokes the shared procedural blood-splatter hook once,
+and removes it on its next update. The imported HD idle frames remain available
+for future behavior but are not used by this simple patrol. The existing `goomba` factory
 still uses its temporary HD snake-art compatibility mapping; levels can select
 the dedicated behavior explicitly by using the stable `snake` entity name.
 

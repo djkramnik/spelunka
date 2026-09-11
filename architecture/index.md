@@ -10,6 +10,7 @@
 - [Player death physics and HD body states](player-death.md)
 - [Spelunky crouch, crawl, and top-to-hang transition](crouch-crawl.md)
 - [Spelunky Classic snake behavior and animation](snake.md)
+- [Procedural blood splatter](blood-splatter.md)
 - [Spelunky Classic throwing behavior](throwing.md)
 - [Spelunky whip behavior and HD animation](whip.md)
 
