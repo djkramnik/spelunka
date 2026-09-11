@@ -26,6 +26,7 @@ function assertEqual<Value>(
 type EventType = 'keydown' | 'keyup';
 type KeyboardReceiver = Entity & {
     pickupOrThrow(): Entity | null;
+    useAction(): Entity | null;
     turbo(state: KeyState): void;
 };
 
@@ -75,10 +76,20 @@ receiver.addTrait(killable);
 receiver.addTrait(lookUp);
 
 let pickupOrThrowCalls = 0;
+let useActionCalls = 0;
+let whipCalls = 0;
 const turboStates: KeyState[] = [];
 receiver.pickupOrThrow = (): Entity | null => {
     pickupOrThrowCalls++;
     return carrier.pickupOrThrow(receiver);
+};
+receiver.useAction = (): Entity | null => {
+    useActionCalls++;
+    if (carrier.carried !== null || crouch.downHeld) {
+        return receiver.pickupOrThrow();
+    }
+    whipCalls++;
+    return null;
 };
 receiver.turbo = (state: KeyState): void => {
     turboStates.push(state);
@@ -88,32 +99,34 @@ const router = setupKeyboard(target);
 router.addReceiver(receiver);
 
 assertEqual(dispatch('keyup', 'KeyD'), true, 'D release prevents browser default');
-assertEqual(pickupOrThrowCalls, 0, 'D release does not invoke hand action');
+assertEqual(useActionCalls, 0, 'D release does not invoke the player action');
 
 assertEqual(dispatch('keydown', 'KeyD'), true, 'D press prevents browser default');
-assertEqual(pickupOrThrowCalls, 1, 'D press invokes pickup-or-throw');
-assertEqual(carrier.carried, null, 'D press without candidate has no effect');
+assertEqual([useActionCalls, whipCalls], [1, 1], 'Bare D invokes the whip action');
+assertEqual(pickupOrThrowCalls, 0, 'Bare D does not attempt a pickup');
 
 dispatch('keydown', 'KeyD');
-assertEqual(pickupOrThrowCalls, 1, 'Held D does not repeat hand action');
+assertEqual(useActionCalls, 1, 'Held D does not repeat the whip action');
 dispatch('keyup', 'KeyD');
-assertEqual(pickupOrThrowCalls, 1, 'D release remains a no-op');
+assertEqual(useActionCalls, 1, 'D release remains a no-op');
 
 const shell = new Entity();
 shell.addTrait(new Pickable());
 carrier.update(receiver, {} as GameContext, {} as Level);
 carrier.collides(receiver, shell);
+dispatch('keydown', 'ArrowDown');
 dispatch('keydown', 'KeyD');
-assertEqual(pickupOrThrowCalls, 2, 'D press invokes eligible pickup');
-assertEqual(carrier.carried === shell, true, 'D press picks up eligible shell');
+assertEqual(pickupOrThrowCalls, 1, 'Down plus D invokes eligible pickup');
+assertEqual(carrier.carried === shell, true, 'Down plus D picks up eligible shell');
 
 dispatch('keydown', 'KeyD');
-assertEqual(pickupOrThrowCalls, 2, 'Held D after pickup does not repeat');
+assertEqual(pickupOrThrowCalls, 1, 'Held D after pickup does not repeat');
 dispatch('keyup', 'KeyD');
 assertEqual(carrier.carried === shell, true, 'D release does not drop shell');
+dispatch('keyup', 'ArrowDown');
 receiver.vel.x = 30;
 dispatch('keydown', 'KeyD');
-assertEqual(pickupOrThrowCalls, 3, 'Later D press invokes throw action');
+assertEqual(pickupOrThrowCalls, 2, 'D with a carried item invokes throw action');
 assertEqual(carrier.carried, null, 'Later D press releases carried shell');
 assertEqual(
     shell.traits.get(Pickable).carrier,
@@ -173,6 +186,7 @@ assertEqual(
     [
         jump.requestTime,
         turboStates,
+        useActionCalls,
         pickupOrThrowCalls,
         go.dir,
         ladderClimb.verticalDirection,
@@ -180,8 +194,8 @@ assertEqual(
         lookUp.upHeld,
         crouch.downHeld,
     ],
-    [0, [1, 0], 3, 0, 0, 0, false, false],
+    [0, [1, 0], 3, 2, 0, 0, 0, false, false],
     'Dead players ignore movement and action presses',
 );
 
-console.log('Keyboard pickup and throw input regression passed');
+console.log('Keyboard whip, pickup, and throw input regression passed');

@@ -30,6 +30,7 @@ engine ticks. Timed Spelunka states convert those values at 60 ticks per second.
 | ladder cling | 4 | 72 | 1 tick | Static |
 | ladder climb | 5 | 72-77 | 4 ticks | 1/15 second per frame while moving, looping |
 | throw | 8 | 54-58 | 4 ticks | 1/15 second per frame, non-looping |
+| whip | 17 | 48-53 | 4 ticks | 1/15 second per frame, non-looping |
 | ordinary hit | 18 (opening) | 36-37 | 4 ticks | Brief arms-back recoil sequence, non-looping |
 | settled unconscious | 9 | 9 | 1 tick | Static after dead-body physics settle |
 | airborne dead body | 33 | 103 | 1 tick | Static curled pose during launch and rebounds |
@@ -40,7 +41,7 @@ acceleration and a separate turbo speed. Eight frames at 3 logical pixels each
 preserve the previous 24-pixel gait cycle while replacing the sparse three- or
 four-frame sampling. Turbo naturally advances the same source gait faster.
 
-Rise, fall, ledge climb, skid, and throw use a visual-state clock. Changing visual state
+Rise, fall, ledge climb, skid, throw, and whip use a visual-state clock. Changing visual state
 resets its clock; non-looping records hold their terminal frame. The clock does
 not gate movement, jumping, pickup, throwing, damage, or collision behavior.
 
@@ -55,7 +56,7 @@ Rather than guess, carrying continues to reuse the matching base poses:
 - terminal death uses frame 103 while its body is moving and frame 9 after it
   has physically settled. Recoverable stun animation remains future work.
 
-Focused tests cover the complete 100-name frame catalogue, dense distance-based
+Focused tests cover the complete 115-name frame catalogue, dense distance-based
 movement, state-clock advancement, terminal-frame clamping, facing and pivot
 stability, exact source-pixel preservation, deterministic repacking, and the
 unchanged 14x16 player collider. Final visual quality remains a user play-review

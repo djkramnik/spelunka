@@ -22,6 +22,9 @@ import PlayerHit, {
 } from '../traits/PlayerHit.js';
 import Pickable from '../traits/Pickable.js';
 import Physics from '../traits/Physics.js';
+import Whip, {
+    SPELUNKY_WHIP_STARTUP_TIME,
+} from '../traits/Whip.js';
 import {
     createMarioFactory,
     PLAYER_FRAME_NAMES,
@@ -65,6 +68,7 @@ const sprite = {
             'ladder-climb': 6,
             'carry-run': 8,
             throw: 5,
+            whip: 6,
             'reaction-hit': 2,
         };
         const frameCount = frameCounts[name];
@@ -86,6 +90,7 @@ const sprite = {
             'ledge-climb',
             'ladder-climb',
             'throw',
+            'whip',
             'reaction-hit',
         ].includes(name);
         return createAnim(
@@ -109,6 +114,7 @@ const sprite = {
                 'ledge-hang',
                 'ledge-climb',
                 'throw',
+                'whip',
                 'reaction-hit',
             ].includes(name),
         );
@@ -138,6 +144,7 @@ const playerDeath = mario.traits.get(PlayerDeath);
 const playerHit = mario.traits.get(PlayerHit);
 const lookUp = mario.traits.get(LookUp);
 const physics = mario.traits.get(Physics);
+const whip = mario.traits.get(Whip);
 const animationClock = mario as typeof mario & {
     animationState: string;
     animationStateTime: number;
@@ -159,6 +166,40 @@ assertEqual(
 );
 
 assertEqual(draw(), 'idle', 'Idle frame');
+assertEqual(mario.useAction(), null, 'Bare action starts an empty-hand whip');
+assertEqual(draw(), 'whip-1', 'Whip begins on the first HD attack frame');
+assertEqual(
+    draws.at(-1),
+    {name: 'whip-1', pivotX: 7, pivotY: 16, flip: false},
+    'Right-facing whip uses the player pivot and preserves source orientation',
+);
+whip.time = SPELUNKY_WHIP_STARTUP_TIME;
+assertEqual(draw(), 'whip-6', 'Whip strike uses the terminal HD attack frame');
+whip.interrupt();
+go.heading = -1;
+assertEqual(mario.useAction(), null, 'A completed whip can start facing left');
+assertEqual(draw(), 'whip-1', 'Left whip uses the same HD animation strip');
+assertEqual(
+    draws.at(-1),
+    {name: 'whip-1', pivotX: 7, pivotY: 16, flip: true},
+    'Left-facing whip mirrors around the same player pivot',
+);
+whip.interrupt();
+go.heading = 1;
+const actionPickup = new Entity();
+actionPickup.addTrait(new Pickable());
+carrier.collides(mario, actionPickup);
+assertEqual(mario.useAction(), null, 'Bare D still whips beside a pickup candidate');
+assertEqual(carrier.carried, null, 'Pickup candidates require Down plus D');
+whip.interrupt();
+crouch.downHeld = true;
+assertEqual(
+    mario.useAction(),
+    actionPickup,
+    'Down plus D routes to pickup instead of starting another whip',
+);
+carrier.drop(mario);
+crouch.downHeld = false;
 physics.grounded = true;
 lookUp.setUp(true);
 lookUp.update(
@@ -622,7 +663,7 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    109,
+    115,
     'The expanded HD player frame catalogue remains explicit',
 );
 

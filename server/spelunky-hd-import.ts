@@ -64,6 +64,7 @@ export interface ImportResult {
     readonly hudSpecPath: string;
     readonly snakebiteSoundPath: string;
     readonly throwSoundPath: string;
+    readonly whipSoundPath: string;
     readonly reportPath: string;
 }
 
@@ -126,6 +127,7 @@ const LEDGE_FLIP_SOURCE_FRAMES = [34, 33, 32, 31, 30, 29, 28] as const;
 const LADDER_CLIMB_SOURCE_FRAMES = [72, 73, 74, 75, 76, 77] as const;
 const HIT_REACTION_SOURCE_FRAMES = [36, 37] as const;
 const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
+const WHIP_SOURCE_FRAMES = [48, 49, 50, 51, 52, 53] as const;
 
 const MINE_BACKGROUND_DECORATIONS = [
     {source: [0, 0], destination: [64, 64]},
@@ -170,6 +172,7 @@ const PLAYER_FRAME_SOURCES = [
     ['carry-jump', 111] as const,
     ['carry-fall', 115] as const,
     ...namedFrames('throw', THROW_SOURCE_FRAMES),
+    ...namedFrames('whip', WHIP_SOURCE_FRAMES),
     ...namedFrames('reaction-hit', HIT_REACTION_SOURCE_FRAMES),
     ['reaction-airborne', 103],
     ['reaction-unconscious', 9],
@@ -194,6 +197,7 @@ const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [27, [96, 99]],
     [28, [99, 102]],
     [8, [54, 58]],
+    [17, [48, 53]],
     [9, [9, 9]],
     [33, [103, 103]],
     [6, [14, 14]],
@@ -279,6 +283,11 @@ export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
             group: 'ALLSOUNDS',
             name: 'throw_item.wav',
             sha256: 'ef777ca18fa59fadd542fdfb2c33c1e738f427e843eaa450554b84bf2d21a081',
+        },
+        {
+            group: 'ALLSOUNDS',
+            name: 'whip.wav',
+            sha256: '04e53f38230fb81b46e9accb67245e3c607b91ad372eb0b1efd27dee77c10a46',
         },
     ],
 };
@@ -429,6 +438,12 @@ function validatePlayerAnimations(sections: readonly (readonly AnimationRecord[]
         || hitReaction.terminalFrame !== 36) {
         throw new Error(
             'Unsupported HD hit-reaction timing; expected animation 18 to begin with frames 36-37 at four ticks per frame',
+        );
+    }
+    const whip = byId.get(17);
+    if (whip?.frameLength !== 4 || whip.terminalFrame !== 53) {
+        throw new Error(
+            'Unsupported HD whip timing; expected animation 17 to use frames 48-53 at four ticks per frame',
         );
     }
     const lookUp = byId.get(11);
@@ -712,6 +727,13 @@ export function createPlayerAssets(sourceData: Buffer): {
                 name: 'throw',
                 frameLen: 4 * HD_TICK_SECONDS,
                 frames: namedFrames('throw', THROW_SOURCE_FRAMES)
+                    .map(([name]) => name),
+                loop: false,
+            },
+            {
+                name: 'whip',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('whip', WHIP_SOURCE_FRAMES)
                     .map(([name]) => name),
                 loop: false,
             },
@@ -1377,6 +1399,24 @@ export async function importSpelunkyHd(
     ensureParent(throwSoundPath);
     writeFileSync(throwSoundPath, throwSoundSource.data);
 
+    const whipSoundSource = selectedSounds.find(
+        entry => entry.key === 'ALLSOUNDS/whip.wav',
+    );
+    if (whipSoundSource === undefined) {
+        throw new Error(
+            'Import profile does not contain ALLSOUNDS/whip.wav',
+        );
+    }
+    const whipSoundPath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'whip.wav',
+    );
+    ensureParent(whipSoundPath);
+    writeFileSync(whipSoundPath, whipSoundSource.data);
+
     const reportPath = join(
         outputRoot,
         '.local',
@@ -1449,6 +1489,10 @@ export async function importSpelunkyHd(
                 path: 'public/generated/spelunky-hd/throw_item.wav',
                 sha256: sha256(throwSoundSource.data),
             },
+            {
+                path: 'public/generated/spelunky-hd/whip.wav',
+                sha256: sha256(whipSoundSource.data),
+            },
         ],
     });
 
@@ -1464,6 +1508,7 @@ export async function importSpelunkyHd(
         hudSpecPath,
         snakebiteSoundPath,
         throwSoundPath,
+        whipSoundPath,
         reportPath,
     };
 }

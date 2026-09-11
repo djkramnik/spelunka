@@ -40,7 +40,7 @@ function makePlayerPng(): Buffer {
     });
     image.data.fill(0);
     const frames = [
-        0, 1, 3, 5, 7, 9, 36, 37, 58, 103, 111, 115,
+        0, 1, 3, 5, 7, 9, 36, 37, 48, 49, 50, 51, 52, 53, 58, 103, 111, 115,
     ];
     for (const frame of frames) {
         const x = (frame % 12) * 80 + 10;
@@ -249,6 +249,7 @@ const animationText = [
     '* 4 72 72 1 72 0',
     '* 5 72 77 4 72 0',
     '* 8 54 58 4 58 0',
+    '* 17 48 53 4 53 0',
     '* 9 9 9 1 9 0',
     '* 29 78 83 4 78 0',
     '* 33 103 103 1 103 0',
@@ -390,6 +391,7 @@ try {
     const wixPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad.wix');
     const snakebiteSound = Buffer.from('synthetic snake bite wave');
     const throwSound = Buffer.from('synthetic throw item wave');
+    const whipSound = Buffer.from('synthetic whip wave');
     const soundWadPath = join(
         sourceRoot,
         'Data',
@@ -410,13 +412,14 @@ try {
     );
     write(wadPath, wad);
     write(wixPath, wix);
-    write(soundWadPath, Buffer.concat([snakebiteSound, throwSound]));
+    write(soundWadPath, Buffer.concat([snakebiteSound, throwSound, whipSound]));
     write(
         soundWixPath,
         [
             '!group ALLSOUNDS',
             `snakebite.wav 0 ${snakebiteSound.length}`,
             `throw_item.wav ${snakebiteSound.length} ${throwSound.length}`,
+            `whip.wav ${snakebiteSound.length + throwSound.length} ${whipSound.length}`,
             '',
         ].join('\r\n'),
     );
@@ -441,6 +444,10 @@ try {
             group: 'ALLSOUNDS',
             name: 'throw_item.wav',
             sha256: sha256(throwSound),
+        }, {
+            group: 'ALLSOUNDS',
+            name: 'whip.wav',
+            sha256: sha256(whipSound),
         }],
     };
     const result = await importSpelunkyHd({sourceRoot, outputRoot, profile});
@@ -454,13 +461,14 @@ try {
     const firstHudSpec = readFileSync(result.hudSpecPath);
     const firstSnakebiteSound = readFileSync(result.snakebiteSoundPath);
     const firstThrowSound = readFileSync(result.throwSoundPath);
+    const firstWhipSound = readFileSync(result.whipSoundPath);
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 1120]);
+    assert.deepEqual([generated.width, generated.height], [400, 1200]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 109);
+    assert.equal(spec.frames.length, 115);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -548,6 +556,23 @@ try {
             loop: false,
         },
         'Throw animation uses the complete non-looping HD source record',
+    );
+    assert.deepEqual(
+        animation('whip'),
+        {
+            name: 'whip',
+            frameLen: 4 / 60,
+            frames: ['whip-1', 'whip-2', 'whip-3', 'whip-4', 'whip-5', 'whip-6'],
+            loop: false,
+        },
+        'Whip animation uses the complete non-looping HD animation 17 record',
+    );
+    const whipFrame = spec.frames.find(frame => frame.name === 'whip-6');
+    assert.ok(whipFrame);
+    assert.deepEqual(
+        whipFrame.pivot,
+        [40, 72],
+        'The terminal HD whip frame retains the shared bottom-center pivot',
     );
     assert.deepEqual(
         animation('reaction-hit'),
@@ -726,6 +751,23 @@ try {
         firstThrowSound,
         throwSound,
         'The generated throw effect preserves its source bytes',
+    );
+    assert.deepEqual(
+        readFileSync(join(
+            outputRoot,
+            '.local',
+            'spelunky-hd',
+            'source',
+            'ALLSOUNDS',
+            'whip.wav',
+        )),
+        whipSound,
+        'The allow-listed HD whip source is copied unchanged',
+    );
+    assert.deepEqual(
+        firstWhipSound,
+        whipSound,
+        'The generated whip effect preserves its source bytes',
     );
 
     const enemyImage = readFileSync(result.enemyImagePath);
@@ -937,6 +979,7 @@ try {
         firstSnakebiteSound,
     );
     assert.deepEqual(readFileSync(result.throwSoundPath), firstThrowSound);
+    assert.deepEqual(readFileSync(result.whipSoundPath), firstWhipSound);
     assert.deepEqual(readFileSync(result.reportPath), firstReport);
 
     const badProfile: ImportProfile = {...profile, wadSha256: '0'.repeat(64)};
@@ -971,6 +1014,20 @@ try {
     await assert.rejects(
         importSpelunkyHd({sourceRoot, outputRoot, profile: badLookUpProfile}),
         /Unsupported HD look-up timing/,
+    );
+
+    const unsupportedWhipAnimations = animationText.replace(
+        '* 17 48 53 4 53 0',
+        '* 17 48 53 3 53 0',
+    );
+    write(animationsPath, unsupportedWhipAnimations);
+    const badWhipProfile: ImportProfile = {
+        ...profile,
+        animationsSha256: await sha256File(animationsPath),
+    };
+    await assert.rejects(
+        importSpelunkyHd({sourceRoot, outputRoot, profile: badWhipProfile}),
+        /Unsupported HD whip timing/,
     );
 
     const unsupportedSnakeAnimations = animationText.replace(

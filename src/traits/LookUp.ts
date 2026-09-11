@@ -13,6 +13,7 @@ import LedgeTeeter from './LedgeTeeter.js';
 import Physics from './Physics.js';
 import PlayerDeath from './PlayerDeath.js';
 import PlayerHit from './PlayerHit.js';
+import Whip from './Whip.js';
 
 const HD_TICK_SECONDS = 1 / 60;
 const POSITION_EPSILON = 1e-9;
@@ -74,6 +75,7 @@ export default class LookUp extends Trait {
             && entity.traits.get(Go).dir === 0
             && entity.vel.x === 0
             && entity.vel.y === 0
+            && (!entity.traits.has(Whip) || !entity.traits.get(Whip).active)
             && throwFrameTime <= 0;
     }
 

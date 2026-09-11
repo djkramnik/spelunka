@@ -32,13 +32,14 @@ or the player image is too small.
 
 All outputs are ignored by Git:
 
-- `.local/spelunky-hd/source/` contains only the nine allow-listed source
-  entries used by the player, enemy, terrain, HUD, and snake contact behavior;
+- `.local/spelunky-hd/source/` contains only the eleven allow-listed source
+  entries used by the player, enemy, terrain, HUD, item, and attack behavior;
 - `.local/spelunky-hd/import-report.json` records input, selected-entry, and
   generated-output hashes plus the numeric player and snake animation records;
-- `public/generated/spelunky-hd/player.png` is a deterministic 400x1040 RGBA
-  sheet containing 61 unique, unchanged 80x80 source cells, including HD's
-  airborne dead-body frame 103 and settled unconscious frame 9; and
+- `public/generated/spelunky-hd/player.png` is a deterministic 400x1200 RGBA
+  sheet containing 74 unique, unchanged 80x80 source cells, including HD's
+  complete whip strip, airborne dead-body frame 103, and settled unconscious
+  frame 9; and
 - `public/sprites/generated/spelunky-hd/player.json` maps that sheet to every
   frame and animation name required by the current player loader;
 - `public/generated/spelunky-hd/snake.png` is a deterministic 1440x80 RGBA
@@ -56,6 +57,8 @@ All outputs are ignored by Git:
   Per-frame scales present both at 14.4 logical pixels.
 - `public/generated/spelunky-hd/snakebite.wav` is the unchanged 44.1 kHz mono
   HD contact effect selected specifically for accepted snake damage.
+- `public/generated/spelunky-hd/throw_item.wav` and `whip.wav` are unchanged
+  HD action effects used by carried-item release and the whip strike.
 
 The generated player metadata is loadable with:
 
@@ -101,6 +104,8 @@ entry path components, and reads only these allow-listed entries from the WAD:
 - `ANYLEVEL/playerhudPRO.png`
 - `ATSTART/hudicons.png`
 - `ALLSOUNDS/snakebite.wav`
+- `ALLSOUNDS/throw_item.wav`
+- `ALLSOUNDS/whip.wav`
 
 The importer copies WAV bytes unchanged. The PNG repack copies RGBA pixels
 exactly, including partial alpha. Fixed PNG encoder settings and stable JSON

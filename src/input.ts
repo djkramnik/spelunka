@@ -21,7 +21,7 @@ interface InputTraits {
 
 interface KeyboardControlledEntity {
     traits: InputTraits;
-    pickupOrThrow(): void;
+    useAction(): void;
     turbo(state: KeyState): void;
 }
 
@@ -55,7 +55,7 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
         if (keyState) {
             router.route(entity => {
                 if (!entity.traits.get(Killable).dead) {
-                    entity.pickupOrThrow();
+                    entity.useAction();
                 }
             });
         }

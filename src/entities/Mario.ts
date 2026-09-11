@@ -21,6 +21,7 @@ import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit from '../traits/PlayerHit.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
+import Whip from '../traits/Whip.js';
 
 const SLOW_DRAG = 1 / 1000;
 const FAST_DRAG = 1 / 5000;
@@ -135,6 +136,12 @@ export const PLAYER_FRAME_NAMES = [
     'throw-3',
     'throw-4',
     'throw-5',
+    'whip-1',
+    'whip-2',
+    'whip-3',
+    'whip-4',
+    'whip-5',
+    'whip-6',
     'reaction-hit-1',
     'reaction-hit-2',
     'reaction-airborne',
@@ -168,12 +175,14 @@ type PlayerAnimationState =
     | 'carry-jump'
     | 'carry-fall'
     | 'throw'
+    | 'whip'
     | 'hit'
     | 'dead';
 
 export type Mario = Entity & {
     pickup(): Entity | null;
     pickupOrThrow(): Entity | null;
+    useAction(): Entity | null;
     turbo(state: boolean | KeyState): void;
 };
 
@@ -211,6 +220,7 @@ export function createMarioFactory(
     const ladderClimbAnimation = sprite.getAnimation('ladder-climb');
     const carryRunAnimation = sprite.getAnimation('carry-run');
     const throwAnimation = sprite.getAnimation('throw');
+    const whipAnimation = sprite.getAnimation('whip');
     const hitAnimation = sprite.getAnimation('reaction-hit');
 
     function routeAnimationState(mario: MarioEntity): PlayerAnimationState {
@@ -225,6 +235,7 @@ export function createMarioFactory(
         const playerDeath = mario.traits.get(PlayerDeath);
         const playerHit = mario.traits.get(PlayerHit);
         const lookUp = mario.traits.get(LookUp);
+        const whip = mario.traits.get(Whip);
 
         if (killable.dead || playerDeath.terminal) {
             return 'dead';
@@ -256,6 +267,10 @@ export function createMarioFactory(
 
         if (mario.throwFrameTime > 0) {
             return 'throw';
+        }
+
+        if (whip.active) {
+            return 'whip';
         }
 
         if (crouch.phase === 'entering') {
@@ -334,6 +349,8 @@ export function createMarioFactory(
                 return hitAnimation(playerHit.time) as PlayerFrameName;
             case 'throw':
                 return throwAnimation(stateTime) as PlayerFrameName;
+            case 'whip':
+                return whipAnimation(mario.traits.get(Whip).time) as PlayerFrameName;
             case 'carry-run':
                 return carryRunAnimation(go.distance) as PlayerFrameName;
             case 'skid':
@@ -406,6 +423,7 @@ export function createMarioFactory(
             // Follow after attachment traits so a carried item observes a
             // same-frame ladder move or newly entered ledge orientation.
             this.addTrait(new Carrier());
+            this.addTrait(new Whip());
             // Observe all movement, attachment, and carrying states before
             // deciding whether this frame remains eligible for look-up.
             this.addTrait(new LookUp());
@@ -475,6 +493,16 @@ export function createMarioFactory(
             return result;
         }
 
+        useAction(): Entity | null {
+            const carrier = this.traits.get(Carrier);
+            const crouch = this.traits.get(Crouch);
+            if (carrier.carried !== null || crouch.downHeld) {
+                return this.pickupOrThrow();
+            }
+            this.traits.get(Whip).start(this);
+            return null;
+        }
+
         override update(gameContext: GameContext, level: Level): void {
             super.update(gameContext, level);
             this.throwFrameTime = Math.max(
@@ -497,6 +525,7 @@ export function createMarioFactory(
             const playerDeath = this.traits.get(PlayerDeath);
             const playerHit = this.traits.get(PlayerHit);
             const health = this.traits.get(Health);
+            const whip = this.traits.get(Whip);
             const previousAlpha = context.globalAlpha;
             if (health.invulnerable && !playerDeath.terminal) {
                 const oscillation = (
@@ -536,6 +565,8 @@ export function createMarioFactory(
                         ? ledgeTeeter.side < 0
                     : crouch.phase === 'flipping'
                             ? crouch.flipDirection > 0
+                        : whip.active
+                            ? whip.direction < 0
                         : this.traits.get(Go).heading < 0,
                 );
             } finally {

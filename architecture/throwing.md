@@ -6,9 +6,9 @@ reference, not as code to copy into this project.
 
 ## The basic throw
 
-The attack button has two meanings. With empty hands, it attacks or picks up a
-nearby item while the player is crouching. With an ordinary item in hand, it
-releases and throws that item.
+The attack button has three context-sensitive meanings. With empty hands, D
+whips. Down+D attempts to pick up a nearby item (or places a carried item while
+grounded). With an ordinary item in hand, D releases and throws that item.
 
 A normal throw has these visible qualities:
 

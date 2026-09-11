@@ -80,6 +80,7 @@ async function main(): Promise<void> {
         console.log(`HUD metadata: ${result.hudSpecPath}`);
         console.log(`Snake-bite WAV: ${result.snakebiteSoundPath}`);
         console.log(`Throw-item WAV: ${result.throwSoundPath}`);
+        console.log(`Whip WAV: ${result.whipSoundPath}`);
         console.log(`Import report: ${result.reportPath}`);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

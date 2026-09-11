@@ -11,6 +11,7 @@
 - [Spelunky crouch, crawl, and top-to-hang transition](crouch-crawl.md)
 - [Spelunky Classic snake behavior and animation](snake.md)
 - [Spelunky Classic throwing behavior](throwing.md)
+- [Spelunky whip behavior and HD animation](whip.md)
 
 ## Interactive review
 
@@ -240,8 +241,8 @@ After startup, `setupKeyboard()` adds `keydown` and `keyup` listeners to
   input.
 - `KeyZ`: start a jump on press and cancel or shorten it on release.
 - `KeyX`: enable turbo movement while held and disable it on release.
-- `KeyD`: pick up an eligible overlapping entity on press. Release does not
-  drop or throw a carried entity.
+- `KeyD`: whip with empty hands, use or throw a carried item, or pick up/place
+  an item when combined with Down. Release does not repeat the action.
 
 Keyboard state is tracked by physical `KeyboardEvent.code`, rather than the
 character produced by a keyboard layout. For mapped controls, the handler
