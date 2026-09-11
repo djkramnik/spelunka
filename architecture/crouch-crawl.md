@@ -1,6 +1,6 @@
 # Spelunky crouch, crawl, and top-to-hang transition
 
-Beads tasks: `spelunka-r54.35`, `spelunka-r54.41`
+Beads tasks: `spelunka-r54.35`, `spelunka-r54.40`, `spelunka-r54.41`
 
 ## Classic behavior reference
 
@@ -39,6 +39,14 @@ grounded posture. Carrying no longer blocks the crouch or crawl states: the
 ordinary crouch and crawl records remain authoritative while the item stays in
 front of the player. Damage, airborne movement, and ledge hanging restore the
 standing collider as soon as clearance permits.
+
+Holding a stationary crouch for 0.5 seconds deliberately pans the camera down
+by up to four tiles at 120 logical pixels per second. Releasing Down restores
+ordinary framing at the same rate. Horizontal input or residual crawl motion,
+jumping, ladder or ledge attachment, Up input, hit reaction, unconsciousness,
+and death reset the hold delay and restore the camera. The pan is applied after
+ordinary following and clamps to the level floor, so it never changes player
+movement, collision, or the existing crouch animation.
 
 ## HD animation mapping
 

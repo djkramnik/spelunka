@@ -1,7 +1,9 @@
 import Entity from './Entity.js';
 import Level, {focusPlayer} from './Level.js';
 import {makePlayer} from './player.js';
-import Crouch from './traits/Crouch.js';
+import Crouch, {
+    SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE,
+} from './traits/Crouch.js';
 import LookUp, {
     SPELUNKY_LOOK_UP_CAMERA_DISTANCE,
 } from './traits/LookUp.js';
@@ -137,6 +139,37 @@ focusPlayer(lookLevel);
 assertEqual(lookLevel.camera.pos.y, 0, 'Upward look clamps at the level ceiling');
 focusPlayer(lookLevel);
 assertEqual(lookLevel.camera.pos.y, 0, 'Ceiling clamp remains stable across frames');
+
+const downLevel = new Level();
+downLevel.setDimensions(30, 30);
+const downMario = new Entity();
+downMario.size.set(14, 10);
+downMario.pos.set(200, 246);
+const downCrouch = new Crouch();
+downMario.addTrait(downCrouch);
+makePlayer(downMario, 'MARIO');
+downLevel.entities.add(downMario);
+focusPlayer(downLevel);
+assertEqual(downLevel.camera.pos.y, 92, 'Downward-look test starts at ordinary framing');
+downCrouch.cameraOffset = SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE / 2;
+focusPlayer(downLevel);
+assertEqual(
+    downLevel.camera.pos.y,
+    124,
+    'Partial crouch-look offset pans down without accumulating between frames',
+);
+downCrouch.cameraOffset = SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE;
+focusPlayer(downLevel);
+assertEqual(downLevel.camera.pos.y, 156, 'Full crouch look reaches four tiles downward');
+downCrouch.cameraOffset = 0;
+focusPlayer(downLevel);
+assertEqual(downLevel.camera.pos.y, 92, 'Removing crouch-look offset restores ordinary framing');
+downMario.pos.y = 438;
+downCrouch.cameraOffset = SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE;
+focusPlayer(downLevel);
+assertEqual(downLevel.camera.pos.y, 300, 'Downward look clamps at the level floor');
+focusPlayer(downLevel);
+assertEqual(downLevel.camera.pos.y, 300, 'Floor clamp remains stable across frames');
 
 const drawEvents: string[] = [];
 const videoContext = {

@@ -6,8 +6,12 @@ import Trait from '../Trait.js';
 import Go from './Go.js';
 import Jump from './Jump.js';
 import Killable from './Killable.js';
+import LadderClimb from './LadderClimb.js';
 import LedgeHang from './LedgeHang.js';
+import LookUp from './LookUp.js';
 import Physics from './Physics.js';
+import PlayerDeath from './PlayerDeath.js';
+import PlayerHit from './PlayerHit.js';
 
 export const SPELUNKY_CROUCH_HEIGHT = 10;
 export const SPELUNKY_STANDING_HEIGHT = 16;
@@ -16,6 +20,9 @@ export const SPELUNKY_CRAWL_SPEED = 0.75 * 30;
 export const SPELUNKY_CRAWL_ACCELERATION = 450;
 export const SPELUNKY_LEDGE_FLIP_TIME = 28 / 60;
 export const SPELUNKY_LEDGE_FLIP_SETTLE_TIME = 4 / 60;
+export const SPELUNKY_CROUCH_LOOK_CAMERA_DELAY = 0.5;
+export const SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE = 4 * 16;
+export const SPELUNKY_CROUCH_LOOK_CAMERA_SPEED = 2 * 60;
 
 const HEADROOM_INSET = 0.5;
 const TOP_FLIP_MAX_SPEED = 3 * 30;
@@ -42,6 +49,8 @@ export default class Crouch extends Trait {
     readonly transitionOffset = new Vec2(0, 0);
     transitionAnchorActive = false;
     private transitionAnchorTime = 0;
+    private cameraHoldTime = 0;
+    cameraOffset = 0;
 
     get active(): boolean {
         return this.phase === 'entering'
@@ -51,6 +60,45 @@ export default class Crouch extends Trait {
 
     setDown(pressed: boolean): void {
         this.downHeld = pressed;
+    }
+
+    private isCameraLookAvailable(entity: Entity): boolean {
+        const jump = entity.traits.get(Jump);
+        return this.downHeld
+            && (this.phase === 'entering' || this.phase === 'crouched')
+            && !entity.traits.get(Killable).dead
+            && (!entity.traits.has(PlayerDeath)
+                || !entity.traits.get(PlayerDeath).terminal)
+            && (!entity.traits.has(PlayerHit)
+                || !entity.traits.get(PlayerHit).active)
+            && (!entity.traits.has(LadderClimb)
+                || !entity.traits.get(LadderClimb).active)
+            && !entity.traits.get(LedgeHang).active
+            && (!entity.traits.has(LookUp)
+                || !entity.traits.get(LookUp).upHeld)
+            && jump.phase === 'grounded'
+            && jump.requestTime <= 0
+            && entity.traits.get(Physics).grounded
+            && entity.traits.get(Go).dir === 0
+            && entity.vel.x === 0
+            && entity.vel.y === 0;
+    }
+
+    private updateCameraLook(entity: Entity, deltaTime: number): void {
+        const available = this.isCameraLookAvailable(entity);
+        this.cameraHoldTime = available
+            ? this.cameraHoldTime + deltaTime
+            : 0;
+        const targetOffset = available
+            && this.cameraHoldTime + 1e-9
+                >= SPELUNKY_CROUCH_LOOK_CAMERA_DELAY
+            ? SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE
+            : 0;
+        this.cameraOffset = approach(
+            this.cameraOffset,
+            targetOffset,
+            SPELUNKY_CROUCH_LOOK_CAMERA_SPEED * deltaTime,
+        );
     }
 
     settleFromLedge(
@@ -245,73 +293,77 @@ export default class Crouch extends Trait {
         const ledgeHang = entity.traits.get(LedgeHang);
         const unavailable = entity.traits.get(Killable).dead;
 
-        if (this.phase === 'flipping') {
-            entity.vel.set(0, 0);
-            this.phaseTime += deltaTime;
-            if (unavailable) {
-                this.finishFlip(entity, level);
-            } else if (this.phaseTime + 1e-9 >= SPELUNKY_LEDGE_FLIP_TIME) {
-                this.finishFlip(entity, level);
-            }
-            return;
-        }
-
-        if (ledgeHang.active) {
-            if (ledgeHang.climbIntoCrawl) {
-                this.beginLedgeEntry(entity);
+        try {
+            if (this.phase === 'flipping') {
+                entity.vel.set(0, 0);
+                this.phaseTime += deltaTime;
+                if (unavailable) {
+                    this.finishFlip(entity, level);
+                } else if (this.phaseTime + 1e-9 >= SPELUNKY_LEDGE_FLIP_TIME) {
+                    this.finishFlip(entity, level);
+                }
                 return;
             }
-            this.setHeight(entity, SPELUNKY_STANDING_HEIGHT);
-            this.phase = 'standing';
-            this.phaseTime = 0;
-            this.flipDirection = 0;
-            go.enabled = true;
-            return;
-        }
 
-        if (!physics.grounded) {
-            if (this.active) {
-                this.forceAirborneExit(entity, level);
+            if (ledgeHang.active) {
+                if (ledgeHang.climbIntoCrawl) {
+                    this.beginLedgeEntry(entity);
+                    return;
+                }
+                this.setHeight(entity, SPELUNKY_STANDING_HEIGHT);
+                this.phase = 'standing';
+                this.phaseTime = 0;
+                this.flipDirection = 0;
+                go.enabled = true;
+                return;
             }
-            go.enabled = true;
-            return;
-        }
 
-        if (this.phase === 'standing' || this.phase === 'exiting') {
-            go.enabled = true;
-            if (this.downHeld && !unavailable) {
-                this.enter(entity);
-            } else if (this.phase === 'exiting') {
+            if (!physics.grounded) {
+                if (this.active) {
+                    this.forceAirborneExit(entity, level);
+                }
+                go.enabled = true;
+                return;
+            }
+
+            if (this.phase === 'standing' || this.phase === 'exiting') {
+                go.enabled = true;
+                if (this.downHeld && !unavailable) {
+                    this.enter(entity);
+                } else if (this.phase === 'exiting') {
+                    this.phaseTime += deltaTime;
+                    if (this.phaseTime + 1e-9 >= SPELUNKY_CROUCH_TRANSITION_TIME) {
+                        this.phase = 'standing';
+                        this.phaseTime = 0;
+                    }
+                }
+                return;
+            }
+
+            if (unavailable || !this.downHeld || jump.requestTime > 0) {
+                if (this.canStand(entity, level)) {
+                    this.beginExit(entity);
+                } else if (jump.requestTime > 0) {
+                    jump.cancel();
+                }
+                return;
+            }
+
+            this.updateCrawl(entity, gameContext);
+            if (this.canStartFlip(entity, level)) {
+                this.beginFlip(entity);
+                return;
+            }
+
+            if (this.phase === 'entering') {
                 this.phaseTime += deltaTime;
                 if (this.phaseTime + 1e-9 >= SPELUNKY_CROUCH_TRANSITION_TIME) {
-                    this.phase = 'standing';
+                    this.phase = 'crouched';
                     this.phaseTime = 0;
                 }
             }
-            return;
-        }
-
-        if (unavailable || !this.downHeld || jump.requestTime > 0) {
-            if (this.canStand(entity, level)) {
-                this.beginExit(entity);
-            } else if (jump.requestTime > 0) {
-                jump.cancel();
-            }
-            return;
-        }
-
-        this.updateCrawl(entity, gameContext);
-        if (this.canStartFlip(entity, level)) {
-            this.beginFlip(entity);
-            return;
-        }
-
-        if (this.phase === 'entering') {
-            this.phaseTime += deltaTime;
-            if (this.phaseTime + 1e-9 >= SPELUNKY_CROUCH_TRANSITION_TIME) {
-                this.phase = 'crouched';
-                this.phaseTime = 0;
-            }
+        } finally {
+            this.updateCameraLook(entity, deltaTime);
         }
     }
 }

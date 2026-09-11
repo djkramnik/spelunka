@@ -43,10 +43,13 @@ export function focusPlayer(level: Level): void {
         const focusBottom = player.bounds.bottom + (transitionOffset?.y ?? 0);
         level.camera.pos.x = focusX - 100;
         if (player.traits.has(LookUp)) {
-            requestedLookOffsetY = Math.max(
-                requestedLookOffsetY,
-                player.traits.get(LookUp).cameraOffset,
-            );
+            const lookUpOffset = player.traits.get(LookUp).cameraOffset;
+            if (lookUpOffset > Math.abs(requestedLookOffsetY)) {
+                requestedLookOffsetY = lookUpOffset;
+            }
+        }
+        if (crouch && crouch.cameraOffset > Math.abs(requestedLookOffsetY)) {
+            requestedLookOffsetY = -crouch.cameraOffset;
         }
 
         const cameraTop = level.camera.pos.y + VERTICAL_CAMERA_TOP_MARGIN;

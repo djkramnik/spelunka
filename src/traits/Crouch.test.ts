@@ -7,6 +7,9 @@ import type SpriteSheet from '../SpriteSheet.js';
 import type {CollisionTile} from '../TileCollider.js';
 import Carrier from './Carrier.js';
 import Crouch, {
+    SPELUNKY_CROUCH_LOOK_CAMERA_DELAY,
+    SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE,
+    SPELUNKY_CROUCH_LOOK_CAMERA_SPEED,
     SPELUNKY_CRAWL_SPEED,
     SPELUNKY_CROUCH_HEIGHT,
     SPELUNKY_CROUCH_TRANSITION_TIME,
@@ -17,11 +20,15 @@ import Crouch, {
 import Go from './Go.js';
 import Jump from './Jump.js';
 import Killable from './Killable.js';
+import LadderClimb from './LadderClimb.js';
 import LedgeHang, {
     SPELUNKY_LEDGE_HANG_VERTICAL_OFFSET,
 } from './LedgeHang.js';
+import LookUp from './LookUp.js';
 import Physics from './Physics.js';
 import Pickable from './Pickable.js';
+import PlayerDeath from './PlayerDeath.js';
+import PlayerHit from './PlayerHit.js';
 import Solid from './Solid.js';
 
 function assertEqual<Value>(
@@ -73,6 +80,10 @@ function createFixture(): Fixture {
     entity.addTrait(killable);
     entity.addTrait(carrier);
     entity.addTrait(ledge);
+    entity.addTrait(new LadderClimb());
+    entity.addTrait(new LookUp());
+    entity.addTrait(new PlayerDeath());
+    entity.addTrait(new PlayerHit());
     return {entity, physics, go, jump, carrier, killable, crouch, ledge};
 }
 
@@ -115,6 +126,122 @@ assertEqual(
 );
 advanceCrouch(stationary, stationaryLevel, SPELUNKY_CROUCH_TRANSITION_TIME);
 assertEqual(stationary.crouch.phase, 'standing', 'HD crouch-out timing returns to standing');
+
+const downwardLook = createFixture();
+const downwardLookLevel = createLevel().level;
+downwardLook.crouch.setDown(true);
+downwardLook.crouch.update(
+    downwardLook.entity,
+    {deltaTime: SPELUNKY_CROUCH_TRANSITION_TIME} as GameContext,
+    downwardLookLevel,
+);
+downwardLook.crouch.update(
+    downwardLook.entity,
+    {
+        deltaTime: SPELUNKY_CROUCH_LOOK_CAMERA_DELAY
+            - SPELUNKY_CROUCH_TRANSITION_TIME
+            - DELTA_TIME,
+    } as GameContext,
+    downwardLookLevel,
+);
+assertEqual(
+    downwardLook.crouch.cameraOffset,
+    0,
+    'Stationary crouch leaves the camera still before the deliberate hold delay',
+);
+downwardLook.crouch.update(downwardLook.entity, context, downwardLookLevel);
+assertEqual(
+    downwardLook.crouch.cameraOffset,
+    SPELUNKY_CROUCH_LOOK_CAMERA_SPEED * DELTA_TIME,
+    'Stationary crouch starts panning down when the hold delay elapses',
+);
+downwardLook.crouch.update(
+    downwardLook.entity,
+    {deltaTime: 1} as GameContext,
+    downwardLookLevel,
+);
+assertEqual(
+    downwardLook.crouch.cameraOffset,
+    SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE,
+    'Sustained stationary crouch reaches the explicit downward camera distance',
+);
+downwardLook.crouch.setDown(false);
+downwardLook.crouch.update(downwardLook.entity, context, downwardLookLevel);
+assertEqual(
+    downwardLook.crouch.cameraOffset,
+    SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE
+        - SPELUNKY_CROUCH_LOOK_CAMERA_SPEED * DELTA_TIME,
+    'Down release starts smoothly restoring ordinary camera framing',
+);
+downwardLook.crouch.update(
+    downwardLook.entity,
+    {deltaTime: 1} as GameContext,
+    downwardLookLevel,
+);
+assertEqual(
+    downwardLook.crouch.cameraOffset,
+    0,
+    'Camera restoration completes without downward-look residue',
+);
+
+const cameraBlockers: ReadonlyArray<readonly [
+    string,
+    (fixture: Fixture) => void,
+]> = [
+    ['crawling', fixture => {
+        fixture.go.dir = 1;
+    }],
+    ['crawl-to-hang', fixture => {
+        fixture.crouch.phase = 'flipping';
+    }],
+    ['ledge hanging', fixture => {
+        fixture.ledge.phase = 'hanging';
+    }],
+    ['jumping', fixture => {
+        fixture.jump.phase = 'rising';
+        fixture.physics.grounded = false;
+    }],
+    ['ladder climbing', fixture => {
+        fixture.entity.traits.get(LadderClimb).phase = 'clinging';
+    }],
+    ['hit reaction', fixture => {
+        fixture.entity.traits.get(PlayerHit).start(1);
+    }],
+    ['unconsciousness', fixture => {
+        fixture.entity.traits.get(PlayerDeath).phase = 'settled';
+    }],
+    ['death', fixture => {
+        fixture.killable.dead = true;
+    }],
+    ['conflicting Up input', fixture => {
+        fixture.entity.traits.get(LookUp).setUp(true);
+    }],
+];
+
+for (const [name, block] of cameraBlockers) {
+    const fixture = createFixture();
+    const level = createLevel().level;
+    fixture.crouch.phase = 'crouched';
+    fixture.crouch.setDown(true);
+    fixture.crouch.update(
+        fixture.entity,
+        {deltaTime: 1} as GameContext,
+        level,
+    );
+    assertEqual(
+        fixture.crouch.cameraOffset,
+        SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE,
+        `${name} setup reaches full downward look`,
+    );
+    block(fixture);
+    fixture.crouch.update(fixture.entity, context, level);
+    assertEqual(
+        fixture.crouch.cameraOffset,
+        SPELUNKY_CROUCH_LOOK_CAMERA_DISTANCE
+            - SPELUNKY_CROUCH_LOOK_CAMERA_SPEED * DELTA_TIME,
+        `${name} cancels downward look and starts smooth restoration`,
+    );
+}
 
 const blocked = createFixture();
 const blockedLevel = createLevel();
