@@ -98,7 +98,7 @@ function makeMonsterPng(): Buffer {
 function makeItemPng(): Buffer {
     const image = new PNG({
         width: 1440,
-        height: 80,
+        height: 480,
         colorType: 6,
         inputColorType: 6,
         bitDepth: 8,
@@ -107,6 +107,15 @@ function makeItemPng(): Buffer {
     image.data.fill(0);
     const rockPixel = (25 * image.width + 1360 + 19) * 4;
     image.data.set([73, 83, 93, 143], rockPixel);
+    for (let sourceFrame = 123; sourceFrame <= 133; sourceFrame += 1) {
+        const sourceX = (sourceFrame % 24) * 80;
+        const sourceY = Math.floor(sourceFrame / 24) * 80;
+        const pixel = ((sourceY + 7) * image.width + sourceX + 5) * 4;
+        image.data.set(
+            [sourceFrame, 200, 100, 64 + sourceFrame - 123],
+            pixel,
+        );
+    }
     return PNG.sync.write(image, {
         colorType: 6,
         inputColorType: 6,
@@ -456,6 +465,8 @@ try {
     const firstEnemySpec = readFileSync(result.enemySpecPath);
     const firstRockImage = readFileSync(result.rockImagePath);
     const firstRockSpec = readFileSync(result.rockSpecPath);
+    const firstWhipImage = readFileSync(result.whipImagePath);
+    const firstWhipSpec = readFileSync(result.whipSpecPath);
     const firstTerrainImage = readFileSync(result.terrainImagePath);
     const firstHudImage = readFileSync(result.hudImagePath);
     const firstHudSpec = readFileSync(result.hudSpecPath);
@@ -861,6 +872,37 @@ try {
         'The HD rock cell is selected intact from frame 17 of the item atlas',
     );
 
+    const whip = PNG.sync.read(firstWhipImage);
+    assert.deepEqual([whip.width, whip.height], [880, 80]);
+    const whipSpec = SpriteSheetSchema.parse(JSON.parse(
+        firstWhipSpec.toString('utf8'),
+    ));
+    assert.equal(whipSpec.imageURL, '/generated/spelunky-hd/whip.png');
+    assert.equal(whipSpec.frameScale, 0.25);
+    assert.deepEqual(
+        whipSpec.frames.map(frame => [frame.name, frame.rect, frame.pivot]),
+        Array.from({length: 11}, (_, index) => [
+            `lash-${index + 1}`,
+            [index * 80, 0, 80, 80],
+            [0, 40],
+        ]),
+        'All eleven HD lash cells use a hand-relative pivot in source order',
+    );
+    assert.deepEqual(whipSpec.animations, [{
+        name: 'lash',
+        frameLen: 2 / 60,
+        frames: Array.from({length: 11}, (_, index) => `lash-${index + 1}`),
+        loop: false,
+    }]);
+    for (let index = 0; index < 11; index += 1) {
+        const outputPixel = (7 * whip.width + index * 80 + 5) * 4;
+        assert.deepEqual(
+            [...whip.data.subarray(outputPixel, outputPixel + 4)],
+            [123 + index, 200, 100, 64 + index],
+            `HD lash frame ${index + 1} is copied without alteration`,
+        );
+    }
+
     const terrainImage = PNG.sync.read(firstTerrainImage);
     assert.deepEqual([terrainImage.width, terrainImage.height], [2048, 768]);
     const expectedGroundColors = [
@@ -971,6 +1013,8 @@ try {
     assert.deepEqual(readFileSync(result.enemySpecPath), firstEnemySpec);
     assert.deepEqual(readFileSync(result.rockImagePath), firstRockImage);
     assert.deepEqual(readFileSync(result.rockSpecPath), firstRockSpec);
+    assert.deepEqual(readFileSync(result.whipImagePath), firstWhipImage);
+    assert.deepEqual(readFileSync(result.whipSpecPath), firstWhipSpec);
     assert.deepEqual(readFileSync(result.terrainImagePath), firstTerrainImage);
     assert.deepEqual(readFileSync(result.hudImagePath), firstHudImage);
     assert.deepEqual(readFileSync(result.hudSpecPath), firstHudSpec);

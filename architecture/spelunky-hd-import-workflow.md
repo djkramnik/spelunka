@@ -47,6 +47,9 @@ All outputs are ignored by Git:
 - `public/sprites/generated/spelunky-hd/snake.json` maps those cells to four
   idle frames, seven walk frames, seven attack frames, and a temporary `flat`
   compatibility alias without duplicating source pixels; and
+- `public/generated/spelunky-hd/whip.png` and its sprite metadata contain the
+  eleven separate lash cells from item-atlas frames 123-133 at their two-tick
+  cadence. The player renderer composites this behind animation 17;
 - `public/generated/spelunky-hd/mines.png` is a deterministic 2048x768 RGBA
   sheet containing the upper-left 512x512 Mines terrain region, the full
   256x256 opaque Mines fill, and a transparent 1280x768 background-decoration
@@ -65,6 +68,7 @@ The generated player metadata is loadable with:
 ```ts
 await loadSpriteSheet('generated/spelunky-hd/player');
 await loadSpriteSheet('generated/spelunky-hd/snake');
+await loadSpriteSheet('generated/spelunky-hd/whip');
 ```
 
 The tracked `underworld` sprite metadata loads the Mines sheet at

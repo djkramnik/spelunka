@@ -38,9 +38,10 @@ function overlaps(
 }
 
 /**
- * Owns the player's empty-hand whip action. The six HD attack frames provide
- * the startup and strike cadence; a short held-final-frame recovery makes the
- * complete action non-retriggerable. Movement and airborne physics continue.
+ * Owns the player's empty-hand whip action. The six HD player frames and
+ * eleven separate HD lash frames provide the startup and strike cadence; a
+ * short held-final-frame recovery makes the complete action non-retriggerable.
+ * Movement and airborne physics continue.
  */
 export default class Whip extends Trait {
     time = SPELUNKY_WHIP_DURATION;

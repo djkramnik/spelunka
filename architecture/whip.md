@@ -9,7 +9,8 @@ posture. Empty-handed attack starts the whip; holding an item uses or throws
 it; holding Down while empty-handed attempts a pickup instead. Its `oWhip`
 helper follows the player at a 16-pixel facing-relative offset and applies one
 damage to enemies. Classic also creates a brief `oWhipPre` helper behind the
-player during the wind-up.
+player during the wind-up. Spelunky HD likewise separates the player attack
+poses from the visible lash artwork.
 
 This implementation takes the forward reach, facing, damage, and input
 precedence from Classic while retaining a conventional non-damaging startup.
@@ -48,15 +49,24 @@ lifecycle prevents a held or repeated press from restarting it.
 Player animation 17 in `Data/Animations/allanimations.wad` declares frames
 48-53 at four HD ticks per frame. The importer validates that record, packs all
 six cells unchanged with the existing `[40, 72]` bottom-center pivot, and emits
-the non-looping `whip` animation. Left-facing attacks mirror through the same
-pivot. `ALLSOUNDS/whip.wav` is hash-validated, copied by the local-only asset
-workflow, and played when the active snap begins.
+the non-looping player `whip` animation.
+
+The visible whip is a separate eleven-cell HD sequence in source item-atlas
+frames 123-133. The importer copies those cells unchanged to `whip.png` and
+emits a non-looping `lash` animation at two HD ticks per cell. That 22-tick
+sequence reaches its fully extended frame at the 20-tick gameplay activation
+boundary, then holds through the strike and recovery. The lash renders behind
+the player from a facing-relative hand anchor; its `[0, 40]` source pivot makes
+the terminal 80-pixel cell extend forward, and mirroring moves the same artwork
+and hit region to the left. `ALLSOUNDS/whip.wav` is the HD sound: it is
+hash-validated, copied unchanged by the local-only asset workflow, and played
+when the active snap begins.
 
 Focused tests cover phase boundaries, active-only damage, left/right and
 vertical range, one hit per target, recovery and retriggering, movement and
 airborne compatibility, item/crouch precedence, player exclusion, snake death,
-input routing, animation selection, mirroring, source timing, deterministic
-asset packing, and sound preservation.
+input routing, player and lash animation selection, hand anchoring, mirroring,
+source timing, deterministic asset packing, and sound preservation.
 
 ## Local references
 

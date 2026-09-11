@@ -191,17 +191,19 @@ export type MarioFactory = () => Mario;
 export async function loadMario(
     audioContext: AudioContext,
 ): Promise<MarioFactory> {
-    const [sprite, audio] = await Promise.all([
+    const [sprite, whipSprite, audio] = await Promise.all([
         loadSpriteSheet('generated/spelunky-hd/player'),
+        loadSpriteSheet('generated/spelunky-hd/whip'),
         loadAudioBoard('mario', audioContext),
     ]);
 
-    return createMarioFactory(sprite, audio);
+    return createMarioFactory(sprite, audio, whipSprite);
 }
 
 export function createMarioFactory(
     sprite: SpriteSheet,
     audio: AudioBoard,
+    whipSprite?: SpriteSheet,
 ): MarioFactory {
     const walkAnimation = sprite.getAnimation('walk');
     const runAnimation = sprite.getAnimation('run');
@@ -221,6 +223,7 @@ export function createMarioFactory(
     const carryRunAnimation = sprite.getAnimation('carry-run');
     const throwAnimation = sprite.getAnimation('throw');
     const whipAnimation = sprite.getAnimation('whip');
+    const lashAnimation = whipSprite?.getAnimation('lash');
     const hitAnimation = sprite.getAnimation('reaction-hit');
 
     function routeAnimationState(mario: MarioEntity): PlayerAnimationState {
@@ -542,6 +545,15 @@ export function createMarioFactory(
                 );
             }
             try {
+                if (whip.active && whipSprite && lashAnimation) {
+                    whipSprite.drawFrame(
+                        lashAnimation(whip.time),
+                        context,
+                        this.size.x / 2 + whip.direction * 3,
+                        this.size.y / 2,
+                        whip.direction < 0,
+                    );
+                }
                 const applyTopFlipCorrection = crouch.transitionAnchorActive
                     && ledgeHang.phase === 'hanging';
                 sprite.drawFrame(

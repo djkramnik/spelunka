@@ -48,6 +48,12 @@ const draws: Array<{
     flip: boolean;
 }> = [];
 const drawOpacities: number[] = [];
+const lashDraws: Array<{
+    name: string;
+    pivotX: number;
+    pivotY: number;
+    flip: boolean;
+}> = [];
 const sprite = {
     getAnimation: (name: string) => {
         const frameCounts: Readonly<Record<string, number>> = {
@@ -130,7 +136,28 @@ const sprite = {
         drawOpacities.push(context.globalAlpha);
     },
 } as unknown as SpriteSheet;
-const mario = createMarioFactory(sprite, new AudioBoard())();
+const whipSprite = {
+    getAnimation: (name: string) => {
+        if (name !== 'lash') {
+            throw new Error(`Unexpected whip animation: ${name}`);
+        }
+        return createAnim(
+            Array.from({length: 11}, (_, index) => `lash-${index + 1}`),
+            2 / 60,
+            false,
+        );
+    },
+    drawFrame: (
+        name: string,
+        _context: CanvasRenderingContext2D,
+        pivotX: number,
+        pivotY: number,
+        flip: boolean,
+    ): void => {
+        lashDraws.push({name, pivotX, pivotY, flip});
+    },
+} as unknown as SpriteSheet;
+const mario = createMarioFactory(sprite, new AudioBoard(), whipSprite)();
 const jump = mario.traits.get(Jump);
 const go = mario.traits.get(Go);
 const health = mario.traits.get(Health);
@@ -166,8 +193,14 @@ assertEqual(
 );
 
 assertEqual(draw(), 'idle', 'Idle frame');
+assertEqual(lashDraws.length, 0, 'Inactive whip does not draw a lash');
 assertEqual(mario.useAction(), null, 'Bare action starts an empty-hand whip');
 assertEqual(draw(), 'whip-1', 'Whip begins on the first HD attack frame');
+assertEqual(
+    lashDraws.at(-1),
+    {name: 'lash-1', pivotX: 10, pivotY: 8, flip: false},
+    'Right-facing whip draws the first HD lash frame from the hand anchor',
+);
 assertEqual(
     draws.at(-1),
     {name: 'whip-1', pivotX: 7, pivotY: 16, flip: false},
@@ -175,10 +208,20 @@ assertEqual(
 );
 whip.time = SPELUNKY_WHIP_STARTUP_TIME;
 assertEqual(draw(), 'whip-6', 'Whip strike uses the terminal HD attack frame');
+assertEqual(
+    lashDraws.at(-1),
+    {name: 'lash-11', pivotX: 10, pivotY: 8, flip: false},
+    'The active strike draws the fully extended terminal HD lash frame',
+);
 whip.interrupt();
 go.heading = -1;
 assertEqual(mario.useAction(), null, 'A completed whip can start facing left');
 assertEqual(draw(), 'whip-1', 'Left whip uses the same HD animation strip');
+assertEqual(
+    lashDraws.at(-1),
+    {name: 'lash-1', pivotX: 4, pivotY: 8, flip: true},
+    'Left-facing whip mirrors the lash around the opposite hand anchor',
+);
 assertEqual(
     draws.at(-1),
     {name: 'whip-1', pivotX: 7, pivotY: 16, flip: true},

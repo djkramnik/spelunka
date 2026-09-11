@@ -59,6 +59,8 @@ export interface ImportResult {
     readonly enemySpecPath: string;
     readonly rockImagePath: string;
     readonly rockSpecPath: string;
+    readonly whipImagePath: string;
+    readonly whipSpecPath: string;
     readonly terrainImagePath: string;
     readonly hudImagePath: string;
     readonly hudSpecPath: string;
@@ -78,6 +80,11 @@ const ITEM_CELL_SIZE = 80;
 const ITEM_COLUMNS = 24;
 const ROCK_SOURCE_FRAME = 17;
 const ROCK_PIVOT = [40, 40] as const;
+const WHIP_LASH_SOURCE_FRAMES = Array.from(
+    {length: 11},
+    (_, index) => 123 + index,
+);
+const WHIP_PIVOT = [0, 40] as const;
 const TERRAIN_CELL_SIZE = 64;
 const MINE_TERRAIN_SIZE = 512;
 const MINE_BACKGROUND_FILL_SIZE = 256;
@@ -912,6 +919,79 @@ export function createRockAssets(sourceData: Buffer): {
     };
 }
 
+export function createWhipAssets(sourceData: Buffer): {
+    readonly png: Buffer;
+    readonly spec: unknown;
+} {
+    const source = PNG.sync.read(sourceData, {skipRescale: true});
+    const lastSourceFrame = WHIP_LASH_SOURCE_FRAMES.at(-1);
+    if (lastSourceFrame === undefined) {
+        throw new Error('Whip source frame list is empty');
+    }
+    const requiredWidth = ((lastSourceFrame % ITEM_COLUMNS) + 1)
+        * ITEM_CELL_SIZE;
+    const requiredHeight = (Math.floor(lastSourceFrame / ITEM_COLUMNS) + 1)
+        * ITEM_CELL_SIZE;
+    if (source.width < requiredWidth || source.height < requiredHeight) {
+        throw new Error(
+            `Unsupported item atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${source.width}x${source.height}`,
+        );
+    }
+
+    const output = new PNG({
+        width: WHIP_LASH_SOURCE_FRAMES.length * ITEM_CELL_SIZE,
+        height: ITEM_CELL_SIZE,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    output.data.fill(0);
+    const frames = WHIP_LASH_SOURCE_FRAMES.map((sourceFrame, index) => {
+        const sourceX = (sourceFrame % ITEM_COLUMNS) * ITEM_CELL_SIZE;
+        const sourceY = Math.floor(sourceFrame / ITEM_COLUMNS)
+            * ITEM_CELL_SIZE;
+        const outputX = index * ITEM_CELL_SIZE;
+        PNG.bitblt(
+            source,
+            output,
+            sourceX,
+            sourceY,
+            ITEM_CELL_SIZE,
+            ITEM_CELL_SIZE,
+            outputX,
+            0,
+        );
+        return {
+            name: `lash-${index + 1}`,
+            rect: [outputX, 0, ITEM_CELL_SIZE, ITEM_CELL_SIZE],
+            pivot: WHIP_PIVOT,
+        };
+    });
+
+    return {
+        png: PNG.sync.write(output, {
+            colorType: 6,
+            inputColorType: 6,
+            bitDepth: 8,
+            filterType: 4,
+            deflateLevel: 9,
+            deflateStrategy: 3,
+        }),
+        spec: {
+            imageURL: '/generated/spelunky-hd/whip.png',
+            frameScale: 0.25,
+            frames,
+            animations: [{
+                name: 'lash',
+                frameLen: 2 * HD_TICK_SECONDS,
+                frames: frames.map(frame => frame.name),
+                loop: false,
+            }],
+        },
+    };
+}
+
 export function createHudAssets(
     playerHudProData: Buffer,
     hudIconsData: Buffer,
@@ -1293,6 +1373,26 @@ export async function importSpelunkyHd(
     writeFileSync(rockImagePath, rockAssets.png);
     writeDeterministicJson(rockSpecPath, rockAssets.spec);
 
+    const whipAssets = createWhipAssets(itemSource.data);
+    const whipImagePath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'whip.png',
+    );
+    const whipSpecPath = join(
+        outputRoot,
+        'public',
+        'sprites',
+        'generated',
+        'spelunky-hd',
+        'whip.json',
+    );
+    ensureParent(whipImagePath);
+    writeFileSync(whipImagePath, whipAssets.png);
+    writeDeterministicJson(whipSpecPath, whipAssets.spec);
+
     const terrainSource = selected.find(
         entry => entry.key === 'ALLTILES/alltiles.png',
     );
@@ -1470,6 +1570,14 @@ export async function importSpelunkyHd(
                 sha256: await sha256File(rockSpecPath),
             },
             {
+                path: 'public/generated/spelunky-hd/whip.png',
+                sha256: sha256(whipAssets.png),
+            },
+            {
+                path: 'public/sprites/generated/spelunky-hd/whip.json',
+                sha256: await sha256File(whipSpecPath),
+            },
+            {
                 path: 'public/generated/spelunky-hd/mines.png',
                 sha256: sha256(terrainImage),
             },
@@ -1503,6 +1611,8 @@ export async function importSpelunkyHd(
         enemySpecPath,
         rockImagePath,
         rockSpecPath,
+        whipImagePath,
+        whipSpecPath,
         terrainImagePath,
         hudImagePath,
         hudSpecPath,

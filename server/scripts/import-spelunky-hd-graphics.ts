@@ -75,6 +75,8 @@ async function main(): Promise<void> {
         console.log(`Enemy metadata: ${result.enemySpecPath}`);
         console.log(`Rock PNG: ${result.rockImagePath}`);
         console.log(`Rock metadata: ${result.rockSpecPath}`);
+        console.log(`Whip PNG: ${result.whipImagePath}`);
+        console.log(`Whip metadata: ${result.whipSpecPath}`);
         console.log(`Mines terrain PNG: ${result.terrainImagePath}`);
         console.log(`HUD PNG: ${result.hudImagePath}`);
         console.log(`HUD metadata: ${result.hudSpecPath}`);

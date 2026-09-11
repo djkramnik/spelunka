@@ -41,9 +41,11 @@ acceleration and a separate turbo speed. Eight frames at 3 logical pixels each
 preserve the previous 24-pixel gait cycle while replacing the sparse three- or
 four-frame sampling. Turbo naturally advances the same source gait faster.
 
-Rise, fall, ledge climb, skid, throw, and whip use a visual-state clock. Changing visual state
-resets its clock; non-looping records hold their terminal frame. The clock does
-not gate movement, jumping, pickup, throwing, damage, or collision behavior.
+Rise, fall, ledge climb, skid, throw, and whip use a visual-state clock.
+Changing visual state resets its clock; non-looping records hold their terminal
+frame. Whip additionally composites the separate eleven-cell HD lash sequence
+from the item atlas. The clock does not gate movement, jumping, pickup,
+throwing, damage, or collision behavior.
 
 ## Intentional fallbacks
 
