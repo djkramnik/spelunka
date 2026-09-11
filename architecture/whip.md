@@ -56,11 +56,13 @@ frames 123-133. The importer copies those cells unchanged to `whip.png` and
 emits a non-looping `lash` animation at two HD ticks per cell. That 22-tick
 sequence reaches its fully extended frame at the 20-tick gameplay activation
 boundary, then holds through the strike and recovery. The lash renders behind
-the player from a facing-relative hand anchor; its `[0, 40]` source pivot makes
-the terminal 80-pixel cell extend forward, and mirroring moves the same artwork
-and hit region to the left. `ALLSOUNDS/whip.wav` is the HD sound: it is
-hash-validated, copied unchanged by the local-only asset workflow, and played
-when the active snap begins.
+the player from a facing-relative hand anchor. Frames 123-127 use their
+bottom-right `[60, 80]` root, placing the initial curl above and behind the
+rocked-back, foot-extended player poses. Frames 128-133 switch to the `[0, 40]`
+left-side root so the unfurl crosses the body and the terminal 80-pixel cell
+extends forward. Mirroring moves the same motion and hit region to the left.
+`ALLSOUNDS/whip.wav` is the HD sound: it is hash-validated, copied unchanged by
+the local-only asset workflow, and played when the active snap begins.
 
 Focused tests cover phase boundaries, active-only damage, left/right and
 vertical range, one hit per target, recovery and retriggering, movement and

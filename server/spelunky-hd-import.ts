@@ -84,7 +84,8 @@ const WHIP_LASH_SOURCE_FRAMES = Array.from(
     {length: 11},
     (_, index) => 123 + index,
 );
-const WHIP_PIVOT = [0, 40] as const;
+const WHIP_BACKSWING_PIVOT = [60, 80] as const;
+const WHIP_FORWARD_PIVOT = [0, 40] as const;
 const TERRAIN_CELL_SIZE = 64;
 const MINE_TERRAIN_SIZE = 512;
 const MINE_BACKGROUND_FILL_SIZE = 256;
@@ -965,7 +966,9 @@ export function createWhipAssets(sourceData: Buffer): {
         return {
             name: `lash-${index + 1}`,
             rect: [outputX, 0, ITEM_CELL_SIZE, ITEM_CELL_SIZE],
-            pivot: WHIP_PIVOT,
+            pivot: index < 5
+                ? WHIP_BACKSWING_PIVOT
+                : WHIP_FORWARD_PIVOT,
         };
     });
 

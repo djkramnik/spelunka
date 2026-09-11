@@ -884,9 +884,9 @@ try {
         Array.from({length: 11}, (_, index) => [
             `lash-${index + 1}`,
             [index * 80, 0, 80, 80],
-            [0, 40],
+            index < 5 ? [60, 80] : [0, 40],
         ]),
-        'All eleven HD lash cells use a hand-relative pivot in source order',
+        'HD lash cells switch from the rear curl root to the forward snap root',
     );
     assert.deepEqual(whipSpec.animations, [{
         name: 'lash',

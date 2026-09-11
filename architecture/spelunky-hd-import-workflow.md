@@ -49,7 +49,8 @@ All outputs are ignored by Git:
   compatibility alias without duplicating source pixels; and
 - `public/generated/spelunky-hd/whip.png` and its sprite metadata contain the
   eleven separate lash cells from item-atlas frames 123-133 at their two-tick
-  cadence. The player renderer composites this behind animation 17;
+  cadence and preserve the distinct rear-curl and forward-snap pivots. The
+  player renderer composites this behind animation 17;
 - `public/generated/spelunky-hd/mines.png` is a deterministic 2048x768 RGBA
   sheet containing the upper-left 512x512 Mines terrain region, the full
   256x256 opaque Mines fill, and a transparent 1280x768 background-decoration
