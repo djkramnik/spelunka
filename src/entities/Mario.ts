@@ -19,6 +19,7 @@ import LookUp from '../traits/LookUp.js';
 import Physics from '../traits/Physics.js';
 import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit from '../traits/PlayerHit.js';
+import RopeDeployer from '../traits/RopeDeployer.js';
 import Solid from '../traits/Solid.js';
 import Stomper from '../traits/Stomper.js';
 import Whip from '../traits/Whip.js';
@@ -120,6 +121,17 @@ export const PLAYER_FRAME_NAMES = [
     'ladder-climb-4',
     'ladder-climb-5',
     'ladder-climb-6',
+    'rope-cling',
+    'rope-climb-1',
+    'rope-climb-2',
+    'rope-climb-3',
+    'rope-climb-4',
+    'rope-climb-5',
+    'rope-climb-6',
+    'rope-climb-7',
+    'rope-climb-8',
+    'rope-climb-9',
+    'rope-climb-10',
     'carry-idle',
     'carry-run-1',
     'carry-run-2',
@@ -170,6 +182,8 @@ type PlayerAnimationState =
     | 'ledge-climb'
     | 'ladder-cling'
     | 'ladder-climb'
+    | 'rope-cling'
+    | 'rope-climb'
     | 'carry-idle'
     | 'carry-run'
     | 'carry-jump'
@@ -220,6 +234,7 @@ export function createMarioFactory(
     const ledgeHangAnimation = sprite.getAnimation('ledge-hang');
     const ledgeClimbAnimation = sprite.getAnimation('ledge-climb');
     const ladderClimbAnimation = sprite.getAnimation('ladder-climb');
+    const ropeClimbAnimation = sprite.getAnimation('rope-climb');
     const carryRunAnimation = sprite.getAnimation('carry-run');
     const throwAnimation = sprite.getAnimation('throw');
     const whipAnimation = sprite.getAnimation('whip');
@@ -249,11 +264,15 @@ export function createMarioFactory(
         }
 
         if (ladderClimb.phase === 'clinging') {
-            return 'ladder-cling';
+            return ladderClimb.climbableKind === 'rope'
+                ? 'rope-cling'
+                : 'ladder-cling';
         }
 
         if (ladderClimb.phase === 'climbing') {
-            return 'ladder-climb';
+            return ladderClimb.climbableKind === 'rope'
+                ? 'rope-climb'
+                : 'ladder-climb';
         }
 
         if (ledgeHang.phase === 'hanging') {
@@ -386,6 +405,10 @@ export function createMarioFactory(
                 return ladderClimbAnimation(
                     ladderClimb.animationTime,
                 ) as PlayerFrameName;
+            case 'rope-climb':
+                return ropeClimbAnimation(
+                    ladderClimb.animationTime,
+                ) as PlayerFrameName;
             case 'walk':
                 return walkAnimation(go.distance) as PlayerFrameName;
             case 'run':
@@ -426,6 +449,7 @@ export function createMarioFactory(
             // Follow after attachment traits so a carried item observes a
             // same-frame ladder move or newly entered ledge orientation.
             this.addTrait(new Carrier());
+            this.addTrait(new RopeDeployer());
             this.addTrait(new Whip());
             // Observe all movement, attachment, and carrying states before
             // deciding whether this frame remains eligible for look-up.

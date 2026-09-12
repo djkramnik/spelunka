@@ -40,7 +40,8 @@ function makePlayerPng(): Buffer {
     });
     image.data.fill(0);
     const frames = [
-        0, 1, 3, 5, 7, 9, 36, 37, 48, 49, 50, 51, 52, 53, 58, 103, 111, 115,
+        0, 1, 3, 5, 7, 9, 36, 37, 48, 49, 50, 51, 52, 53, 58,
+        84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 103, 111, 115,
     ];
     for (const frame of frames) {
         const x = (frame % 12) * 80 + 10;
@@ -113,6 +114,15 @@ function makeItemPng(): Buffer {
         const pixel = ((sourceY + 7) * image.width + sourceX + 5) * 4;
         image.data.set(
             [sourceFrame, 200, 100, 64 + sourceFrame - 123],
+            pixel,
+        );
+    }
+    for (const sourceFrame of [48, 72, 73, 74]) {
+        const sourceX = (sourceFrame % 24) * 80;
+        const sourceY = Math.floor(sourceFrame / 24) * 80;
+        const pixel = ((sourceY + 9) * image.width + sourceX + 6) * 4;
+        image.data.set(
+            [sourceFrame, 120, 60, 100 + sourceFrame],
             pixel,
         );
     }
@@ -257,6 +267,9 @@ const animationText = [
     '* 28 99 102 4 102 0',
     '* 4 72 72 1 72 0',
     '* 5 72 77 4 72 0',
+    '* 20 84 84 1 84 0',
+    '* 23 84 93 4 84 0',
+    '* 24 84 93 4 84 0',
     '* 8 54 58 4 58 0',
     '* 17 48 53 4 53 0',
     '* 9 9 9 1 9 0',
@@ -401,6 +414,8 @@ try {
     const snakebiteSound = Buffer.from('synthetic snake bite wave');
     const throwSound = Buffer.from('synthetic throw item wave');
     const whipSound = Buffer.from('synthetic whip wave');
+    const ropeTossSound = Buffer.from('synthetic rope toss wave');
+    const ropeCatchSound = Buffer.from('synthetic rope catch wave');
     const soundWadPath = join(
         sourceRoot,
         'Data',
@@ -421,7 +436,13 @@ try {
     );
     write(wadPath, wad);
     write(wixPath, wix);
-    write(soundWadPath, Buffer.concat([snakebiteSound, throwSound, whipSound]));
+    write(soundWadPath, Buffer.concat([
+        snakebiteSound,
+        throwSound,
+        whipSound,
+        ropeTossSound,
+        ropeCatchSound,
+    ]));
     write(
         soundWixPath,
         [
@@ -429,6 +450,8 @@ try {
             `snakebite.wav 0 ${snakebiteSound.length}`,
             `throw_item.wav ${snakebiteSound.length} ${throwSound.length}`,
             `whip.wav ${snakebiteSound.length + throwSound.length} ${whipSound.length}`,
+            `ropetoss.wav ${snakebiteSound.length + throwSound.length + whipSound.length} ${ropeTossSound.length}`,
+            `ropecatch.wav ${snakebiteSound.length + throwSound.length + whipSound.length + ropeTossSound.length} ${ropeCatchSound.length}`,
             '',
         ].join('\r\n'),
     );
@@ -457,6 +480,14 @@ try {
             group: 'ALLSOUNDS',
             name: 'whip.wav',
             sha256: sha256(whipSound),
+        }, {
+            group: 'ALLSOUNDS',
+            name: 'ropetoss.wav',
+            sha256: sha256(ropeTossSound),
+        }, {
+            group: 'ALLSOUNDS',
+            name: 'ropecatch.wav',
+            sha256: sha256(ropeCatchSound),
         }],
     };
     const result = await importSpelunkyHd({sourceRoot, outputRoot, profile});
@@ -467,19 +498,23 @@ try {
     const firstRockSpec = readFileSync(result.rockSpecPath);
     const firstWhipImage = readFileSync(result.whipImagePath);
     const firstWhipSpec = readFileSync(result.whipSpecPath);
+    const firstRopeImage = readFileSync(result.ropeImagePath);
+    const firstRopeSpec = readFileSync(result.ropeSpecPath);
     const firstTerrainImage = readFileSync(result.terrainImagePath);
     const firstHudImage = readFileSync(result.hudImagePath);
     const firstHudSpec = readFileSync(result.hudSpecPath);
     const firstSnakebiteSound = readFileSync(result.snakebiteSoundPath);
     const firstThrowSound = readFileSync(result.throwSoundPath);
     const firstWhipSound = readFileSync(result.whipSoundPath);
+    const firstRopeTossSound = readFileSync(result.ropeTossSoundPath);
+    const firstRopeCatchSound = readFileSync(result.ropeCatchSoundPath);
     const firstReport = readFileSync(result.reportPath);
 
     const generated = PNG.sync.read(firstImage);
-    assert.deepEqual([generated.width, generated.height], [400, 1200]);
+    assert.deepEqual([generated.width, generated.height], [400, 1360]);
     const spec = SpriteSheetSchema.parse(JSON.parse(firstSpec.toString('utf8')));
     assert.equal(spec.frameScale, 0.25);
-    assert.equal(spec.frames.length, 115);
+    assert.equal(spec.frames.length, 126);
     const jump = spec.frames.find(frame => frame.name === 'jump-4');
     assert.ok(jump);
     assert.deepEqual(jump.pivot, [40, 72]);
@@ -636,6 +671,29 @@ try {
         'HD animation 4 cling pose aliases animation 5 starting frame 72',
     );
     assert.deepEqual(
+        animation('rope-climb'),
+        {
+            name: 'rope-climb',
+            frameLen: 4 / 60,
+            frames: Array.from(
+                {length: 10},
+                (_, index) => `rope-climb-${index + 1}`,
+            ),
+            loop: true,
+        },
+        'Rope movement uses all ten HD source frames at animation 23/24 cadence',
+    );
+    const ropeCling = spec.frames.find(frame => frame.name === 'rope-cling');
+    const ropeClimbStart = spec.frames.find(
+        frame => frame.name === 'rope-climb-1',
+    );
+    assert.ok(ropeCling && ropeClimbStart);
+    assert.deepEqual(
+        [ropeCling.rect, ropeCling.pivot],
+        [ropeClimbStart.rect, ropeClimbStart.pivot],
+        'HD rope cling record 20 aliases the first frame of records 23 and 24',
+    );
+    assert.deepEqual(
         animation('crouch-enter'),
         {
             name: 'crouch-enter',
@@ -780,6 +838,40 @@ try {
         whipSound,
         'The generated whip effect preserves its source bytes',
     );
+    assert.deepEqual(
+        readFileSync(join(
+            outputRoot,
+            '.local',
+            'spelunky-hd',
+            'source',
+            'ALLSOUNDS',
+            'ropetoss.wav',
+        )),
+        ropeTossSound,
+        'The allow-listed HD rope-toss source is copied unchanged',
+    );
+    assert.deepEqual(
+        firstRopeTossSound,
+        ropeTossSound,
+        'The generated rope-toss effect preserves its source bytes',
+    );
+    assert.deepEqual(
+        readFileSync(join(
+            outputRoot,
+            '.local',
+            'spelunky-hd',
+            'source',
+            'ALLSOUNDS',
+            'ropecatch.wav',
+        )),
+        ropeCatchSound,
+        'The allow-listed HD rope-catch source is copied unchanged',
+    );
+    assert.deepEqual(
+        firstRopeCatchSound,
+        ropeCatchSound,
+        'The generated rope-catch effect preserves its source bytes',
+    );
 
     const enemyImage = readFileSync(result.enemyImagePath);
     const enemy = PNG.sync.read(enemyImage);
@@ -903,6 +995,32 @@ try {
         );
     }
 
+    const rope = PNG.sync.read(firstRopeImage);
+    assert.deepEqual([rope.width, rope.height], [320, 80]);
+    const ropeSpec = SpriteSheetSchema.parse(JSON.parse(
+        firstRopeSpec.toString('utf8'),
+    ));
+    assert.equal(ropeSpec.imageURL, '/generated/spelunky-hd/rope.png');
+    assert.equal(ropeSpec.frameScale, 0.25);
+    assert.deepEqual(
+        ropeSpec.frames.map(frame => [frame.name, frame.rect, frame.pivot]),
+        [
+            ['toss', [0, 0, 80, 80], [40, 40]],
+            ['end-1', [80, 0, 80, 80], [40, 80]],
+            ['end-2', [160, 0, 80, 80], [40, 80]],
+            ['body', [240, 0, 80, 80], [40, 0]],
+        ],
+        'HD rope cells expose toss, unfurling end, and repeatable body roles',
+    );
+    [48, 72, 73, 74].forEach((sourceFrame, index) => {
+        const outputPixel = (9 * rope.width + index * 80 + 6) * 4;
+        assert.deepEqual(
+            [...rope.data.subarray(outputPixel, outputPixel + 4)],
+            [sourceFrame, 120, 60, 100 + sourceFrame],
+            `HD rope source frame ${sourceFrame} is copied without alteration`,
+        );
+    });
+
     const terrainImage = PNG.sync.read(firstTerrainImage);
     assert.deepEqual([terrainImage.width, terrainImage.height], [2048, 768]);
     const expectedGroundColors = [
@@ -1015,6 +1133,8 @@ try {
     assert.deepEqual(readFileSync(result.rockSpecPath), firstRockSpec);
     assert.deepEqual(readFileSync(result.whipImagePath), firstWhipImage);
     assert.deepEqual(readFileSync(result.whipSpecPath), firstWhipSpec);
+    assert.deepEqual(readFileSync(result.ropeImagePath), firstRopeImage);
+    assert.deepEqual(readFileSync(result.ropeSpecPath), firstRopeSpec);
     assert.deepEqual(readFileSync(result.terrainImagePath), firstTerrainImage);
     assert.deepEqual(readFileSync(result.hudImagePath), firstHudImage);
     assert.deepEqual(readFileSync(result.hudSpecPath), firstHudSpec);
@@ -1024,6 +1144,14 @@ try {
     );
     assert.deepEqual(readFileSync(result.throwSoundPath), firstThrowSound);
     assert.deepEqual(readFileSync(result.whipSoundPath), firstWhipSound);
+    assert.deepEqual(
+        readFileSync(result.ropeTossSoundPath),
+        firstRopeTossSound,
+    );
+    assert.deepEqual(
+        readFileSync(result.ropeCatchSoundPath),
+        firstRopeCatchSound,
+    );
     assert.deepEqual(readFileSync(result.reportPath), firstReport);
 
     const badProfile: ImportProfile = {...profile, wadSha256: '0'.repeat(64)};
@@ -1044,6 +1172,20 @@ try {
     await assert.rejects(
         importSpelunkyHd({sourceRoot, outputRoot, profile: badLadderProfile}),
         /Unsupported HD ladder animation timing/,
+    );
+
+    const unsupportedRopeAnimations = animationText.replace(
+        '* 23 84 93 4 84 0',
+        '* 23 84 93 3 84 0',
+    );
+    write(animationsPath, unsupportedRopeAnimations);
+    const badRopeProfile: ImportProfile = {
+        ...profile,
+        animationsSha256: await sha256File(animationsPath),
+    };
+    await assert.rejects(
+        importSpelunkyHd({sourceRoot, outputRoot, profile: badRopeProfile}),
+        /Unsupported HD rope animation timing/,
     );
 
     const unsupportedLookUpAnimations = animationText.replace(

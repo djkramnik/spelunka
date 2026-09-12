@@ -8,6 +8,7 @@ import Crouch from './traits/Crouch.js';
 import LadderClimb from './traits/LadderClimb.js';
 import Killable from './traits/Killable.js';
 import LookUp from './traits/LookUp.js';
+import RopeDeployer from './traits/RopeDeployer.js';
 
 interface InputTraits {
     get(trait: typeof Killable): Killable;
@@ -17,6 +18,7 @@ interface InputTraits {
     get(trait: typeof Crouch): Crouch;
     get(trait: typeof LadderClimb): LadderClimb;
     get(trait: typeof LookUp): LookUp;
+    get(trait: typeof RopeDeployer): RopeDeployer;
 }
 
 interface KeyboardControlledEntity {
@@ -56,6 +58,16 @@ export function setupKeyboard(target: Window): InputRouter<KeyboardControlledEnt
             router.route(entity => {
                 if (!entity.traits.get(Killable).dead) {
                     entity.useAction();
+                }
+            });
+        }
+    });
+
+    input.addMapping('KeyS', keyState => {
+        if (keyState) {
+            router.route(entity => {
+                if (!entity.traits.get(Killable).dead) {
+                    entity.traits.get(RopeDeployer).requestDeploy();
                 }
             });
         }

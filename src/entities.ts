@@ -9,6 +9,8 @@ import {loadMario} from './entities/Mario.js';
 import type {MarioFactory} from './entities/Mario.js';
 import {loadRock} from './entities/Rock.js';
 import type {RockFactory} from './entities/Rock.js';
+import {loadRope} from './entities/Rope.js';
+import type {RopeFactory} from './entities/Rope.js';
 import {loadSnake} from './entities/Snake.js';
 import type {SnakeFactory} from './entities/Snake.js';
 
@@ -22,6 +24,7 @@ export interface EntityFactories {
     bullet: BulletFactory;
     cannon: CannonFactory;
     rock: RockFactory;
+    rope: RopeFactory;
     snake: SnakeFactory;
 }
 
@@ -41,6 +44,7 @@ export async function loadEntities(
         bullet,
         cannon,
         rock,
+        rope,
         snake,
     ] = await Promise.all([
         track(loadMario(audioContext)),
@@ -48,6 +52,7 @@ export async function loadEntities(
         track(loadBullet()),
         track(loadCannon(audioContext)),
         track(loadRock()),
+        track(loadRope(audioContext)),
         track(loadSnake()),
     ]);
 
@@ -58,6 +63,7 @@ export async function loadEntities(
         bullet,
         cannon,
         rock,
+        rope,
         snake,
     };
 }

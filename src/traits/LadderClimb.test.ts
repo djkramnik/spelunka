@@ -387,4 +387,65 @@ assertEqual(
     'Death releases a clinging player back to ordinary airborne physics',
 );
 
-console.log('Spelunky ladder climbing movement regression passed');
+const ropeLevel = new Level();
+const rope = new Entity();
+rope.pos.set(36, 32);
+rope.size.set(8, 64);
+rope.addTrait(new Climbable('rope'));
+ropeLevel.entities.add(rope);
+
+const ropeDownMount = createPlayer();
+ropeDownMount.entity.pos.set(33, 48);
+ropeDownMount.entity.vel.y = 40;
+ropeDownMount.jump.phase = 'falling';
+ropeDownMount.jump.ready = -1;
+ropeDownMount.climb.setVerticalInput(1, true);
+update(ropeDownMount.climb, ropeDownMount.entity, ropeLevel);
+assertEqual(
+    [
+        ropeDownMount.climb.phase,
+        ropeDownMount.climb.climbableKind,
+        ropeDownMount.entity.pos.x,
+        ropeDownMount.physics.enabled,
+    ],
+    ['clinging', 'rope', 33, false],
+    'Down catches an aligned rope while airborne and uses shared climb physics',
+);
+
+const ropeTop = createPlayer();
+ropeTop.entity.pos.set(33, 36);
+ropeTop.climb.setVerticalInput(-1, true);
+update(ropeTop.climb, ropeTop.entity, ropeLevel);
+for (let index = 0; index < 30; index++) {
+    update(ropeTop.climb, ropeTop.entity, ropeLevel);
+}
+assertEqual(
+    [
+        ropeTop.climb.phase,
+        ropeTop.climb.climbableKind,
+        ropeTop.entity.bounds.top,
+        ropeTop.physics.enabled,
+        ropeTop.physics.grounded,
+    ],
+    ['clinging', 'rope', rope.bounds.top, false, false],
+    'Climbing above a rope anchor clamps to its top without inventing a platform',
+);
+
+const dormantRope = new Entity();
+dormantRope.pos.set(52, 32);
+dormantRope.size.set(8, 64);
+const dormantClimbable = new Climbable('rope');
+dormantClimbable.active = false;
+dormantRope.addTrait(dormantClimbable);
+ropeLevel.entities.add(dormantRope);
+const dormantMount = createPlayer();
+dormantMount.entity.pos.set(49, 48);
+dormantMount.climb.setVerticalInput(-1, true);
+update(dormantMount.climb, dormantMount.entity, ropeLevel);
+assertEqual(
+    dormantMount.climb.active,
+    false,
+    'A tossed rope cannot be mounted before its anchor catches',
+);
+
+console.log('Spelunky ladder and rope climbing movement regression passed');

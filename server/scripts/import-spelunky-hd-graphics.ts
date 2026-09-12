@@ -77,12 +77,16 @@ async function main(): Promise<void> {
         console.log(`Rock metadata: ${result.rockSpecPath}`);
         console.log(`Whip PNG: ${result.whipImagePath}`);
         console.log(`Whip metadata: ${result.whipSpecPath}`);
+        console.log(`Rope PNG: ${result.ropeImagePath}`);
+        console.log(`Rope metadata: ${result.ropeSpecPath}`);
         console.log(`Mines terrain PNG: ${result.terrainImagePath}`);
         console.log(`HUD PNG: ${result.hudImagePath}`);
         console.log(`HUD metadata: ${result.hudSpecPath}`);
         console.log(`Snake-bite WAV: ${result.snakebiteSoundPath}`);
         console.log(`Throw-item WAV: ${result.throwSoundPath}`);
         console.log(`Whip WAV: ${result.whipSoundPath}`);
+        console.log(`Rope-toss WAV: ${result.ropeTossSoundPath}`);
+        console.log(`Rope-catch WAV: ${result.ropeCatchSoundPath}`);
         console.log(`Import report: ${result.reportPath}`);
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

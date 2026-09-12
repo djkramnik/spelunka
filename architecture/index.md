@@ -13,6 +13,7 @@
 - [Procedural blood splatter](blood-splatter.md)
 - [Spelunky Classic throwing behavior](throwing.md)
 - [Spelunky whip behavior and HD animation](whip.md)
+- [Spelunky rope deployment and HD animation](rope.md)
 
 ## Interactive review
 
@@ -59,7 +60,7 @@ async function main(canvas: HTMLCanvasElement, font: Font) {
     const audioContext = new AudioContext();
     const loadingProgress = new LoadingProgress();
 
-    loadingProgress.reset(9, 'Loading game');
+    loadingProgress.reset(12, 'Loading game');
     loadingProgress.draw(videoContext);
 
     const advanceLoadingProgress = () => {
@@ -189,10 +190,10 @@ turns it into an 8-pixel bitmap font used for on-canvas text.
 
 After the click, the startup progress bar tracks eleven logical tasks:
 
-- Six entity factories are loaded in parallel: Mario, Ladder, Bullet, Cannon,
-  Rock, and Snake. These load sprite-sheet JSON and images where needed. Mario
-  and Cannon also load sound-effect manifests, fetch their Ogg files, and
-  decode them into Web Audio buffers.
+- Seven entity factories are loaded in parallel: Mario, Ladder, Bullet, Cannon,
+  Rock, Rope, and Snake. These load sprite-sheet JSON and images where needed.
+  Mario, Cannon, and Rope also load sound-effect manifests, fetch their audio
+  files, and decode them into Web Audio buffers.
 - One task loads the HUD sprite sheet.
 - Four tasks belong to the initial level: its level JSON, background
   sprite-sheet, music manifest, and reusable tile-pattern JSON. After the level
@@ -244,6 +245,8 @@ After startup, `setupKeyboard()` adds `keydown` and `keyup` listeners to
 - `KeyX`: enable turbo movement while held and disable it on release.
 - `KeyD`: whip with empty hands, use or throw a carried item, or pick up/place
   an item when combined with Down. Release does not repeat the action.
+- `KeyS`: deploy one rope from the player's four-rope inventory. A blocked or
+  held request does not consume or repeat the action.
 
 Keyboard state is tracked by physical `KeyboardEvent.code`, rather than the
 character produced by a keyboard layout. For mapped controls, the handler

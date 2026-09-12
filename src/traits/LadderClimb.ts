@@ -3,6 +3,7 @@ import type Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 import Climbable from './Climbable.js';
+import type {ClimbableKind} from './Climbable.js';
 import Crouch from './Crouch.js';
 import Go from './Go.js';
 import Jump from './Jump.js';
@@ -30,6 +31,13 @@ export default class LadderClimb extends Trait {
 
     get active(): boolean {
         return this.phase !== 'inactive';
+    }
+
+    get climbableKind(): ClimbableKind | null {
+        if (!this.ladder || !this.ladder.traits.has(Climbable)) {
+            return null;
+        }
+        return this.ladder.traits.get(Climbable).kind;
     }
 
     setVerticalInput(direction: -1 | 1, pressed: boolean): void {
@@ -75,10 +83,12 @@ export default class LadderClimb extends Trait {
         let closest: Entity | null = null;
         let closestDistance = Infinity;
         for (const candidate of level.entities) {
-            if (!candidate.traits.has(Climbable)) {
+            if (!candidate.traits.has(Climbable)
+                || !candidate.traits.get(Climbable).active) {
                 continue;
             }
 
+            const climbable = candidate.traits.get(Climbable);
             const centerInside = this.centerIsInside(entity, candidate);
             const canEnterFromTop = this.verticalDirection > 0
                 && this.isTopMountAligned(entity, candidate)
@@ -86,7 +96,9 @@ export default class LadderClimb extends Trait {
             const canEnterWithinColumn = this.isHorizontallyAligned(
                 entity,
                 candidate,
-            ) && centerInside && this.verticalDirection < 0;
+            ) && centerInside && (
+                this.verticalDirection < 0 || climbable.kind === 'rope'
+            );
             if (!canEnterFromTop && !canEnterWithinColumn) {
                 continue;
             }
@@ -228,10 +240,20 @@ export default class LadderClimb extends Trait {
             * SPELUNKY_LADDER_CLIMB_SPEED
             * gameContext.deltaTime;
 
-        if (direction < 0 && entity.bounds.bottom <= ladder.bounds.top) {
-            entity.bounds.bottom = ladder.bounds.top;
-            this.finishGrounded(entity);
-            return;
+        if (direction < 0) {
+            if (ladder.traits.get(Climbable).kind === 'rope'
+                && entity.bounds.top <= ladder.bounds.top) {
+                entity.bounds.top = ladder.bounds.top;
+                this.phase = 'clinging';
+                this.animationTime = 0;
+                return;
+            }
+            if (ladder.traits.get(Climbable).kind === 'ladder'
+                && entity.bounds.bottom <= ladder.bounds.top) {
+                entity.bounds.bottom = ladder.bounds.top;
+                this.finishGrounded(entity);
+                return;
+            }
         }
 
         if (direction > 0 && entity.bounds.bottom >= ladder.bounds.bottom) {

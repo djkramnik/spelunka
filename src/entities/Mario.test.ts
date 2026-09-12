@@ -5,6 +5,7 @@ import Level from '../Level.js';
 import type {GameContext} from '../Scene.js';
 import type SpriteSheet from '../SpriteSheet.js';
 import Carrier from '../traits/Carrier.js';
+import Climbable from '../traits/Climbable.js';
 import Crouch from '../traits/Crouch.js';
 import Go from '../traits/Go.js';
 import Health, {SPELUNKY_STARTING_HEARTS} from '../traits/Health.js';
@@ -20,6 +21,9 @@ import PlayerDeath from '../traits/PlayerDeath.js';
 import PlayerHit, {
     SPELUNKY_SMALL_HIT_REACTION_DURATION,
 } from '../traits/PlayerHit.js';
+import RopeDeployer, {
+    SPELUNKY_STARTING_ROPES,
+} from '../traits/RopeDeployer.js';
 import Pickable from '../traits/Pickable.js';
 import Physics from '../traits/Physics.js';
 import Whip, {
@@ -72,6 +76,7 @@ const sprite = {
             'ledge-hang': 4,
             'ledge-climb': 7,
             'ladder-climb': 6,
+            'rope-climb': 10,
             'carry-run': 8,
             throw: 5,
             whip: 6,
@@ -95,6 +100,7 @@ const sprite = {
             'ledge-hang',
             'ledge-climb',
             'ladder-climb',
+            'rope-climb',
             'throw',
             'whip',
             'reaction-hit',
@@ -104,11 +110,13 @@ const sprite = {
                 {length: frameCount},
                 (_, index) => `${name}-${index + 1}`,
             ),
-            name === 'look-up-enter'
-                ? 2 / 60
-                : name === 'look-up-exit' || name === 'reaction-hit'
-                    ? 4 / 60
-                    : timed ? 0.05 : 3,
+            name === 'rope-climb'
+                ? 4 / 60
+                : name === 'look-up-enter'
+                    ? 2 / 60
+                    : name === 'look-up-exit' || name === 'reaction-hit'
+                        ? 4 / 60
+                        : timed ? 0.05 : 3,
             ![
                 'jump',
                 'fall',
@@ -172,6 +180,7 @@ const playerHit = mario.traits.get(PlayerHit);
 const lookUp = mario.traits.get(LookUp);
 const physics = mario.traits.get(Physics);
 const whip = mario.traits.get(Whip);
+const ropeDeployer = mario.traits.get(RopeDeployer);
 const animationClock = mario as typeof mario & {
     animationState: string;
     animationStateTime: number;
@@ -190,6 +199,11 @@ assertEqual(
     health.hearts,
     SPELUNKY_STARTING_HEARTS,
     'New Spelunky player owns the default heart count',
+);
+assertEqual(
+    ropeDeployer.ropes,
+    SPELUNKY_STARTING_ROPES,
+    'New Spelunky player owns the Classic four-rope inventory',
 );
 
 assertEqual(draw(), 'idle', 'Idle frame');
@@ -401,8 +415,21 @@ assertEqual(
     'ladder-climb-3',
     'Ladder climbing sprite remains active while carrying an item',
 );
+const rope = new Entity();
+rope.addTrait(new Climbable('rope'));
+ladderClimb.ladder = rope;
+ladderClimb.phase = 'clinging';
+assertEqual(draw(), 'rope-cling', 'Rope mount holds the dedicated HD rope pose');
+ladderClimb.phase = 'climbing';
+ladderClimb.animationTime = 0.14;
+assertEqual(
+    draw(),
+    'rope-climb-3',
+    'Rope motion follows the ten-frame HD rope animation cadence',
+);
 ladderClimb.phase = 'inactive';
 ladderClimb.animationTime = 0;
+ladderClimb.ladder = null;
 
 jump.ready = 1;
 jump.phase = 'grounded';
@@ -706,7 +733,7 @@ assertEqual(
 
 assertEqual(
     PLAYER_FRAME_NAMES.length,
-    115,
+    126,
     'The expanded HD player frame catalogue remains explicit',
 );
 

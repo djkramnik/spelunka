@@ -32,14 +32,14 @@ or the player image is too small.
 
 All outputs are ignored by Git:
 
-- `.local/spelunky-hd/source/` contains only the eleven allow-listed source
+- `.local/spelunky-hd/source/` contains only the thirteen allow-listed source
   entries used by the player, enemy, terrain, HUD, item, and attack behavior;
 - `.local/spelunky-hd/import-report.json` records input, selected-entry, and
   generated-output hashes plus the numeric player and snake animation records;
-- `public/generated/spelunky-hd/player.png` is a deterministic 400x1200 RGBA
-  sheet containing 74 unique, unchanged 80x80 source cells, including HD's
-  complete whip strip, airborne dead-body frame 103, and settled unconscious
-  frame 9; and
+- `public/generated/spelunky-hd/player.png` is a deterministic 400x1360 RGBA
+  sheet containing unchanged 80x80 source cells, including HD's complete whip
+  strip, ten-frame rope-climb strip, airborne dead-body frame 103, and settled
+  unconscious frame 9; and
 - `public/sprites/generated/spelunky-hd/player.json` maps that sheet to every
   frame and animation name required by the current player loader;
 - `public/generated/spelunky-hd/snake.png` is a deterministic 1440x80 RGBA
@@ -51,6 +51,9 @@ All outputs are ignored by Git:
   eleven separate lash cells from item-atlas frames 123-133 at their two-tick
   cadence and preserve the distinct rear-curl and forward-snap pivots. The
   player renderer composites this behind animation 17;
+- `public/generated/spelunky-hd/rope.png` and its sprite metadata contain the
+  HD tossed bundle, both unfurling end frames, and repeatable rope body from
+  item-atlas frames 48 and 72-74;
 - `public/generated/spelunky-hd/mines.png` is a deterministic 2048x768 RGBA
   sheet containing the upper-left 512x512 Mines terrain region, the full
   256x256 opaque Mines fill, and a transparent 1280x768 background-decoration
@@ -65,6 +68,8 @@ All outputs are ignored by Git:
   HD action effects used by carried-item release and the whip strike. The
   tracked sound metadata applies the whip's softer per-effect playback gain;
   the imported source bytes remain untouched.
+- `public/generated/spelunky-hd/ropetoss.wav` and `ropecatch.wav` are unchanged
+  HD deployment effects used when the bundle launches and the anchor catches.
 
 The generated player metadata is loadable with:
 
@@ -72,6 +77,7 @@ The generated player metadata is loadable with:
 await loadSpriteSheet('generated/spelunky-hd/player');
 await loadSpriteSheet('generated/spelunky-hd/snake');
 await loadSpriteSheet('generated/spelunky-hd/whip');
+await loadSpriteSheet('generated/spelunky-hd/rope');
 ```
 
 The tracked `underworld` sprite metadata loads the Mines sheet at
@@ -114,6 +120,8 @@ entry path components, and reads only these allow-listed entries from the WAD:
 - `ALLSOUNDS/snakebite.wav`
 - `ALLSOUNDS/throw_item.wav`
 - `ALLSOUNDS/whip.wav`
+- `ALLSOUNDS/ropetoss.wav`
+- `ALLSOUNDS/ropecatch.wav`
 
 The importer copies WAV bytes unchanged. The PNG repack copies RGBA pixels
 exactly, including partial alpha. Fixed PNG encoder settings and stable JSON

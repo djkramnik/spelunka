@@ -12,6 +12,7 @@ import LedgeHang from './traits/LedgeHang.js';
 import Killable from './traits/Killable.js';
 import LookUp from './traits/LookUp.js';
 import Pickable from './traits/Pickable.js';
+import RopeDeployer from './traits/RopeDeployer.js';
 
 function assertEqual<Value>(
     actual: Value,
@@ -66,6 +67,7 @@ const ladderClimb = new LadderClimb();
 const crouch = new Crouch();
 const killable = new Killable();
 const lookUp = new LookUp();
+const ropeDeployer = new RopeDeployer();
 receiver.addTrait(carrier);
 receiver.addTrait(jump);
 receiver.addTrait(go);
@@ -74,10 +76,12 @@ receiver.addTrait(ladderClimb);
 receiver.addTrait(crouch);
 receiver.addTrait(killable);
 receiver.addTrait(lookUp);
+receiver.addTrait(ropeDeployer);
 
 let pickupOrThrowCalls = 0;
 let useActionCalls = 0;
 let whipCalls = 0;
+let ropeCalls = 0;
 const turboStates: KeyState[] = [];
 receiver.pickupOrThrow = (): Entity | null => {
     pickupOrThrowCalls++;
@@ -93,6 +97,10 @@ receiver.useAction = (): Entity | null => {
 };
 receiver.turbo = (state: KeyState): void => {
     turboStates.push(state);
+};
+ropeDeployer.requestDeploy = (): boolean => {
+    ropeCalls++;
+    return true;
 };
 
 const router = setupKeyboard(target);
@@ -149,6 +157,14 @@ dispatch('keydown', 'KeyX');
 dispatch('keyup', 'KeyX');
 assertEqual(turboStates, [1, 0], 'X turbo mapping remains unchanged');
 
+assertEqual(dispatch('keyup', 'KeyS'), true, 'S release prevents browser default');
+assertEqual(ropeCalls, 0, 'S release does not request a rope');
+assertEqual(dispatch('keydown', 'KeyS'), true, 'S press prevents browser default');
+assertEqual(ropeCalls, 1, 'S press requests one rope deployment');
+dispatch('keydown', 'KeyS');
+assertEqual(ropeCalls, 1, 'Held S does not repeat rope deployment');
+dispatch('keyup', 'KeyS');
+
 dispatch('keydown', 'ArrowRight');
 assertEqual(go.dir, 1, 'Right press remains unchanged');
 dispatch('keyup', 'ArrowRight');
@@ -179,6 +195,7 @@ killable.dead = true;
 dispatch('keydown', 'KeyZ');
 dispatch('keydown', 'KeyX');
 dispatch('keydown', 'KeyD');
+dispatch('keydown', 'KeyS');
 dispatch('keydown', 'ArrowRight');
 dispatch('keydown', 'ArrowUp');
 dispatch('keydown', 'ArrowDown');
@@ -188,14 +205,15 @@ assertEqual(
         turboStates,
         useActionCalls,
         pickupOrThrowCalls,
+        ropeCalls,
         go.dir,
         ladderClimb.verticalDirection,
         ledgeHang.verticalDirection,
         lookUp.upHeld,
         crouch.downHeld,
     ],
-    [0, [1, 0], 3, 2, 0, 0, 0, false, false],
+    [0, [1, 0], 3, 2, 1, 0, 0, 0, false, false],
     'Dead players ignore movement and action presses',
 );
 
-console.log('Keyboard whip, pickup, and throw input regression passed');
+console.log('Keyboard whip, rope, pickup, and throw input regression passed');

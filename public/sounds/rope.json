@@ -1,0 +1,10 @@
+{
+    "fx": {
+        "rope-toss": {
+            "url": "/generated/spelunky-hd/ropetoss.wav"
+        },
+        "rope-catch": {
+            "url": "/generated/spelunky-hd/ropecatch.wav"
+        }
+    }
+}

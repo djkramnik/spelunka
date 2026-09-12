@@ -61,12 +61,16 @@ export interface ImportResult {
     readonly rockSpecPath: string;
     readonly whipImagePath: string;
     readonly whipSpecPath: string;
+    readonly ropeImagePath: string;
+    readonly ropeSpecPath: string;
     readonly terrainImagePath: string;
     readonly hudImagePath: string;
     readonly hudSpecPath: string;
     readonly snakebiteSoundPath: string;
     readonly throwSoundPath: string;
     readonly whipSoundPath: string;
+    readonly ropeTossSoundPath: string;
+    readonly ropeCatchSoundPath: string;
     readonly reportPath: string;
 }
 
@@ -86,6 +90,12 @@ const WHIP_LASH_SOURCE_FRAMES = Array.from(
 );
 const WHIP_BACKSWING_PIVOT = [60, 80] as const;
 const WHIP_FORWARD_PIVOT = [0, 40] as const;
+const ROPE_SOURCE_FRAMES = [
+    ['toss', 48, [40, 40]],
+    ['end-1', 72, [40, 80]],
+    ['end-2', 73, [40, 80]],
+    ['body', 74, [40, 0]],
+] as const;
 const TERRAIN_CELL_SIZE = 64;
 const MINE_TERRAIN_SIZE = 512;
 const MINE_BACKGROUND_FILL_SIZE = 256;
@@ -133,6 +143,9 @@ const LEDGE_HANG_SOURCE_FRAMES = [44, 45, 46, 47] as const;
 const LEDGE_CLIMB_SOURCE_FRAMES = [28, 29, 30, 31, 32, 33, 34] as const;
 const LEDGE_FLIP_SOURCE_FRAMES = [34, 33, 32, 31, 30, 29, 28] as const;
 const LADDER_CLIMB_SOURCE_FRAMES = [72, 73, 74, 75, 76, 77] as const;
+const ROPE_CLIMB_SOURCE_FRAMES = [
+    84, 85, 86, 87, 88, 89, 90, 91, 92, 93,
+] as const;
 const HIT_REACTION_SOURCE_FRAMES = [36, 37] as const;
 const THROW_SOURCE_FRAMES = [54, 55, 56, 57, 58] as const;
 const WHIP_SOURCE_FRAMES = [48, 49, 50, 51, 52, 53] as const;
@@ -175,6 +188,8 @@ const PLAYER_FRAME_SOURCES = [
     ...namedFrames('ledge-climb', LEDGE_CLIMB_SOURCE_FRAMES),
     ['ladder-cling', 72] as const,
     ...namedFrames('ladder-climb', LADDER_CLIMB_SOURCE_FRAMES),
+    ['rope-cling', 84] as const,
+    ...namedFrames('rope-climb', ROPE_CLIMB_SOURCE_FRAMES),
     ['carry-idle', 0] as const,
     ...namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES),
     ['carry-jump', 111] as const,
@@ -217,6 +232,9 @@ const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [19, [28, 34]],
     [4, [72, 72]],
     [5, [72, 77]],
+    [20, [84, 84]],
+    [23, [84, 93]],
+    [24, [84, 93]],
 ]);
 
 const REQUIRED_SNAKE_ANIMATIONS = new Map<
@@ -296,6 +314,16 @@ export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
             group: 'ALLSOUNDS',
             name: 'whip.wav',
             sha256: '04e53f38230fb81b46e9accb67245e3c607b91ad372eb0b1efd27dee77c10a46',
+        },
+        {
+            group: 'ALLSOUNDS',
+            name: 'ropetoss.wav',
+            sha256: 'd21032db1d73196ff45a1abf3b803cce100af1a4244fa9e93864a8a1a62a105c',
+        },
+        {
+            group: 'ALLSOUNDS',
+            name: 'ropecatch.wav',
+            sha256: '4b484b9cb2482036bcbf7944f8e6c2f76663b9c165c61759bb3f2cb9f03e5c5c',
         },
     ],
 };
@@ -439,6 +467,19 @@ function validatePlayerAnimations(sections: readonly (readonly AnimationRecord[]
         || ladderClimb.terminalFrame !== 72) {
         throw new Error(
             'Unsupported HD ladder animation timing; expected IDs 4 and 5 to hold and loop from frame 72',
+        );
+    }
+    const ropeCling = byId.get(20);
+    const ropeClimbUp = byId.get(23);
+    const ropeClimbDown = byId.get(24);
+    if (ropeCling?.frameLength !== 1
+        || ropeCling.terminalFrame !== 84
+        || ropeClimbUp?.frameLength !== 4
+        || ropeClimbUp.terminalFrame !== 84
+        || ropeClimbDown?.frameLength !== 4
+        || ropeClimbDown.terminalFrame !== 84) {
+        throw new Error(
+            'Unsupported HD rope animation timing; expected IDs 20, 23, and 24 to hold and loop from frame 84',
         );
     }
     const hitReaction = byId.get(18);
@@ -726,6 +767,12 @@ export function createPlayerAssets(sourceData: Buffer): {
                     .map(([name]) => name),
             },
             {
+                name: 'rope-climb',
+                frameLen: 4 * HD_TICK_SECONDS,
+                frames: namedFrames('rope-climb', ROPE_CLIMB_SOURCE_FRAMES)
+                    .map(([name]) => name),
+            },
+            {
                 name: 'carry-run',
                 frameLen: MOVEMENT_FRAME_DISTANCE,
                 frames: namedFrames('carry-run', MOVEMENT_SOURCE_FRAMES)
@@ -991,6 +1038,74 @@ export function createWhipAssets(sourceData: Buffer): {
                 frames: frames.map(frame => frame.name),
                 loop: false,
             }],
+        },
+    };
+}
+
+export function createRopeAssets(sourceData: Buffer): {
+    readonly png: Buffer;
+    readonly spec: unknown;
+} {
+    const source = PNG.sync.read(sourceData, {skipRescale: true});
+    const highestFrame = Math.max(
+        ...ROPE_SOURCE_FRAMES.map(([, sourceFrame]) => sourceFrame),
+    );
+    const requiredWidth = ((highestFrame % ITEM_COLUMNS) + 1)
+        * ITEM_CELL_SIZE;
+    const requiredHeight = (Math.floor(highestFrame / ITEM_COLUMNS) + 1)
+        * ITEM_CELL_SIZE;
+    if (source.width < requiredWidth || source.height < requiredHeight) {
+        throw new Error(
+            `Unsupported item atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${source.width}x${source.height}`,
+        );
+    }
+
+    const output = new PNG({
+        width: ROPE_SOURCE_FRAMES.length * ITEM_CELL_SIZE,
+        height: ITEM_CELL_SIZE,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    output.data.fill(0);
+    const frames = ROPE_SOURCE_FRAMES.map(
+        ([name, sourceFrame, pivot], index) => {
+            const sourceX = (sourceFrame % ITEM_COLUMNS) * ITEM_CELL_SIZE;
+            const sourceY = Math.floor(sourceFrame / ITEM_COLUMNS)
+                * ITEM_CELL_SIZE;
+            const outputX = index * ITEM_CELL_SIZE;
+            PNG.bitblt(
+                source,
+                output,
+                sourceX,
+                sourceY,
+                ITEM_CELL_SIZE,
+                ITEM_CELL_SIZE,
+                outputX,
+                0,
+            );
+            return {
+                name,
+                rect: [outputX, 0, ITEM_CELL_SIZE, ITEM_CELL_SIZE],
+                pivot,
+            };
+        },
+    );
+
+    return {
+        png: PNG.sync.write(output, {
+            colorType: 6,
+            inputColorType: 6,
+            bitDepth: 8,
+            filterType: 4,
+            deflateLevel: 9,
+            deflateStrategy: 3,
+        }),
+        spec: {
+            imageURL: '/generated/spelunky-hd/rope.png',
+            frameScale: 0.25,
+            frames,
         },
     };
 }
@@ -1396,6 +1511,26 @@ export async function importSpelunkyHd(
     writeFileSync(whipImagePath, whipAssets.png);
     writeDeterministicJson(whipSpecPath, whipAssets.spec);
 
+    const ropeAssets = createRopeAssets(itemSource.data);
+    const ropeImagePath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'rope.png',
+    );
+    const ropeSpecPath = join(
+        outputRoot,
+        'public',
+        'sprites',
+        'generated',
+        'spelunky-hd',
+        'rope.json',
+    );
+    ensureParent(ropeImagePath);
+    writeFileSync(ropeImagePath, ropeAssets.png);
+    writeDeterministicJson(ropeSpecPath, ropeAssets.spec);
+
     const terrainSource = selected.find(
         entry => entry.key === 'ALLTILES/alltiles.png',
     );
@@ -1520,6 +1655,42 @@ export async function importSpelunkyHd(
     ensureParent(whipSoundPath);
     writeFileSync(whipSoundPath, whipSoundSource.data);
 
+    const ropeTossSource = selectedSounds.find(
+        entry => entry.key === 'ALLSOUNDS/ropetoss.wav',
+    );
+    if (ropeTossSource === undefined) {
+        throw new Error(
+            'Import profile does not contain ALLSOUNDS/ropetoss.wav',
+        );
+    }
+    const ropeTossSoundPath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'ropetoss.wav',
+    );
+    ensureParent(ropeTossSoundPath);
+    writeFileSync(ropeTossSoundPath, ropeTossSource.data);
+
+    const ropeCatchSource = selectedSounds.find(
+        entry => entry.key === 'ALLSOUNDS/ropecatch.wav',
+    );
+    if (ropeCatchSource === undefined) {
+        throw new Error(
+            'Import profile does not contain ALLSOUNDS/ropecatch.wav',
+        );
+    }
+    const ropeCatchSoundPath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'ropecatch.wav',
+    );
+    ensureParent(ropeCatchSoundPath);
+    writeFileSync(ropeCatchSoundPath, ropeCatchSource.data);
+
     const reportPath = join(
         outputRoot,
         '.local',
@@ -1581,6 +1752,14 @@ export async function importSpelunkyHd(
                 sha256: await sha256File(whipSpecPath),
             },
             {
+                path: 'public/generated/spelunky-hd/rope.png',
+                sha256: sha256(ropeAssets.png),
+            },
+            {
+                path: 'public/sprites/generated/spelunky-hd/rope.json',
+                sha256: await sha256File(ropeSpecPath),
+            },
+            {
                 path: 'public/generated/spelunky-hd/mines.png',
                 sha256: sha256(terrainImage),
             },
@@ -1604,6 +1783,14 @@ export async function importSpelunkyHd(
                 path: 'public/generated/spelunky-hd/whip.wav',
                 sha256: sha256(whipSoundSource.data),
             },
+            {
+                path: 'public/generated/spelunky-hd/ropetoss.wav',
+                sha256: sha256(ropeTossSource.data),
+            },
+            {
+                path: 'public/generated/spelunky-hd/ropecatch.wav',
+                sha256: sha256(ropeCatchSource.data),
+            },
         ],
     });
 
@@ -1616,12 +1803,16 @@ export async function importSpelunkyHd(
         rockSpecPath,
         whipImagePath,
         whipSpecPath,
+        ropeImagePath,
+        ropeSpecPath,
         terrainImagePath,
         hudImagePath,
         hudSpecPath,
         snakebiteSoundPath,
         throwSoundPath,
         whipSoundPath,
+        ropeTossSoundPath,
+        ropeCatchSoundPath,
         reportPath,
     };
 }
