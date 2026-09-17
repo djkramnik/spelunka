@@ -88,7 +88,6 @@ export default class LadderClimb extends Trait {
                 continue;
             }
 
-            const climbable = candidate.traits.get(Climbable);
             const centerInside = this.centerIsInside(entity, candidate);
             const canEnterFromTop = this.verticalDirection > 0
                 && this.isTopMountAligned(entity, candidate)
@@ -96,9 +95,7 @@ export default class LadderClimb extends Trait {
             const canEnterWithinColumn = this.isHorizontallyAligned(
                 entity,
                 candidate,
-            ) && centerInside && (
-                this.verticalDirection < 0 || climbable.kind === 'rope'
-            );
+            ) && centerInside && this.verticalDirection < 0;
             if (!canEnterFromTop && !canEnterWithinColumn) {
                 continue;
             }

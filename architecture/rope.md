@@ -48,10 +48,12 @@ at the first solid tile or at the eight-tile maximum. The rope has no `Solid`,
 
 `Climbable` distinguishes `ladder` and `rope` columns while `LadderClimb`
 continues to own centering, gravity suspension, climb speed, jump-off, Down plus
-Jump drop, carrying, and death release. A caught rope can be mounted with Up or
-Down while the player's centre is within its live bounds. Upward travel clamps
-at the rope anchor and remains airborne/clinging because a rope does not invent
-a walkable cap. Dormant airborne rope bundles are not mountable.
+Jump drop, carrying, and death release. An airborne player must hold Up while
+their centre is within the rope's live bounds to catch it, matching Classic;
+Down only traverses downward after attachment and cannot initiate a falling
+grab. Upward travel clamps at the rope anchor and remains airborne/clinging
+because a rope does not invent a walkable cap. Dormant airborne rope bundles
+are not mountable.
 
 ## HD visual and sound mapping
 

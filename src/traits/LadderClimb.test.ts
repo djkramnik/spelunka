@@ -403,13 +403,33 @@ ropeDownMount.climb.setVerticalInput(1, true);
 update(ropeDownMount.climb, ropeDownMount.entity, ropeLevel);
 assertEqual(
     [
-        ropeDownMount.climb.phase,
+        ropeDownMount.climb.active,
         ropeDownMount.climb.climbableKind,
         ropeDownMount.entity.pos.x,
         ropeDownMount.physics.enabled,
+        ropeDownMount.entity.vel.y,
     ],
-    ['clinging', 'rope', 33, false],
-    'Down catches an aligned rope while airborne and uses shared climb physics',
+    [false, null, 33, true, 40],
+    'Down does not catch a rope while the player is airborne',
+);
+
+const ropeUpMount = createPlayer();
+ropeUpMount.entity.pos.set(33, 48);
+ropeUpMount.entity.vel.y = 40;
+ropeUpMount.jump.phase = 'falling';
+ropeUpMount.jump.ready = -1;
+ropeUpMount.climb.setVerticalInput(-1, true);
+update(ropeUpMount.climb, ropeUpMount.entity, ropeLevel);
+assertEqual(
+    [
+        ropeUpMount.climb.phase,
+        ropeUpMount.climb.climbableKind,
+        ropeUpMount.entity.pos.x,
+        ropeUpMount.physics.enabled,
+        ropeUpMount.entity.vel.y,
+    ],
+    ['clinging', 'rope', 33, false, 0],
+    'Up catches an aligned rope during a fall and immediately stops velocity',
 );
 
 const ropeTop = createPlayer();
