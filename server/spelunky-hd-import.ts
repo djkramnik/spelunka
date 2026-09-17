@@ -91,9 +91,8 @@ const WHIP_LASH_SOURCE_FRAMES = Array.from(
 const WHIP_BACKSWING_PIVOT = [60, 80] as const;
 const WHIP_FORWARD_PIVOT = [0, 40] as const;
 const ROPE_SOURCE_FRAMES = [
+    ['hook', 47, [40, 0]],
     ['toss', 48, [40, 40]],
-    ['end-1', 72, [40, 80]],
-    ['end-2', 73, [40, 80]],
     ['body', 74, [40, 0]],
 ] as const;
 const TERRAIN_CELL_SIZE = 64;
@@ -1047,13 +1046,15 @@ export function createRopeAssets(sourceData: Buffer): {
     readonly spec: unknown;
 } {
     const source = PNG.sync.read(sourceData, {skipRescale: true});
-    const highestFrame = Math.max(
-        ...ROPE_SOURCE_FRAMES.map(([, sourceFrame]) => sourceFrame),
+    const sourceFrames = ROPE_SOURCE_FRAMES.map(
+        ([, sourceFrame]) => sourceFrame,
     );
-    const requiredWidth = ((highestFrame % ITEM_COLUMNS) + 1)
-        * ITEM_CELL_SIZE;
-    const requiredHeight = (Math.floor(highestFrame / ITEM_COLUMNS) + 1)
-        * ITEM_CELL_SIZE;
+    const requiredWidth = Math.max(...sourceFrames.map(sourceFrame => (
+        (sourceFrame % ITEM_COLUMNS) + 1
+    ) * ITEM_CELL_SIZE));
+    const requiredHeight = Math.max(...sourceFrames.map(sourceFrame => (
+        Math.floor(sourceFrame / ITEM_COLUMNS) + 1
+    ) * ITEM_CELL_SIZE));
     if (source.width < requiredWidth || source.height < requiredHeight) {
         throw new Error(
             `Unsupported item atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${source.width}x${source.height}`,

@@ -6,9 +6,10 @@ import SpriteSheet from '../SpriteSheet.js';
 import Climbable from '../traits/Climbable.js';
 import RopeDeployment, {
     ROPE_BODY_SPACING,
-    ROPE_END_FRAME_DURATION,
     ROPE_WIDTH,
 } from '../traits/RopeDeployment.js';
+
+const ROPE_FRAME_HEIGHT = 80 * 0.25;
 
 export type RopeFactory = () => Entity;
 
@@ -49,20 +50,27 @@ export function createRopeFactory(
                 return;
             }
 
-            for (let y = 0; y < rope.size.y; y += ROPE_BODY_SPACING) {
-                sprite.drawFrame('body', context, rope.size.x / 2, y);
+            if (rope.size.y > ROPE_FRAME_HEIGHT) {
+                const finalBodyY = rope.size.y - ROPE_FRAME_HEIGHT;
+                for (
+                    let y = ROPE_BODY_SPACING;
+                    y < finalBodyY;
+                    y += ROPE_BODY_SPACING
+                ) {
+                    sprite.drawFrame('body', context, rope.size.x / 2, y);
+                }
+                sprite.drawFrame(
+                    'body',
+                    context,
+                    rope.size.x / 2,
+                    finalBodyY,
+                );
             }
-            const endFrame = deployment.phase === 'unfurling'
-                && Math.floor(
-                    deployment.animationTime / ROPE_END_FRAME_DURATION,
-                ) % 2 === 0
-                ? 'end-1'
-                : 'end-2';
             sprite.drawFrame(
-                endFrame,
+                'hook',
                 context,
                 rope.size.x / 2,
-                rope.size.y,
+                0,
             );
         };
         return rope;

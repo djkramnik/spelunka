@@ -12,7 +12,6 @@ export const ROPE_TOSS_GRAVITY = 0.6 * 30 * 30;
 export const ROPE_UNFURL_SPEED = 8 * 30;
 export const ROPE_MAXIMUM_LENGTH = 8 * TILE_SIZE;
 export const ROPE_BODY_SPACING = TILE_SIZE;
-export const ROPE_END_FRAME_DURATION = 4 / 60;
 
 const PROBE_STEP = TILE_SIZE / 2;
 const POSITION_EPSILON = 1e-6;
@@ -25,7 +24,6 @@ export type RopeDeploymentPhase =
 
 export default class RopeDeployment extends Trait {
     phase: RopeDeploymentPhase = 'idle';
-    animationTime = 0;
 
     get launched(): boolean {
         return this.phase !== 'idle';
@@ -42,7 +40,6 @@ export default class RopeDeployment extends Trait {
         rope.traits.get(Climbable).active = false;
         rope.sounds.add('rope-toss');
         this.phase = 'ascending';
-        this.animationTime = 0;
         return true;
     }
 
@@ -87,14 +84,12 @@ export default class RopeDeployment extends Trait {
         rope.traits.get(Climbable).active = true;
         rope.sounds.add('rope-catch');
         this.phase = 'unfurling';
-        this.animationTime = 0;
     }
 
     private unfurl(rope: Entity, level: Level, deltaTime: number): void {
         if (deltaTime <= 0 || this.phase !== 'unfurling') {
             return;
         }
-        this.animationTime += deltaTime;
         const desiredHeight = Math.min(
             ROPE_MAXIMUM_LENGTH,
             rope.size.y + ROPE_UNFURL_SPEED * deltaTime,

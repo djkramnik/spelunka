@@ -96,13 +96,16 @@ draws.length = 0;
 rope.draw({} as CanvasRenderingContext2D);
 assertEqual(
     draws.map(draw => draw.name),
-    [...Array.from({length: 8}, () => 'body'), 'end-2'],
-    'The deployed rope repeats the HD body and terminates with the HD end cap',
+    [...Array.from({length: 7}, () => 'body'), 'hook'],
+    'The deployed rope repeats the plain HD body beneath one anchor hook',
 );
 assertEqual(
-    draws.at(-1),
-    {name: 'end-2', x: 4, y: ROPE_MAXIMUM_LENGTH},
-    'The terminal HD frame follows the live bottom of the climbable',
+    [draws.at(-2), draws.at(-1)],
+    [
+        {name: 'body', x: 4, y: ROPE_MAXIMUM_LENGTH - 20},
+        {name: 'hook', x: 4, y: 0},
+    ],
+    'The final plain body ends at the rope bottom and the hook covers the top',
 );
 
 const translations: Array<[number, number]> = [];
@@ -149,6 +152,17 @@ assertEqual(
     [floorDeployment.phase, floorRope.pos.y, floorRope.size.y],
     ['deployed', 76, 52],
     'Downward unfurling stops exactly at intervening solid terrain',
+);
+draws.length = 0;
+floorRope.draw({} as CanvasRenderingContext2D);
+assertEqual(
+    draws,
+    [
+        {name: 'body', x: 4, y: 16},
+        {name: 'body', x: 4, y: 32},
+        {name: 'hook', x: 4, y: 0},
+    ],
+    'An obstructed rope ends with the frayed body edge instead of a coil',
 );
 
 const ceilingLevel = new Level();

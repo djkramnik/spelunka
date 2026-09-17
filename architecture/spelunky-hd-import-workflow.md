@@ -52,8 +52,9 @@ All outputs are ignored by Git:
   cadence and preserve the distinct rear-curl and forward-snap pivots. The
   player renderer composites this behind animation 17;
 - `public/generated/spelunky-hd/rope.png` and its sprite metadata contain the
-  HD tossed bundle, both unfurling end frames, and repeatable rope body from
-  item-atlas frames 48 and 72-74;
+  HD anchor hook, tossed bundle, and repeatable plain rope body from item-atlas
+  frames 47, 48, and 74. Coiled frames 71-73 are intentionally excluded from
+  the persistent deployed rope;
 - `public/generated/spelunky-hd/mines.png` is a deterministic 2048x768 RGBA
   sheet containing the upper-left 512x512 Mines terrain region, the full
   256x256 opaque Mines fill, and a transparent 1280x768 background-decoration

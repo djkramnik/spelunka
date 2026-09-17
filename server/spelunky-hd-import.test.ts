@@ -98,7 +98,7 @@ function makeMonsterPng(): Buffer {
 
 function makeItemPng(): Buffer {
     const image = new PNG({
-        width: 1440,
+        width: 1920,
         height: 480,
         colorType: 6,
         inputColorType: 6,
@@ -117,7 +117,7 @@ function makeItemPng(): Buffer {
             pixel,
         );
     }
-    for (const sourceFrame of [48, 72, 73, 74]) {
+    for (const sourceFrame of [47, 48, 74]) {
         const sourceX = (sourceFrame % 24) * 80;
         const sourceY = Math.floor(sourceFrame / 24) * 80;
         const pixel = ((sourceY + 9) * image.width + sourceX + 6) * 4;
@@ -996,7 +996,7 @@ try {
     }
 
     const rope = PNG.sync.read(firstRopeImage);
-    assert.deepEqual([rope.width, rope.height], [320, 80]);
+    assert.deepEqual([rope.width, rope.height], [240, 80]);
     const ropeSpec = SpriteSheetSchema.parse(JSON.parse(
         firstRopeSpec.toString('utf8'),
     ));
@@ -1005,14 +1005,13 @@ try {
     assert.deepEqual(
         ropeSpec.frames.map(frame => [frame.name, frame.rect, frame.pivot]),
         [
-            ['toss', [0, 0, 80, 80], [40, 40]],
-            ['end-1', [80, 0, 80, 80], [40, 80]],
-            ['end-2', [160, 0, 80, 80], [40, 80]],
-            ['body', [240, 0, 80, 80], [40, 0]],
+            ['hook', [0, 0, 80, 80], [40, 0]],
+            ['toss', [80, 0, 80, 80], [40, 40]],
+            ['body', [160, 0, 80, 80], [40, 0]],
         ],
-        'HD rope cells expose toss, unfurling end, and repeatable body roles',
+        'HD rope cells expose the anchor hook, tossed bundle, and plain body',
     );
-    [48, 72, 73, 74].forEach((sourceFrame, index) => {
+    [47, 48, 74].forEach((sourceFrame, index) => {
         const outputPixel = (9 * rope.width + index * 80 + 6) * 4;
         assert.deepEqual(
             [...rope.data.subarray(outputPixel, outputPixel + 4)],

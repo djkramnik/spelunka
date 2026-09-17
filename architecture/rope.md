@@ -61,14 +61,16 @@ them at quarter scale:
 
 | Runtime role | HD source frame | Pivot |
 | --- | ---: | ---: |
+| anchor hook | 47 | 40,0 |
 | tossed bundle | 48 | 40,40 |
-| unfurl end A | 72 | 40,80 |
-| unfurl end B | 73 | 40,80 |
 | repeating body | 74 | 40,0 |
 
-The toss draws only frame 48. A deployed rope repeats frame 74 on the 16-pixel
-logical grid and draws the animated end at its live bottom. The end alternates
-at four HD ticks while unfurling, then rests on frame 73.
+The toss draws only frame 48. Once caught, frame 47 supplies the visibly hooked
+anchor and frame 74 repeats below it on the 16-pixel logical grid. The final
+body cell is bottom-aligned so its small frayed edge ends at the live rope
+length. Coiled frames 71-73 are not persistent deployed-rope caps; keeping one
+at the bottom produced a large knot that is not present during ordinary HD
+rope traversal.
 
 HD player animation 20 supplies held rope frame 84. Animations 23 and 24 both
 identify frames 84-93 at four HD ticks per frame and terminal frame 84, so the
