@@ -96,6 +96,10 @@
         {
             "name": "snake",
             "pos": [464, 96]
+        },
+        {
+            "name": "caveman",
+            "pos": [608, 256]
         }
     ],
     "triggers": [

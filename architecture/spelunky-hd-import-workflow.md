@@ -32,10 +32,11 @@ or the player image is too small.
 
 All outputs are ignored by Git:
 
-- `.local/spelunky-hd/source/` contains only the thirteen allow-listed source
+- `.local/spelunky-hd/source/` contains only the fifteen allow-listed source
   entries used by the player, enemy, terrain, HUD, item, and attack behavior;
 - `.local/spelunky-hd/import-report.json` records input, selected-entry, and
-  generated-output hashes plus the numeric player and snake animation records;
+  generated-output hashes plus the numeric player, snake, and caveman animation
+  records;
 - `public/generated/spelunky-hd/player.png` is a deterministic 400x1360 RGBA
   sheet containing unchanged 80x80 source cells, including HD's complete whip
   strip, ten-frame rope-climb strip, airborne dead-body frame 103, and settled
@@ -47,6 +48,9 @@ All outputs are ignored by Git:
 - `public/sprites/generated/spelunky-hd/snake.json` maps those cells to four
   idle frames, seven walk frames, seven attack frames, and a temporary `flat`
   compatibility alias without duplicating source pixels; and
+- `public/generated/spelunky-hd/caveman.png` and its sprite metadata contain
+  the selected HD idle, walk/run, reaction, corpse, sleep, and wake cells from
+  validated animation section 5;
 - `public/generated/spelunky-hd/whip.png` and its sprite metadata contain the
   eleven separate lash cells from item-atlas frames 123-133 at their two-tick
   cadence and preserve the distinct rear-curl and forward-snap pivots. The
@@ -66,6 +70,8 @@ All outputs are ignored by Git:
   14.4 logical pixels.
 - `public/generated/spelunky-hd/snakebite.wav` is the unchanged 44.1 kHz mono
   HD contact effect selected specifically for accepted snake damage.
+- `public/generated/spelunky-hd/hit.wav` is the unchanged HD enemy-impact cue
+  used for accepted caveman damage.
 - `public/generated/spelunky-hd/throw_item.wav` and `whip.wav` are unchanged
   HD action effects used by carried-item release and the whip strike. The
   tracked sound metadata applies the whip's softer per-effect playback gain;
@@ -78,6 +84,7 @@ The generated player metadata is loadable with:
 ```ts
 await loadSpriteSheet('generated/spelunky-hd/player');
 await loadSpriteSheet('generated/spelunky-hd/snake');
+await loadSpriteSheet('generated/spelunky-hd/caveman');
 await loadSpriteSheet('generated/spelunky-hd/whip');
 await loadSpriteSheet('generated/spelunky-hd/rope');
 ```
@@ -120,6 +127,7 @@ entry path components, and reads only these allow-listed entries from the WAD:
 - `ANYLEVEL/playerhudPRO.png`
 - `ATSTART/hudicons.png`
 - `ALLSOUNDS/snakebite.wav`
+- `ALLSOUNDS/hit.wav`
 - `ALLSOUNDS/throw_item.wav`
 - `ALLSOUNDS/whip.wav`
 - `ALLSOUNDS/ropetoss.wav`

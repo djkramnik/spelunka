@@ -3,6 +3,8 @@ import {loadBullet} from './entities/Bullet.js';
 import type {BulletFactory} from './entities/Bullet.js';
 import {loadCannon} from './entities/Cannon.js';
 import type {CannonFactory} from './entities/Cannon.js';
+import {loadCaveman} from './entities/Caveman.js';
+import type {CavemanFactory} from './entities/Caveman.js';
 import {loadLadder} from './entities/Ladder.js';
 import type {LadderFactory} from './entities/Ladder.js';
 import {loadMario} from './entities/Mario.js';
@@ -23,6 +25,7 @@ export interface EntityFactories {
     ladder4: () => Entity;
     bullet: BulletFactory;
     cannon: CannonFactory;
+    caveman: CavemanFactory;
     rock: RockFactory;
     rope: RopeFactory;
     snake: SnakeFactory;
@@ -43,6 +46,7 @@ export async function loadEntities(
         ladder,
         bullet,
         cannon,
+        caveman,
         rock,
         rope,
         snake,
@@ -51,6 +55,7 @@ export async function loadEntities(
         track(loadLadder()),
         track(loadBullet()),
         track(loadCannon(audioContext)),
+        track(loadCaveman(audioContext)),
         track(loadRock()),
         track(loadRope(audioContext)),
         track(loadSnake()),
@@ -62,6 +67,7 @@ export async function loadEntities(
         ladder4: () => ladder(4),
         bullet,
         cannon,
+        caveman,
         rock,
         rope,
         snake,

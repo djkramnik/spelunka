@@ -146,6 +146,7 @@ to the repository.
 | Compact player HUD | `ANYLEVEL/playerhudPRO.png` | 256x256, 8-bit RGBA; standalone transparent heart and compact HUD icons | `84213a3344d4121838e3e753d4c88739a3b1466c8cb75c265694f51531cf0497` |
 | HUD counters | `ATSTART/hudicons.png` | 512x128, 8-bit RGBA; dedicated counter icons and digit cells 0-9 | `769d13ca7b9507437081a52e96957feef87e3396e4c60f7a4bf1d59f6f105cc7` |
 | Snake contact | `ALLSOUNDS/snakebite.wav` | 0.207-second, 44.1 kHz, 16-bit mono PCM WAV | `5149006b05e3f62179a0626f3043bc72966107a163ba28a056c192510a6f9677` |
+| Enemy impact | `ALLSOUNDS/hit.wav` | 44.1 kHz, 16-bit mono PCM WAV | `02d241456a5d70d482cb3e3da8f4e44664d4b7eced65e7371a475c2d0b9a0a86` |
 
 All six PNG samples contain an alpha channel, so
 the converter must preserve partial transparency rather than reduce it to a

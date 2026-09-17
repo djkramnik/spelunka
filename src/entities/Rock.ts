@@ -4,6 +4,7 @@ import {loadSpriteSheet} from '../loaders/sprite.js';
 import type {GameContext} from '../Scene.js';
 import SpriteSheet from '../SpriteSheet.js';
 import Trait from '../Trait.js';
+import Damageable from '../traits/Damageable.js';
 import Health from '../traits/Health.js';
 import Killable from '../traits/Killable.js';
 import Physics from '../traits/Physics.js';
@@ -42,6 +43,7 @@ export const ROCK_THROWER_GRACE_UPDATES = 10
     * GAME_UPDATES_PER_SECOND
     / CLASSIC_UPDATES_PER_SECOND;
 export const ROCK_Z_INDEX = 1;
+export const ROCK_ENEMY_UPWARD_SPEED = 6 * CLASSIC_UPDATES_PER_SECOND;
 
 export class RockBehavior extends Trait {
     override collides(rock: Entity, candidate: Entity): void {
@@ -62,7 +64,14 @@ export class RockBehavior extends Trait {
 
         if (Math.abs(rock.vel.x) > ROCK_ENEMY_DANGER_SPEED
             || Math.abs(rock.vel.y) > ROCK_ENEMY_DANGER_SPEED) {
-            candidate.traits.get(Killable).kill();
+            if (candidate.traits.has(Damageable)) {
+                candidate.traits.get(Damageable).hit(1, {
+                    velocityX: rock.vel.x,
+                    velocityY: -ROCK_ENEMY_UPWARD_SPEED,
+                });
+            } else {
+                candidate.traits.get(Killable).kill();
+            }
         }
     }
 

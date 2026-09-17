@@ -65,7 +65,7 @@ function makePlayerPng(): Buffer {
 function makeMonsterPng(): Buffer {
     const image = new PNG({
         width: 960,
-        height: 160,
+        height: 960,
         colorType: 6,
         inputColorType: 6,
         bitDepth: 8,
@@ -76,6 +76,9 @@ function makeMonsterPng(): Buffer {
         0, 1, 2, 3,
         4, 5, 6, 7, 8, 9, 10,
         12, 13, 14, 15, 16, 17, 18,
+        36, 37, 38, 39, 40, 41, 42,
+        48, 49, 50, 51, 52,
+        134, 140, 141, 142, 143,
     ];
     for (const frame of frames) {
         const x = (frame % 12) * 80 + 12;
@@ -290,6 +293,20 @@ const animationText = [
     '* 0 0 3 10 0 1',
     '* 1 4 10 6 4 0',
     '* 17 12 18 4 18 0',
+    '!',
+    '!',
+    '!',
+    '!',
+    '* 0 36 36 1 36 0',
+    '* 1 37 42 4 37 0',
+    '* 6 134 134 1 134 0',
+    '* 7 134 143 6 134 0',
+    '* 9 48 48 1 48 0',
+    '* 13 49 49 1 49 0',
+    '* 14 50 50 1 50 0',
+    '* 15 51 51 1 51 0',
+    '* 16 52 52 1 52 0',
+    '* 17 37 42 2 37 0',
     '',
 ].join('\r\n');
 
@@ -416,6 +433,7 @@ try {
     const wadPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad');
     const wixPath = join(sourceRoot, 'Data', 'Textures', 'alltex.wad.wix');
     const snakebiteSound = Buffer.from('synthetic snake bite wave');
+    const hitSound = Buffer.from('synthetic enemy hit wave');
     const throwSound = Buffer.from('synthetic throw item wave');
     const whipSound = Buffer.from('synthetic whip wave');
     const ropeTossSound = Buffer.from('synthetic rope toss wave');
@@ -442,6 +460,7 @@ try {
     write(wixPath, wix);
     write(soundWadPath, Buffer.concat([
         snakebiteSound,
+        hitSound,
         throwSound,
         whipSound,
         ropeTossSound,
@@ -452,10 +471,11 @@ try {
         [
             '!group ALLSOUNDS',
             `snakebite.wav 0 ${snakebiteSound.length}`,
-            `throw_item.wav ${snakebiteSound.length} ${throwSound.length}`,
-            `whip.wav ${snakebiteSound.length + throwSound.length} ${whipSound.length}`,
-            `ropetoss.wav ${snakebiteSound.length + throwSound.length + whipSound.length} ${ropeTossSound.length}`,
-            `ropecatch.wav ${snakebiteSound.length + throwSound.length + whipSound.length + ropeTossSound.length} ${ropeCatchSound.length}`,
+            `hit.wav ${snakebiteSound.length} ${hitSound.length}`,
+            `throw_item.wav ${snakebiteSound.length + hitSound.length} ${throwSound.length}`,
+            `whip.wav ${snakebiteSound.length + hitSound.length + throwSound.length} ${whipSound.length}`,
+            `ropetoss.wav ${snakebiteSound.length + hitSound.length + throwSound.length + whipSound.length} ${ropeTossSound.length}`,
+            `ropecatch.wav ${snakebiteSound.length + hitSound.length + throwSound.length + whipSound.length + ropeTossSound.length} ${ropeCatchSound.length}`,
             '',
         ].join('\r\n'),
     );
@@ -478,6 +498,10 @@ try {
             sha256: sha256(snakebiteSound),
         }, {
             group: 'ALLSOUNDS',
+            name: 'hit.wav',
+            sha256: sha256(hitSound),
+        }, {
+            group: 'ALLSOUNDS',
             name: 'throw_item.wav',
             sha256: sha256(throwSound),
         }, {
@@ -498,6 +522,8 @@ try {
     const firstImage = readFileSync(result.playerImagePath);
     const firstSpec = readFileSync(result.playerSpecPath);
     const firstEnemySpec = readFileSync(result.enemySpecPath);
+    const firstCavemanImage = readFileSync(result.cavemanImagePath);
+    const firstCavemanSpec = readFileSync(result.cavemanSpecPath);
     const firstRockImage = readFileSync(result.rockImagePath);
     const firstRockSpec = readFileSync(result.rockSpecPath);
     const firstWhipImage = readFileSync(result.whipImagePath);
@@ -508,6 +534,7 @@ try {
     const firstHudImage = readFileSync(result.hudImagePath);
     const firstHudSpec = readFileSync(result.hudSpecPath);
     const firstSnakebiteSound = readFileSync(result.snakebiteSoundPath);
+    const firstHitSound = readFileSync(result.hitSoundPath);
     const firstThrowSound = readFileSync(result.throwSoundPath);
     const firstWhipSound = readFileSync(result.whipSoundPath);
     const firstRopeTossSound = readFileSync(result.ropeTossSoundPath);
@@ -815,6 +842,23 @@ try {
             'spelunky-hd',
             'source',
             'ALLSOUNDS',
+            'hit.wav',
+        )),
+        hitSound,
+        'The allow-listed HD enemy-hit source is copied unchanged',
+    );
+    assert.deepEqual(
+        firstHitSound,
+        hitSound,
+        'The generated enemy-hit effect preserves its source bytes',
+    );
+    assert.deepEqual(
+        readFileSync(join(
+            outputRoot,
+            '.local',
+            'spelunky-hd',
+            'source',
+            'ALLSOUNDS',
             'throw_item.wav',
         )),
         throwSound,
@@ -947,6 +991,68 @@ try {
         [...enemy.data.subarray(lastEnemyPixel, lastEnemyPixel + 4)],
         [18, 200, 100, 82],
         'The terminal HD attack frame is packed in source order',
+    );
+
+    const caveman = PNG.sync.read(firstCavemanImage);
+    assert.deepEqual([caveman.width, caveman.height], [1200, 80]);
+    const cavemanSpec = SpriteSheetSchema.parse(JSON.parse(
+        firstCavemanSpec.toString('utf8'),
+    ));
+    assert.equal(cavemanSpec.imageURL, '/generated/spelunky-hd/caveman.png');
+    assert.equal(cavemanSpec.frameScale, 0.25);
+    const cavemanFrame = (name: string) => {
+        const result = cavemanSpec.frames.find(frame => frame.name === name);
+        assert.ok(result, `Missing generated caveman frame ${name}`);
+        return result;
+    };
+    assert.deepEqual(cavemanFrame('idle').rect, [0, 0, 80, 80]);
+    assert.deepEqual(cavemanFrame('walk-6').rect, [480, 0, 80, 80]);
+    assert.deepEqual(cavemanFrame('stunned').rect, [560, 0, 80, 80]);
+    assert.deepEqual(
+        cavemanFrame('dead').rect,
+        cavemanFrame('stunned').rect,
+        'Settled stun and corpse names reuse the validated prone HD cell',
+    );
+    assert.deepEqual(cavemanFrame('sleeping').rect, [800, 0, 80, 80]);
+    assert.deepEqual(cavemanFrame('wake-5').rect, [1120, 0, 80, 80]);
+    assert.deepEqual(
+        cavemanSpec.animations,
+        [
+            {
+                name: 'walk',
+                frameLen: 4 / 60,
+                frames: Array.from(
+                    {length: 6},
+                    (_, index) => `walk-${index + 1}`,
+                ),
+                loop: true,
+            },
+            {
+                name: 'charge',
+                frameLen: 2 / 60,
+                frames: Array.from(
+                    {length: 6},
+                    (_, index) => `walk-${index + 1}`,
+                ),
+                loop: true,
+            },
+            {
+                name: 'wake',
+                frameLen: 6 / 60,
+                frames: Array.from(
+                    {length: 5},
+                    (_, index) => `wake-${index + 1}`,
+                ),
+                loop: false,
+            },
+        ],
+        'Caveman metadata preserves HD patrol, pursuit, and wake timing',
+    );
+    const cavemanLastPixel = (13 * caveman.width + 13 * 80 + 12) * 4;
+    assert.deepEqual(
+        [...caveman.data.subarray(cavemanLastPixel, cavemanLastPixel + 4)],
+        [143, 200, 100, 207],
+        'Caveman wake pixels preserve source RGBA',
     );
 
     const rock = PNG.sync.read(firstRockImage);
@@ -1139,6 +1245,8 @@ try {
     assert.deepEqual(readFileSync(result.playerSpecPath), firstSpec);
     assert.deepEqual(readFileSync(result.enemyImagePath), enemyImage);
     assert.deepEqual(readFileSync(result.enemySpecPath), firstEnemySpec);
+    assert.deepEqual(readFileSync(result.cavemanImagePath), firstCavemanImage);
+    assert.deepEqual(readFileSync(result.cavemanSpecPath), firstCavemanSpec);
     assert.deepEqual(readFileSync(result.rockImagePath), firstRockImage);
     assert.deepEqual(readFileSync(result.rockSpecPath), firstRockSpec);
     assert.deepEqual(readFileSync(result.whipImagePath), firstWhipImage);
@@ -1152,6 +1260,7 @@ try {
         readFileSync(result.snakebiteSoundPath),
         firstSnakebiteSound,
     );
+    assert.deepEqual(readFileSync(result.hitSoundPath), firstHitSound);
     assert.deepEqual(readFileSync(result.throwSoundPath), firstThrowSound);
     assert.deepEqual(readFileSync(result.whipSoundPath), firstWhipSound);
     assert.deepEqual(
@@ -1238,6 +1347,20 @@ try {
     await assert.rejects(
         importSpelunkyHd({sourceRoot, outputRoot, profile: badSnakeProfile}),
         /Unsupported snake animation 1/,
+    );
+
+    const unsupportedCavemanAnimations = animationText.replace(
+        '* 17 37 42 2 37 0',
+        '* 17 37 42 3 37 0',
+    );
+    write(animationsPath, unsupportedCavemanAnimations);
+    const badCavemanProfile: ImportProfile = {
+        ...profile,
+        animationsSha256: await sha256File(animationsPath),
+    };
+    await assert.rejects(
+        importSpelunkyHd({sourceRoot, outputRoot, profile: badCavemanProfile}),
+        /Unsupported caveman animation 17/,
     );
 } finally {
     rmSync(root, {recursive: true, force: true});

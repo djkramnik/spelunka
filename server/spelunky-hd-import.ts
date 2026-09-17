@@ -57,6 +57,8 @@ export interface ImportResult {
     readonly playerSpecPath: string;
     readonly enemyImagePath: string;
     readonly enemySpecPath: string;
+    readonly cavemanImagePath: string;
+    readonly cavemanSpecPath: string;
     readonly rockImagePath: string;
     readonly rockSpecPath: string;
     readonly whipImagePath: string;
@@ -67,6 +69,7 @@ export interface ImportResult {
     readonly hudImagePath: string;
     readonly hudSpecPath: string;
     readonly snakebiteSoundPath: string;
+    readonly hitSoundPath: string;
     readonly throwSoundPath: string;
     readonly whipSoundPath: string;
     readonly ropeTossSoundPath: string;
@@ -80,6 +83,7 @@ const PLAYER_COLUMNS = 12;
 const OUTPUT_COLUMNS = 5;
 const PLAYER_PIVOT = [40, 72] as const;
 const ENEMY_PIVOT = [40, 72] as const;
+const CAVEMAN_ANIMATION_SECTION = 5;
 const ITEM_CELL_SIZE = 80;
 const ITEM_COLUMNS = 24;
 const ROCK_SOURCE_FRAME = 17;
@@ -212,6 +216,17 @@ const ENEMY_FRAME_SOURCES = [
     ...namedFrames('attack', SNAKE_ATTACK_SOURCE_FRAMES),
 ] as const;
 
+const CAVEMAN_FRAME_SOURCES = [
+    ['idle', 36],
+    ...namedFrames('walk', [37, 38, 39, 40, 41, 42]),
+    ['stunned', 48],
+    ['dead', 48],
+    ['hit-up', 49],
+    ['hit-fall', 51],
+    ['sleeping', 140],
+    ...namedFrames('wake', [140, 141, 142, 143, 134]),
+] as const;
+
 const REQUIRED_PLAYER_ANIMATIONS = new Map<number, readonly [number, number]>([
     [0, [0, 0]],
     [1, [1, 8]],
@@ -245,6 +260,22 @@ readonly [firstFrame: number, lastFrame: number, frameLength: number, terminalFr
     [0, [0, 3, 10, 0]],
     [1, [4, 10, 6, 4]],
     [17, [12, 18, 4, 18]],
+]);
+
+const REQUIRED_CAVEMAN_ANIMATIONS = new Map<
+number,
+readonly [firstFrame: number, lastFrame: number, frameLength: number, terminalFrame: number]
+>([
+    [0, [36, 36, 1, 36]],
+    [1, [37, 42, 4, 37]],
+    [6, [134, 134, 1, 134]],
+    [7, [134, 143, 6, 134]],
+    [9, [48, 48, 1, 48]],
+    [13, [49, 49, 1, 49]],
+    [14, [50, 50, 1, 50]],
+    [15, [51, 51, 1, 51]],
+    [16, [52, 52, 1, 52]],
+    [17, [37, 42, 2, 37]],
 ]);
 
 export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
@@ -305,6 +336,11 @@ export const DEFAULT_IMPORT_PROFILE: ImportProfile = {
             group: 'ALLSOUNDS',
             name: 'snakebite.wav',
             sha256: '5149006b05e3f62179a0626f3043bc72966107a163ba28a056c192510a6f9677',
+        },
+        {
+            group: 'ALLSOUNDS',
+            name: 'hit.wav',
+            sha256: '02d241456a5d70d482cb3e3da8f4e44664d4b7eced65e7371a475c2d0b9a0a86',
         },
         {
             group: 'ALLSOUNDS',
@@ -526,6 +562,28 @@ function validateSnakeAnimations(sections: readonly (readonly AnimationRecord[])
             || record.terminalFrame !== expected[3]) {
             throw new Error(
                 `Unsupported snake animation ${id}; expected frames ${expected[0]}-${expected[1]}, frame length ${expected[2]}, terminal frame ${expected[3]}`,
+            );
+        }
+    }
+}
+
+function validateCavemanAnimations(
+    sections: readonly (readonly AnimationRecord[])[],
+): void {
+    const caveman = sections[CAVEMAN_ANIMATION_SECTION];
+    if (caveman === undefined) {
+        throw new Error('Animation metadata has no caveman section');
+    }
+    const byId = new Map(caveman.map(record => [record.id, record]));
+    for (const [id, expected] of REQUIRED_CAVEMAN_ANIMATIONS) {
+        const record = byId.get(id);
+        if (record === undefined
+            || record.firstFrame !== expected[0]
+            || record.lastFrame !== expected[1]
+            || record.frameLength !== expected[2]
+            || record.terminalFrame !== expected[3]) {
+            throw new Error(
+                `Unsupported caveman animation ${id}; expected frames ${expected[0]}-${expected[1]}, frame length ${expected[2]}, terminal frame ${expected[3]}`,
             );
         }
     }
@@ -904,6 +962,110 @@ function createEnemyAssets(sourceData: Buffer): {
                     frameLen: 4 * HD_TICK_SECONDS,
                     frames: namedFrames('attack', SNAKE_ATTACK_SOURCE_FRAMES)
                         .map(([name]) => name),
+                    loop: false,
+                },
+            ],
+        },
+    };
+}
+
+export function createCavemanAssets(sourceData: Buffer): {
+    readonly png: Buffer;
+    readonly spec: unknown;
+} {
+    const source = PNG.sync.read(sourceData, {skipRescale: true});
+    const requiredWidth = PLAYER_COLUMNS * PLAYER_CELL_SIZE;
+    const highestFrame = Math.max(
+        ...CAVEMAN_FRAME_SOURCES.map(([, frame]) => frame),
+    );
+    const requiredHeight = (Math.floor(highestFrame / PLAYER_COLUMNS) + 1)
+        * PLAYER_CELL_SIZE;
+    if (source.width < requiredWidth || source.height < requiredHeight) {
+        throw new Error(
+            `Unsupported caveman atlas dimensions: expected at least ${requiredWidth}x${requiredHeight}, got ${source.width}x${source.height}`,
+        );
+    }
+
+    const uniqueFrames = [...new Set(
+        CAVEMAN_FRAME_SOURCES.map(([, frame]) => frame),
+    )];
+    const output = new PNG({
+        width: uniqueFrames.length * PLAYER_CELL_SIZE,
+        height: PLAYER_CELL_SIZE,
+        colorType: 6,
+        inputColorType: 6,
+        bitDepth: 8,
+        fill: false,
+    });
+    output.data.fill(0);
+    const rectBySource = new Map<number, readonly [number, number, number, number]>();
+    uniqueFrames.forEach((sourceFrame, outputIndex) => {
+        const sourceX = (sourceFrame % PLAYER_COLUMNS) * PLAYER_CELL_SIZE;
+        const sourceY = Math.floor(sourceFrame / PLAYER_COLUMNS)
+            * PLAYER_CELL_SIZE;
+        const outputX = outputIndex * PLAYER_CELL_SIZE;
+        PNG.bitblt(
+            source,
+            output,
+            sourceX,
+            sourceY,
+            PLAYER_CELL_SIZE,
+            PLAYER_CELL_SIZE,
+            outputX,
+            0,
+        );
+        rectBySource.set(sourceFrame, [
+            outputX,
+            0,
+            PLAYER_CELL_SIZE,
+            PLAYER_CELL_SIZE,
+        ]);
+    });
+    const frames = CAVEMAN_FRAME_SOURCES.map(([name, sourceFrame]) => {
+        const rect = rectBySource.get(sourceFrame);
+        if (rect === undefined) {
+            throw new Error(`Missing packed caveman source frame ${sourceFrame}`);
+        }
+        return {name, rect, pivot: ENEMY_PIVOT};
+    });
+
+    return {
+        png: PNG.sync.write(output, {
+            colorType: 6,
+            inputColorType: 6,
+            bitDepth: 8,
+            filterType: 4,
+            deflateLevel: 9,
+            deflateStrategy: 3,
+        }),
+        spec: {
+            imageURL: '/generated/spelunky-hd/caveman.png',
+            frameScale: 0.25,
+            frames,
+            animations: [
+                {
+                    name: 'walk',
+                    frameLen: 4 * HD_TICK_SECONDS,
+                    frames: namedFrames(
+                        'walk',
+                        [37, 38, 39, 40, 41, 42],
+                    ).map(([name]) => name),
+                },
+                {
+                    name: 'charge',
+                    frameLen: 2 * HD_TICK_SECONDS,
+                    frames: namedFrames(
+                        'walk',
+                        [37, 38, 39, 40, 41, 42],
+                    ).map(([name]) => name),
+                },
+                {
+                    name: 'wake',
+                    frameLen: 6 * HD_TICK_SECONDS,
+                    frames: namedFrames(
+                        'wake',
+                        [140, 141, 142, 143, 134],
+                    ).map(([name]) => name),
                     loop: false,
                 },
             ],
@@ -1371,6 +1533,7 @@ export async function importSpelunkyHd(
     );
     validatePlayerAnimations(animationSections);
     validateSnakeAnimations(animationSections);
+    validateCavemanAnimations(animationSections);
 
     const selected: Array<{
         readonly key: string;
@@ -1489,6 +1652,26 @@ export async function importSpelunkyHd(
     ensureParent(enemyImagePath);
     writeFileSync(enemyImagePath, enemyAssets.png);
     writeDeterministicJson(enemySpecPath, enemyAssets.spec);
+
+    const cavemanAssets = createCavemanAssets(enemySource.data);
+    const cavemanImagePath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'caveman.png',
+    );
+    const cavemanSpecPath = join(
+        outputRoot,
+        'public',
+        'sprites',
+        'generated',
+        'spelunky-hd',
+        'caveman.json',
+    );
+    ensureParent(cavemanImagePath);
+    writeFileSync(cavemanImagePath, cavemanAssets.png);
+    writeDeterministicJson(cavemanSpecPath, cavemanAssets.spec);
 
     const itemSource = selected.find(entry => entry.key === 'ITEMS/items.png');
     if (itemSource === undefined) {
@@ -1642,6 +1825,22 @@ export async function importSpelunkyHd(
     ensureParent(snakebiteSoundPath);
     writeFileSync(snakebiteSoundPath, snakebiteSource.data);
 
+    const hitSoundSource = selectedSounds.find(
+        entry => entry.key === 'ALLSOUNDS/hit.wav',
+    );
+    if (hitSoundSource === undefined) {
+        throw new Error('Import profile does not contain ALLSOUNDS/hit.wav');
+    }
+    const hitSoundPath = join(
+        outputRoot,
+        'public',
+        'generated',
+        'spelunky-hd',
+        'hit.wav',
+    );
+    ensureParent(hitSoundPath);
+    writeFileSync(hitSoundPath, hitSoundSource.data);
+
     const throwSoundSource = selectedSounds.find(
         entry => entry.key === 'ALLSOUNDS/throw_item.wav',
     );
@@ -1741,6 +1940,7 @@ export async function importSpelunkyHd(
         ),
         playerAnimationRecords: animationSections[0],
         snakeAnimationRecords: animationSections[1],
+        cavemanAnimationRecords: animationSections[CAVEMAN_ANIMATION_SECTION],
         generated: [
             {
                 path: 'public/generated/spelunky-hd/player.png',
@@ -1757,6 +1957,14 @@ export async function importSpelunkyHd(
             {
                 path: 'public/sprites/generated/spelunky-hd/snake.json',
                 sha256: await sha256File(enemySpecPath),
+            },
+            {
+                path: 'public/generated/spelunky-hd/caveman.png',
+                sha256: sha256(cavemanAssets.png),
+            },
+            {
+                path: 'public/sprites/generated/spelunky-hd/caveman.json',
+                sha256: await sha256File(cavemanSpecPath),
             },
             {
                 path: 'public/generated/spelunky-hd/rock.png',
@@ -1799,6 +2007,10 @@ export async function importSpelunkyHd(
                 sha256: sha256(snakebiteSource.data),
             },
             {
+                path: 'public/generated/spelunky-hd/hit.wav',
+                sha256: sha256(hitSoundSource.data),
+            },
+            {
                 path: 'public/generated/spelunky-hd/throw_item.wav',
                 sha256: sha256(throwSoundSource.data),
             },
@@ -1822,6 +2034,8 @@ export async function importSpelunkyHd(
         playerSpecPath,
         enemyImagePath,
         enemySpecPath,
+        cavemanImagePath,
+        cavemanSpecPath,
         rockImagePath,
         rockSpecPath,
         whipImagePath,
@@ -1832,6 +2046,7 @@ export async function importSpelunkyHd(
         hudImagePath,
         hudSpecPath,
         snakebiteSoundPath,
+        hitSoundPath,
         throwSoundPath,
         whipSoundPath,
         ropeTossSoundPath,

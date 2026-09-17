@@ -27,6 +27,7 @@ assert.deepEqual(tutorial.entities, [
     {name: 'ladder4', pos: [480, 208]},
     {name: 'snake', pos: [352, 64]},
     {name: 'snake', pos: [464, 96]},
+    {name: 'caveman', pos: [608, 256]},
 ]);
 const tutorialRock = tutorial.entities.find(entity => entity.name === 'rock');
 assert.deepEqual(
@@ -109,6 +110,19 @@ for (const snake of tutorial.entities.filter(entity => entity.name === 'snake'))
         `Tutorial snake at ${snake.pos.join(',')} should not start inside terrain`,
     );
 }
+const tutorialCaveman = tutorial.entities.find(
+    entity => entity.name === 'caveman',
+);
+assert.deepEqual(
+    tutorialCaveman?.pos,
+    [38 * 16, 17 * 16 - 16],
+    'Caveman waits on the bottom floor beneath the right-side descent opening',
+);
+assert.ok(
+    tutorialSolidTiles.has('38,17')
+        && !tutorialSolidTiles.has('38,16'),
+    'Tutorial caveman starts on clear, supported bottom-floor terrain',
+);
 assert.equal(
     tutorialSolidTiles.size,
     357,

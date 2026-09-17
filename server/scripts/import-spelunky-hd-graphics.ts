@@ -73,6 +73,8 @@ async function main(): Promise<void> {
         console.log(`Player metadata: ${result.playerSpecPath}`);
         console.log(`Enemy PNG: ${result.enemyImagePath}`);
         console.log(`Enemy metadata: ${result.enemySpecPath}`);
+        console.log(`Caveman PNG: ${result.cavemanImagePath}`);
+        console.log(`Caveman metadata: ${result.cavemanSpecPath}`);
         console.log(`Rock PNG: ${result.rockImagePath}`);
         console.log(`Rock metadata: ${result.rockSpecPath}`);
         console.log(`Whip PNG: ${result.whipImagePath}`);
@@ -83,6 +85,7 @@ async function main(): Promise<void> {
         console.log(`HUD PNG: ${result.hudImagePath}`);
         console.log(`HUD metadata: ${result.hudSpecPath}`);
         console.log(`Snake-bite WAV: ${result.snakebiteSoundPath}`);
+        console.log(`Enemy-hit WAV: ${result.hitSoundPath}`);
         console.log(`Throw-item WAV: ${result.throwSoundPath}`);
         console.log(`Whip WAV: ${result.whipSoundPath}`);
         console.log(`Rope-toss WAV: ${result.ropeTossSoundPath}`);

@@ -4,6 +4,7 @@ import type {GameContext} from '../Scene.js';
 import Trait from '../Trait.js';
 import Carrier from './Carrier.js';
 import Crouch from './Crouch.js';
+import Damageable from './Damageable.js';
 import Go from './Go.js';
 import Killable from './Killable.js';
 import LadderClimb from './LadderClimb.js';
@@ -21,6 +22,8 @@ export const SPELUNKY_WHIP_DURATION = SPELUNKY_WHIP_STARTUP_TIME
     + SPELUNKY_WHIP_ACTIVE_TIME
     + SPELUNKY_WHIP_RECOVERY_TIME;
 export const SPELUNKY_WHIP_REACH = 16;
+export const SPELUNKY_WHIP_ENEMY_KNOCKBACK_SPEED = 60;
+export const SPELUNKY_WHIP_ENEMY_UPWARD_SPEED = 90;
 
 export type WhipPhase = 'inactive' | 'startup' | 'active' | 'recovery';
 
@@ -116,7 +119,15 @@ export default class Whip extends Trait {
                 continue;
             }
             this.hitTargets.add(target);
-            target.traits.get(Killable).kill();
+            if (target.traits.has(Damageable)) {
+                target.traits.get(Damageable).hit(1, {
+                    velocityX: this.direction
+                        * SPELUNKY_WHIP_ENEMY_KNOCKBACK_SPEED,
+                    velocityY: -SPELUNKY_WHIP_ENEMY_UPWARD_SPEED,
+                });
+            } else {
+                target.traits.get(Killable).kill();
+            }
         }
     }
 
