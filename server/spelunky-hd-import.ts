@@ -110,7 +110,9 @@ const HUD_HEART_SIZE = 32;
 const HUD_HEART_SOURCE_X = 0;
 const HUD_HEART_SOURCE_Y = 128;
 const HUD_DIGIT_SIZE = 64;
-const HUD_OUTPUT_WIDTH = HUD_HEART_SIZE + 10 * HUD_DIGIT_SIZE;
+const HUD_ROPE_SOURCE_CELL = [2, 0] as const;
+const HUD_ROPE_OUTPUT_X = HUD_HEART_SIZE + 10 * HUD_DIGIT_SIZE;
+const HUD_OUTPUT_WIDTH = HUD_ROPE_OUTPUT_X + HUD_DIGIT_SIZE;
 const HUD_OUTPUT_HEIGHT = HUD_DIGIT_SIZE;
 const HUD_DIGIT_SCALE = 0.225;
 const HUD_HEART_SCALE = 0.45;
@@ -1165,6 +1167,17 @@ export function createHudAssets(
         );
     });
 
+    PNG.bitblt(
+        hudIcons,
+        output,
+        HUD_ROPE_SOURCE_CELL[0] * HUD_DIGIT_SIZE,
+        HUD_ROPE_SOURCE_CELL[1] * HUD_DIGIT_SIZE,
+        HUD_DIGIT_SIZE,
+        HUD_DIGIT_SIZE,
+        HUD_ROPE_OUTPUT_X,
+        0,
+    );
+
     return {
         png: PNG.sync.write(output, {
             colorType: 6,
@@ -1192,6 +1205,15 @@ export function createHudAssets(
                         HUD_DIGIT_SIZE,
                     ],
                 })),
+                {
+                    name: 'rope',
+                    rect: [
+                        HUD_ROPE_OUTPUT_X,
+                        0,
+                        HUD_DIGIT_SIZE,
+                        HUD_DIGIT_SIZE,
+                    ],
+                },
             ],
         },
     };

@@ -234,6 +234,10 @@ function makeHudIconsPng(): Buffer {
         fill: false,
     });
     image.data.fill(0);
+    image.data.set(
+        [120, 70, 30, 210],
+        (9 * image.width + 2 * 64 + 8) * 4,
+    );
     const cells = [
         [4, 0], [5, 0], [6, 0], [7, 0], [0, 1],
         [1, 1], [2, 1], [3, 1], [4, 1], [5, 1],
@@ -1079,7 +1083,7 @@ try {
     );
 
     const hudImage = PNG.sync.read(firstHudImage);
-    assert.deepEqual([hudImage.width, hudImage.height], [672, 64]);
+    assert.deepEqual([hudImage.width, hudImage.height], [736, 64]);
     const hudSpec = SpriteSheetSchema.parse(JSON.parse(
         firstHudSpec.toString('utf8'),
     ));
@@ -1093,8 +1097,9 @@ try {
                 [32 + digit * 64, 0, 64, 64],
                 undefined,
             ]),
+            ['rope', [672, 0, 64, 64], undefined],
         ],
-        'HUD metadata exposes the HD heart and all ten counter glyphs',
+        'HUD metadata exposes the HD heart, rope, and all ten counter glyphs',
     );
     const heartPixel = (10 * hudImage.width + 10) * 4;
     assert.deepEqual(
@@ -1121,6 +1126,12 @@ try {
         [...hudImage.data.subarray(digitFourPixel, digitFourPixel + 4)],
         [4, 104, 196, 154],
         'Counter cells are repacked from their non-linear HD atlas order',
+    );
+    const ropePixel = (9 * hudImage.width + 672 + 8) * 4;
+    assert.deepEqual(
+        [...hudImage.data.subarray(ropePixel, ropePixel + 4)],
+        [120, 70, 30, 210],
+        'The dedicated HD rope counter cell preserves source RGBA',
     );
 
     await importSpelunkyHd({sourceRoot, outputRoot, profile});

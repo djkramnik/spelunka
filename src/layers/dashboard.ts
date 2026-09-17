@@ -6,10 +6,13 @@ import SpriteSheet from '../SpriteSheet.js';
 import Health from '../traits/Health.js';
 import LevelTimer from '../traits/LevelTimer.js';
 import Player from '../traits/Player.js';
+import RopeDeployer from '../traits/RopeDeployer.js';
 
 export const HEALTH_HUD_HEART_POSITION = [8, 4] as const;
 export const HEALTH_HUD_NUMBER_POSITION = [24, 4] as const;
 export const HEALTH_HUD_DIGIT_ADVANCE = 14.4;
+export const ROPE_HUD_ICON_POSITION = [8, 20] as const;
+export const ROPE_HUD_NUMBER_POSITION = [24, 20] as const;
 export const TIMER_HUD_POSITION = [216, 16] as const;
 export const PLAYER_POSITION_HUD_POSITION = [168, 24] as const;
 
@@ -35,6 +38,22 @@ function getTimerTrait(entities: ReadonlySet<Entity>): LevelTimer {
     throw new Error('Dashboard requires a level timer entity');
 }
 
+function drawCounter(
+    hud: SpriteSheet,
+    context: CanvasRenderingContext2D,
+    value: number,
+    position: readonly [number, number],
+): void {
+    [...value.toString()].forEach((digit, index) => {
+        hud.draw(
+            `digit-${digit}`,
+            context,
+            position[0] + index * HEALTH_HUD_DIGIT_ADVANCE,
+            position[1],
+        );
+    });
+}
+
 export function createDashboardLayer(
     font: Font,
     hud: SpriteSheet,
@@ -52,15 +71,22 @@ export function createDashboardLayer(
                 HEALTH_HUD_HEART_POSITION[0],
                 HEALTH_HUD_HEART_POSITION[1],
             );
-            [...health.hearts.toString()].forEach((digit, index) => {
-                hud.draw(
-                    `digit-${digit}`,
-                    context,
-                    HEALTH_HUD_NUMBER_POSITION[0]
-                        + index * HEALTH_HUD_DIGIT_ADVANCE,
-                    HEALTH_HUD_NUMBER_POSITION[1],
-                );
-            });
+            drawCounter(hud, context, health.hearts, HEALTH_HUD_NUMBER_POSITION);
+        }
+        if (player?.traits.has(RopeDeployer)) {
+            const ropeDeployer = player.traits.get(RopeDeployer);
+            hud.draw(
+                'rope',
+                context,
+                ROPE_HUD_ICON_POSITION[0],
+                ROPE_HUD_ICON_POSITION[1],
+            );
+            drawCounter(
+                hud,
+                context,
+                ropeDeployer.ropes,
+                ROPE_HUD_NUMBER_POSITION,
+            );
         }
 
         font.print(

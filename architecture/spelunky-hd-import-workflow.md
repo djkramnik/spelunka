@@ -61,8 +61,9 @@ All outputs are ignored by Git:
   assembly. The terrain region includes standalone blocks, connected chunks,
   and transparent rocky edge decals.
 - `public/generated/spelunky-hd/hud.png` and its sprite metadata contain the
-  clean standalone HD player heart plus all ten dedicated HD counter cells.
-  Per-frame scales present both at 14.4 logical pixels.
+  clean standalone HD player heart, the dedicated coiled-rope counter glyph,
+  and all ten HD counter digits. Per-frame scales present every HUD glyph at
+  14.4 logical pixels.
 - `public/generated/spelunky-hd/snakebite.wav` is the unchanged 44.1 kHz mono
   HD contact effect selected specifically for accepted snake damage.
 - `public/generated/spelunky-hd/throw_item.wav` and `whip.wav` are unchanged

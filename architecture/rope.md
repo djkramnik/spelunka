@@ -83,10 +83,20 @@ direction. The importer rejects a source whose validated record changes.
 `ALLSOUNDS/ropecatch.wav` plays when the anchor settles. Both are hash-validated
 and copied byte-for-byte from the owned HD depot.
 
+## HUD inventory
+
+The dashboard reads `RopeDeployer.ropes` on every draw and places the rope
+counter below the heart counter at logical `(8,20)`. The owned HD
+`ATSTART/hudicons.png` cell `(2,0)` provides the coiled-rope-and-multiplication
+glyph. Its 64x64 source cell renders at scale 0.225, producing the same
+14.4x14.4 logical size as the compact heart. Counter digits begin at `(24,20)`
+and use the same HD digit frames and 14.4-pixel advance as health.
+
 ## Coverage
 
 Focused tests cover the ballistic apex, ceiling catch, downward obstruction,
 maximum length, non-solid geometry, HD frame roles, sound cues, four-rope
 inventory, invalid and repeated requests, Up/Down mounting, top clamping,
 dormant rope exclusion, player animation routing, keyboard repeat suppression,
-asset validation, RGBA preservation, and byte-identical importer reruns.
+HUD inventory updates, asset validation, RGBA preservation, and byte-identical
+importer reruns.

@@ -5,12 +5,15 @@ import type SpriteSheet from '../SpriteSheet.js';
 import Health from '../traits/Health.js';
 import LevelTimer from '../traits/LevelTimer.js';
 import Player from '../traits/Player.js';
+import RopeDeployer from '../traits/RopeDeployer.js';
 import {
     createDashboardLayer,
     HEALTH_HUD_DIGIT_ADVANCE,
     HEALTH_HUD_HEART_POSITION,
     HEALTH_HUD_NUMBER_POSITION,
     PLAYER_POSITION_HUD_POSITION,
+    ROPE_HUD_ICON_POSITION,
+    ROPE_HUD_NUMBER_POSITION,
     TIMER_HUD_POSITION,
 } from './dashboard.js';
 
@@ -59,6 +62,8 @@ playerEntity.pos.set(64, 48);
 playerEntity.addTrait(new Player());
 const health = new Health();
 playerEntity.addTrait(health);
+const ropeDeployer = new RopeDeployer();
+playerEntity.addTrait(ropeDeployer);
 level.entities.add(playerEntity);
 
 const draw = createDashboardLayer(font, hud, level);
@@ -68,12 +73,15 @@ assertEqual(
     [
         ['heart', ...HEALTH_HUD_HEART_POSITION],
         ['digit-4', ...HEALTH_HUD_NUMBER_POSITION],
+        ['rope', ...ROPE_HUD_ICON_POSITION],
+        ['digit-4', ...ROPE_HUD_NUMBER_POSITION],
     ],
-    'HUD starts with the HD heart and four counter glyph',
+    'HUD starts with four hearts and four ropes using HD counter glyphs',
 );
 
 hudDraws.length = 0;
 health.heal(8);
+ropeDeployer.ropes = 12;
 playerEntity.pos.set(77.6, 49.2);
 draw({} as CanvasRenderingContext2D);
 assertEqual(
@@ -86,8 +94,15 @@ assertEqual(
             HEALTH_HUD_NUMBER_POSITION[0] + HEALTH_HUD_DIGIT_ADVANCE,
             HEALTH_HUD_NUMBER_POSITION[1],
         ],
+        ['rope', ...ROPE_HUD_ICON_POSITION],
+        ['digit-1', ...ROPE_HUD_NUMBER_POSITION],
+        [
+            'digit-2',
+            ROPE_HUD_NUMBER_POSITION[0] + HEALTH_HUD_DIGIT_ADVANCE,
+            ROPE_HUD_NUMBER_POSITION[1],
+        ],
     ],
-    'HUD reads the authoritative heart value on every draw',
+    'HUD reads authoritative heart and rope values on every draw',
 );
 assertEqual(
     fontPrints,
