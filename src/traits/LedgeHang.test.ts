@@ -12,10 +12,8 @@ import Jump from './Jump.js';
 import Killable from './Killable.js';
 import LedgeHang, {
     SPELUNKY_LEDGE_HANG_VERTICAL_OFFSET,
-    SPELUNKY_LEDGE_CLIMB_TIME,
     SPELUNKY_LEDGE_DROP_REGRAB_DELAY,
     SPELUNKY_LEDGE_JUMP_HORIZONTAL_VELOCITY,
-    SPELUNKY_LEDGE_REGRAB_DELAY,
 } from './LedgeHang.js';
 import Physics from './Physics.js';
 import Pickable from './Pickable.js';
@@ -379,9 +377,8 @@ assertEqual(
     'Carried rock remains attached and follows the player into a ledge hang',
 );
 carrying.ledge.setVerticalInput(-1, true);
-grab(carrying, carryingLevel.level);
-for (let frame = 0; frame < Math.ceil(SPELUNKY_LEDGE_CLIMB_TIME / DELTA_TIME); frame++) {
-    grab(carrying, carryingLevel.level);
+for (let frame = 0; frame < 30; frame++) {
+    updatePlayer(carrying, carryingLevel.level);
 }
 carriedRock.finalize();
 assertEqual(
@@ -394,14 +391,14 @@ assertEqual(
         carriedRock.pos.y,
     ],
     [
-        'airborne',
-        true,
+        'hanging',
+        false,
         true,
         true,
         carrying.entity.pos.x + 7,
         carrying.entity.pos.y + 6,
     ],
-    'Carried rock remains attached through the ledge climb exit',
+    'Up remains a no-op while hanging with a carried item',
 );
 
 const dead = createFixture();
@@ -447,8 +444,20 @@ away.go.dir = -1;
 away.jump.start();
 away.ledge.update(away.entity, context, awayLevel.level);
 assertEqual(
-    [away.ledge.phase, away.entity.vel.x, away.entity.vel.y, away.jump.phase],
-    ['airborne', -SPELUNKY_LEDGE_JUMP_HORIZONTAL_VELOCITY, -away.jump.launchVelocity, 'rising'],
+    [
+        away.ledge.phase,
+        away.entity.vel.x,
+        away.entity.vel.y,
+        away.jump.phase,
+        away.jump.held,
+    ],
+    [
+        'airborne',
+        -SPELUNKY_LEDGE_JUMP_HORIZONTAL_VELOCITY,
+        -away.jump.launchVelocity,
+        'rising',
+        true,
+    ],
     'Jump plus away input launches away through the shared Jump state',
 );
 
@@ -459,33 +468,159 @@ const hangingX = upward.entity.pos.x;
 upward.jump.start();
 upward.ledge.update(upward.entity, context, upwardLevel.level);
 assertEqual(
-    [upward.ledge.phase, upward.entity.pos.x, upward.entity.vel.y, upward.jump.phase],
-    ['airborne', hangingX, -upward.jump.launchVelocity, 'rising'],
+    [
+        upward.ledge.phase,
+        upward.entity.pos.x,
+        upward.entity.vel.y,
+        upward.jump.phase,
+        upward.jump.held,
+    ],
+    ['airborne', hangingX, -upward.jump.launchVelocity, 'rising', true],
     'Straight ledge jump preserves horizontal position for stable camera tracking',
 );
 
-const climbing = createFixture();
-const climbingLevel = createLevel();
-grab(climbing, climbingLevel.level);
-climbing.ledge.setVerticalInput(-1, true);
-climbing.ledge.update(climbing.entity, context, climbingLevel.level);
-assertEqual(climbing.ledge.phase, 'climbing', 'Up starts the HD ledge climb');
-for (let frame = 0; frame < Math.ceil(SPELUNKY_LEDGE_CLIMB_TIME / DELTA_TIME); frame++) {
-    climbing.ledge.update(climbing.entity, context, climbingLevel.level);
+for (const direction of [-1, 1] as const) {
+    const upJump = createFixture(direction);
+    const upJumpLevel = createLevel(direction);
+    grab(upJump, upJumpLevel.level);
+    upJump.ledge.setVerticalInput(-1, true);
+    upJump.jump.start();
+    updatePlayer(upJump, upJumpLevel.level);
+    assertEqual(
+        [
+            upJump.ledge.phase,
+            upJump.jump.requestTime,
+            upJump.entity.vel.x,
+            upJump.entity.vel.y,
+            upJump.physics.enabled,
+            upJump.crouch.phase,
+            upJump.jump.held,
+        ],
+        [
+            'airborne',
+            0,
+            0,
+            -upJump.jump.launchVelocity,
+            true,
+            'standing',
+            true,
+        ],
+        `${direction < 0 ? 'Left' : 'Right'} held Up plus Jump starts an upward exit`,
+    );
+
+    const phaseTrace = [upJump.ledge.phase];
+    for (let frame = 0; frame < 60; frame++) {
+        updatePlayer(upJump, upJumpLevel.level);
+        phaseTrace.push(upJump.ledge.phase);
+    }
+    assertEqual(
+        [
+            phaseTrace.includes('hanging'),
+            phaseTrace.includes('climbing'),
+            upJump.ledge.phase,
+            upJump.jump.phase,
+            upJump.jump.requestTime,
+            upJump.entity.bounds.top > 64 + 4,
+        ],
+        [false, false, 'airborne', 'falling', 0, true],
+        `${direction < 0 ? 'Left' : 'Right'} upward exit cannot reverse or re-grab the departed ledge`,
+    );
+
+    const staggered = createFixture(direction);
+    const staggeredLevel = createLevel(direction);
+    grab(staggered, staggeredLevel.level);
+    staggered.ledge.setVerticalInput(-1, true);
+    updatePlayer(staggered, staggeredLevel.level);
+    assertEqual(
+        staggered.ledge.phase,
+        'hanging',
+        `${direction < 0 ? 'Left' : 'Right'} Up alone does nothing while hanging`,
+    );
+    for (let frame = 0; frame < 3; frame++) {
+        updatePlayer(staggered, staggeredLevel.level);
+    }
+    staggered.jump.start();
+    updatePlayer(staggered, staggeredLevel.level);
+    assertEqual(
+        [
+            staggered.ledge.phase,
+            staggered.jump.phase,
+            staggered.jump.requestTime,
+            staggered.entity.vel.y,
+            staggered.physics.enabled,
+        ],
+        [
+            'airborne',
+            'rising',
+            0,
+            -staggered.jump.launchVelocity,
+            true,
+        ],
+        `${direction < 0 ? 'Left' : 'Right'} Jump shortly after Up performs the upward exit`,
+    );
+
+    const staggeredPhaseTrace = [staggered.ledge.phase];
+    for (let frame = 0; frame < 60; frame++) {
+        updatePlayer(staggered, staggeredLevel.level);
+        staggeredPhaseTrace.push(staggered.ledge.phase);
+    }
+    assertEqual(
+        [
+            staggeredPhaseTrace.includes('hanging'),
+            staggeredPhaseTrace.includes('climbing'),
+            staggered.ledge.phase,
+            staggered.jump.phase,
+        ],
+        [false, false, 'airborne', 'falling'],
+        `${direction < 0 ? 'Left' : 'Right'} staggered Up-then-Jump cannot reverse or re-grab the departed ledge`,
+    );
+}
+
+const blockedUpJump = createFixture();
+const blockedUpJumpLevel = createLevel();
+grab(blockedUpJump, blockedUpJumpLevel.level);
+blockedUpJump.ledge.setVerticalInput(-1, true);
+blockedUpJump.jump.start();
+blockedUpJumpLevel.tiles.set(4, 3, {type: 'ground'});
+updatePlayer(blockedUpJump, blockedUpJumpLevel.level);
+assertEqual(
+    [
+        blockedUpJump.ledge.phase,
+        blockedUpJump.physics.enabled,
+        blockedUpJump.jump.phase,
+        blockedUpJump.jump.requestTime,
+        blockedUpJump.entity.vel.x,
+        blockedUpJump.entity.vel.y,
+    ],
+    ['airborne', true, 'falling', 0, 0, 0],
+    'Up plus Jump with blocked headroom releases safely without a buffered launch',
+);
+updatePlayer(blockedUpJump, blockedUpJumpLevel.level);
+assertEqual(
+    [blockedUpJump.ledge.phase, blockedUpJump.jump.phase],
+    ['airborne', 'falling'],
+    'Held blocked inputs cannot launch or re-grab on the following frame',
+);
+
+const upOnly = createFixture();
+const upOnlyLevel = createLevel();
+grab(upOnly, upOnlyLevel.level);
+const upOnlyPosition = [upOnly.entity.pos.x, upOnly.entity.pos.y];
+upOnly.ledge.setVerticalInput(-1, true);
+for (let frame = 0; frame < 60; frame++) {
+    updatePlayer(upOnly, upOnlyLevel.level);
 }
 assertEqual(
     [
-        climbing.ledge.phase,
-        climbing.entity.bounds.top,
-        climbing.entity.bounds.left,
-        climbing.entity.bounds.bottom,
-        climbing.physics.enabled,
-        climbing.physics.grounded,
-        climbing.jump.phase,
-        climbing.ledge.cooldown,
+        upOnly.ledge.phase,
+        upOnly.entity.pos.x,
+        upOnly.entity.pos.y,
+        upOnly.physics.enabled,
+        upOnly.physics.grounded,
+        upOnly.jump.phase,
     ],
-    ['airborne', 48, 65, 64, true, true, 'grounded', SPELUNKY_LEDGE_REGRAB_DELAY],
-    'Completed climb places the collider safely on top of the ledge',
+    ['hanging', ...upOnlyPosition, false, false, 'falling'],
+    'Holding Up cannot start or render a reverse ledge transition',
 );
 
 function createReportedCorner(): {fixture: LedgeFixture; level: Level} {
@@ -510,47 +645,24 @@ function createReportedCorner(): {fixture: LedgeFixture; level: Level} {
 for (const upPressFrame of [0, 1]) {
     const {fixture, level} = createReportedCorner();
     const phaseTrace: string[] = [];
-    for (let frame = 0; frame < 2; frame++) {
+    for (let frame = 0; frame < 30; frame++) {
         if (frame === upPressFrame) {
             fixture.ledge.setVerticalInput(-1, true);
         }
-        fixture.ledge.update(fixture.entity, context, level);
-        phaseTrace.push(fixture.ledge.phase);
-    }
-    assertEqual(
-        [
-            fixture.entity.bounds.left,
-            fixture.entity.bounds.top,
-            phaseTrace,
-        ],
-        [386, 254, ['hanging', 'climbing']],
-        `Up on repro frame ${upPressFrame} deterministically enters the forward climb`,
-    );
-
-    fixture.ledge.setVerticalInput(-1, false);
-    for (let frame = 0; frame < 4; frame++) {
-        if (frame === 1) {
-            fixture.ledge.setVerticalInput(-1, true);
-        } else if (frame === 2) {
+        if (frame === upPressFrame + 10) {
             fixture.ledge.setVerticalInput(-1, false);
         }
         fixture.ledge.update(fixture.entity, context, level);
         phaseTrace.push(fixture.ledge.phase);
     }
-    while (fixture.ledge.phase === 'climbing') {
-        fixture.ledge.update(fixture.entity, context, level);
-        phaseTrace.push(fixture.ledge.phase);
-    }
-    const firstClimb = phaseTrace.indexOf('climbing');
     assertEqual(
         [
-            phaseTrace.slice(firstClimb).includes('hanging'),
-            fixture.ledge.phase,
             fixture.entity.bounds.left,
             fixture.entity.bounds.top,
+            phaseTrace.every(phase => phase === 'hanging'),
         ],
-        [false, 'airborne', 401, 240],
-        'Boundary and repeated Up input cannot reverse or restart the mantle',
+        [386, 254, true],
+        `Up on repro frame ${upPressFrame} leaves the player in the same hang`,
     );
 }
 

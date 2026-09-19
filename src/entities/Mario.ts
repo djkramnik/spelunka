@@ -279,10 +279,6 @@ export function createMarioFactory(
             return 'ledge-hang';
         }
 
-        if (ledgeHang.phase === 'climbing' && !ledgeHang.climbIntoCrawl) {
-            return 'ledge-climb';
-        }
-
         if (crouch.phase === 'flipping') {
             return 'ledge-flip';
         }

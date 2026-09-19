@@ -373,8 +373,10 @@ ledgeHang.enteredFromTop = true;
 animationClock.animationStateTime = 0;
 assertEqual(draw(), 'ledge-hang-4', 'Top flip enters directly into the held hanging pose');
 ledgeHang.enteredFromTop = false;
+ledgeHang.verticalDirection = -1;
+assertEqual(draw(), 'ledge-hang-1', 'Up cannot route a hang into the reverse ledge animation');
+ledgeHang.verticalDirection = 0;
 ledgeHang.phase = 'climbing';
-assertEqual(draw(), 'ledge-climb-1', 'Ledge climb starts the HD ledge-flip sequence');
 ledgeHang.climbIntoCrawl = true;
 crouch.phase = 'crouched';
 go.dir = 1;
@@ -386,18 +388,21 @@ assertEqual(
 ledgeHang.climbIntoCrawl = false;
 crouch.phase = 'standing';
 go.dir = 0;
-crouch.transitionAnchorActive = true;
-crouch.transitionOffset.set(5, -6);
-draw();
-assertEqual(
-    [draws.at(-1)?.pivotX, draws.at(-1)?.pivotY],
-    [7, 16],
-    'Forward mantle ignores the completed crawl-to-hang positional correction',
-);
-crouch.transitionAnchorActive = false;
-crouch.transitionOffset.set(0, 0);
 ledgeHang.phase = 'airborne';
 ledgeHang.side = 0;
+ledgeHang.verticalDirection = -1;
+jump.phase = 'rising';
+jump.held = true;
+mario.vel.y = -jump.launchVelocity;
+assertEqual(
+    draw(),
+    'jump-1',
+    'Up-plus-Jump exit routes to rising animation instead of reverse ledge flip',
+);
+ledgeHang.verticalDirection = 0;
+jump.cancel();
+jump.phase = 'grounded';
+mario.vel.y = 0;
 
 ladderClimb.phase = 'clinging';
 assertEqual(draw(), 'ladder-cling', 'Ladder mount holds the dedicated HD cling pose');

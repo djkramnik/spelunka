@@ -56,7 +56,7 @@ from the wall. Zero horizontal velocity is eligible only when the adjacent
 probe finds the exposed cliff, which lets a held neutral jump catch a
 two-tile-height ledge on the way down without attracting the player across
 open space. A carried item remains attached and continues to follow the player
-through the snap, suspended hang, and climb or release. While attached, both
+through the snap, suspended hang, and jump or release. While attached, both
 the player pose and carried-item side stay oriented toward the supporting
 ledge; Left and Right do not turn either one. Damage, death, removal of the
 supporting tile, or newly occupied corner space releases the player rather
@@ -67,9 +67,15 @@ the player attached to the ledge.
 
 ## Controls and exits
 
-- Up starts a 12-HD-tick mantle when the space above the ledge is clear. At the
-  end, the collider is placed one logical pixel inside the supporting tile and
-  directly on its top surface.
+- Up does nothing while hanging. It never starts a mantle, climb, reversed
+  ledge animation, or buffered transition.
+- Held Up plus a fresh Jump press behaves exactly like Jump: it selects the
+  upward exit. The departed ledge is suppressed until the player moves
+  horizontally clear or falls below its capture window, so the descending
+  jump cannot replay the ledge-grab animation against the same lip. Other
+  valid ledges remain eligible. If new terrain blocks the exposed support or
+  headroom before the exit, the player releases safely with no buffered jump
+  impulse.
 - Jump starts an upward ledge jump without changing horizontal position. The
   exact edge-aligned collider does not need Classic's two-pixel correction,
   and avoiding that instantaneous position change keeps camera tracking stable.
@@ -78,9 +84,9 @@ the player attached to the ledge.
 
 Every exit enables physics and clears incompatible grounded state. Re-grab
 delays preserve Classic's 30 Hz counters in elapsed time: three ticks after a
-jump, four after lost support or a climb, and five after Down+Jump. A ledge
-jump goes through `Jump.launch()` so its gravity ramp, animation phase, input
-release, and sound match an ordinary jump.
+jump, four after lost support or a crawl transition, and five after Down+Jump.
+A ledge jump goes through `Jump.launch()` so its gravity ramp, animation phase,
+input release, and sound match an ordinary jump.
 
 Both airborne grabs and grounded crawl-to-hang transitions enter through the
 same alignment function. The authoritative hanging collider top is two logical
@@ -96,27 +102,26 @@ frame. The established HD character skin reference labels those records
 transition and are deliberately not used for hanging.
 
 The importer exposes frames 44-47 as the non-looping `ledge-hang` animation,
-which holds its terminal suspended pose, and frames 28-34 as the non-looping
-`ledge-climb` animation. Runtime facing is anchored to the side of the
-supporting ledge rather than rapidly changing directional input.
+which holds its terminal suspended pose. The source frames 28-34 remain
+available as `ledge-climb` for asset fidelity, but runtime animation routing
+never selects that animation from a ledge hang. Runtime facing is anchored to
+the side of the supporting ledge rather than rapidly changing directional
+input.
 
-Up also has a 0.1-second ledge-climb input buffer. A press on the same update
-that an airborne collision becomes a hang is retained and starts the mantle on
-the following update; previously `enter()` discarded that boundary press. The
-request is consumed once and presses during an active climb cannot queue a
-second climb or restart its animation.
+Vertical input has no ledge-climb buffer. Up-plus-Jump, ordinary Jump, and
+away-plus-Jump use the shared variable-height Jump path, while Down-plus-Jump
+cancels the request and uses its longer drop cooldown.
 
-Grounded crawl-to-hang entry is owned by `Crouch`. It plays the same ledge-flip
-cells in reverse (34-28), then calls `LedgeHang.grabFromTop` and enters directly
-at held frame 47 rather than replaying the airborne ledge-grab strip. The flip
+Grounded crawl-to-hang entry is owned by `Crouch`. It plays the dedicated
+top-to-hang `ledge-flip` sequence (34-28), then calls
+`LedgeHang.grabFromTop` and enters directly at held frame 47 rather than
+replaying the airborne ledge-grab strip. The flip
 faces its destination wall throughout, and a shared render/camera correction
 settles to the original hanging position over four HD ticks. Carrying uses the
 same player frames and preserves the item relationship through this handoff.
 The short positional correction used to settle a completed top flip is drawn
-only while the resulting hang remains in its `hanging` phase. If Up begins a
-mantle during those four correction ticks, the forward climb uses its normal
-bottom-centre pivot rather than combining the old downward correction with the
-upward animation.
+only while the resulting hang remains in its `hanging` phase. Up cannot change
+that hang into an upward or reversed animation.
 
 A Down-held airborne approach has a separate, intentional crawl-entry path.
 It activates only after horizontal collision reports physical contact with an
@@ -131,4 +136,4 @@ there is no attraction across open air.
 
 The remaining visual discontinuity reported during runtime review is tracked
 separately by `spelunka-r54.51`; this task establishes the carried-item state
-continuity without redefining the existing reversed-flip presentation.
+continuity without redefining the top-entry flip presentation.

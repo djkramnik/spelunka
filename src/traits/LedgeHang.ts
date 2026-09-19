@@ -11,13 +11,11 @@ import Jump from './Jump.js';
 import Killable from './Killable.js';
 import Physics from './Physics.js';
 
-export const SPELUNKY_LEDGE_CLIMB_TIME = 28 / 60;
 export const SPELUNKY_LEDGE_REGRAB_DELAY = 4 / 30;
 export const SPELUNKY_LEDGE_DROP_REGRAB_DELAY = 5 / 30;
 export const SPELUNKY_LEDGE_JUMP_REGRAB_DELAY = 3 / 30;
 export const SPELUNKY_LEDGE_JUMP_HORIZONTAL_VELOCITY = 90;
 export const SPELUNKY_LEDGE_HANG_VERTICAL_OFFSET = -2;
-export const SPELUNKY_LEDGE_CLIMB_INPUT_BUFFER_TIME = 0.1;
 export const SPELUNKY_LEDGE_CRAWL_ENTRY_SPEED = 120;
 
 const GRAB_PROBE_DEPTH = 3;
@@ -33,6 +31,13 @@ interface LedgePlacement {
     left: number;
 }
 
+interface SuppressedLedge {
+    side: -1 | 1;
+    top: number;
+    left: number;
+    right: number;
+}
+
 export default class LedgeHang extends Trait {
     phase: LedgeHangPhase = 'airborne';
     side: -1 | 0 | 1 = 0;
@@ -46,11 +51,11 @@ export default class LedgeHang extends Trait {
     private ledgeTop = 0;
     private wallLeft = 0;
     private wallRight = 0;
-    private climbRequestTime = 0;
     private wallContactSide: -1 | 0 | 1 = 0;
     private wallContactMatch: TileMatch<CollisionTile> | null = null;
     private crawlEntryStartLeft = 0;
     private crawlEntryStartTop = 0;
+    private suppressedLedge: SuppressedLedge | null = null;
 
     get active(): boolean {
         return this.phase !== 'airborne';
@@ -58,9 +63,6 @@ export default class LedgeHang extends Trait {
 
     setVerticalInput(direction: -1 | 1, pressed: boolean): void {
         this.verticalDirection += pressed ? direction : -direction;
-        if (pressed && direction < 0 && this.phase !== 'climbing') {
-            this.climbRequestTime = SPELUNKY_LEDGE_CLIMB_INPUT_BUFFER_TIME;
-        }
     }
 
     private isUnavailable(entity: Entity): boolean {
@@ -170,6 +172,7 @@ export default class LedgeHang extends Trait {
         this.climbTime = 0;
         this.enteredFromTop = enteredFromTop;
         this.climbIntoCrawl = false;
+        this.suppressedLedge = null;
 
         entity.bounds.top = this.hangingTop(ledgeTop);
         if (side > 0) {
@@ -189,11 +192,14 @@ export default class LedgeHang extends Trait {
         entity.traits.get(Go).distance = 0;
     }
 
-    private release(entity: Entity, cooldown = SPELUNKY_LEDGE_REGRAB_DELAY): void {
+    private release(
+        entity: Entity,
+        cooldown = SPELUNKY_LEDGE_REGRAB_DELAY,
+        preserveJumpInput = false,
+    ): void {
         this.phase = 'airborne';
         this.side = 0;
         this.climbTime = 0;
-        this.climbRequestTime = 0;
         this.enteredFromTop = false;
         this.climbIntoCrawl = false;
         this.cooldown = cooldown;
@@ -203,6 +209,9 @@ export default class LedgeHang extends Trait {
         physics.enabled = true;
         physics.grounded = false;
         const jump = entity.traits.get(Jump);
+        if (!preserveJumpInput) {
+            jump.cancel();
+        }
         jump.phase = 'falling';
         jump.ready = -1;
     }
@@ -212,7 +221,6 @@ export default class LedgeHang extends Trait {
             this.release(entity);
         }
         this.verticalDirection = 0;
-        this.climbRequestTime = 0;
     }
 
     private topSupport(
@@ -292,6 +300,7 @@ export default class LedgeHang extends Trait {
     }
 
     private tryGrab(entity: Entity, level: Level): void {
+        this.updateSuppressedLedge(entity);
         const physics = entity.traits.get(Physics);
         const jump = entity.traits.get(Jump);
         if (this.tryCrouchEntry(entity, level, physics, jump)) {
@@ -316,6 +325,7 @@ export default class LedgeHang extends Trait {
             || currentTop < match.y1 - GRAB_PROBE_DEPTH
             || currentTop > match.y1 + GRAB_OVERSHOOT_TOLERANCE
             || (this.previousTop !== null && this.previousTop > match.y1)
+            || this.isSuppressedLedge(side, match)
             || level.tileCollider.hasSolidAt(wallX, match.y1 - 1)) {
             return;
         }
@@ -332,6 +342,47 @@ export default class LedgeHang extends Trait {
         }
 
         this.enter(entity, side, match.y1, match.x1, match.x2);
+    }
+
+    private suppressCurrentLedge(): void {
+        if (this.side === 0) {
+            return;
+        }
+        this.suppressedLedge = {
+            side: this.side,
+            top: this.ledgeTop,
+            left: this.wallLeft,
+            right: this.wallRight,
+        };
+    }
+
+    private updateSuppressedLedge(entity: Entity): void {
+        const suppressed = this.suppressedLedge;
+        if (!suppressed) {
+            return;
+        }
+        const movedAway = suppressed.side > 0
+            ? entity.bounds.right
+                < suppressed.left - SUPPORT_PROBE_OFFSET
+            : entity.bounds.left
+                > suppressed.right + SUPPORT_PROBE_OFFSET;
+        const fellBelow = entity.bounds.top
+            > suppressed.top + GRAB_OVERSHOOT_TOLERANCE;
+        if (movedAway || fellBelow) {
+            this.suppressedLedge = null;
+        }
+    }
+
+    private isSuppressedLedge(
+        side: -1 | 1,
+        match: TileMatch<CollisionTile>,
+    ): boolean {
+        const suppressed = this.suppressedLedge;
+        return suppressed !== null
+            && suppressed.side === side
+            && suppressed.top === match.y1
+            && suppressed.left === match.x1
+            && suppressed.right === match.x2;
     }
 
     private tryCrouchEntry(
@@ -412,31 +463,37 @@ export default class LedgeHang extends Trait {
         }
 
         const jump = entity.traits.get(Jump);
-        const go = entity.traits.get(Go);
         if (jump.requestTime > 0) {
             if (this.verticalDirection > 0) {
-                jump.cancel();
                 this.release(entity, SPELUNKY_LEDGE_DROP_REGRAB_DELAY);
                 return;
             }
-
-            const side = this.side;
-            this.release(entity, SPELUNKY_LEDGE_JUMP_REGRAB_DELAY);
-            if (go.dir === -side) {
-                entity.vel.x = -side * SPELUNKY_LEDGE_JUMP_HORIZONTAL_VELOCITY;
+            if (this.verticalDirection < 0) {
+                this.suppressCurrentLedge();
             }
-            jump.launch(entity, deltaTime);
+
+            this.launchFromLedge(entity, deltaTime);
             return;
         }
 
-        if (this.climbRequestTime > 0) {
-            this.climbRequestTime = 0;
-            const destination = this.destination(entity);
-            if (this.destinationIsClear(entity, level, destination)) {
-                this.phase = 'climbing';
-                this.climbTime = 0;
-            }
+    }
+
+    private launchFromLedge(
+        entity: Entity,
+        deltaTime: number,
+    ): void {
+        const go = entity.traits.get(Go);
+        const jump = entity.traits.get(Jump);
+        const side = this.side;
+        this.release(
+            entity,
+            SPELUNKY_LEDGE_JUMP_REGRAB_DELAY,
+            true,
+        );
+        if (go.dir === -side) {
+            entity.vel.x = -side * SPELUNKY_LEDGE_JUMP_HORIZONTAL_VELOCITY;
         }
+        jump.launch(entity, deltaTime);
     }
 
     private updateClimbing(
@@ -445,9 +502,7 @@ export default class LedgeHang extends Trait {
         level: Level,
     ): void {
         entity.vel.set(0, 0);
-        const destinationHeight = this.climbIntoCrawl
-            ? SPELUNKY_CROUCH_HEIGHT
-            : entity.size.y;
+        const destinationHeight = SPELUNKY_CROUCH_HEIGHT;
         const destination = this.destination(entity, destinationHeight);
         if (this.isUnavailable(entity)
             || !this.hasSupport(entity, level)
@@ -461,19 +516,7 @@ export default class LedgeHang extends Trait {
             return;
         }
 
-        if (this.climbIntoCrawl) {
-            this.updateCrawlEntry(entity, deltaTime, destination);
-            return;
-        }
-
-        this.climbTime += deltaTime;
-        if (this.climbTime + 1e-9 < SPELUNKY_LEDGE_CLIMB_TIME) {
-            return;
-        }
-
-        entity.bounds.top = destination.top;
-        entity.bounds.left = destination.left;
-        this.finishClimb(entity);
+        this.updateCrawlEntry(entity, deltaTime, destination);
     }
 
     private updateCrawlEntry(
@@ -534,11 +577,6 @@ export default class LedgeHang extends Trait {
         level: Level,
     ): void {
         this.cooldown = Math.max(0, this.cooldown - gameContext.deltaTime);
-        this.climbRequestTime = Math.max(
-            0,
-            this.climbRequestTime - gameContext.deltaTime,
-        );
-
         if (this.phase === 'hanging') {
             this.updateHanging(entity, gameContext, level);
         } else if (this.phase === 'climbing') {
