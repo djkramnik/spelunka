@@ -60,6 +60,7 @@ function createFixture(side: -1 | 1 = 1): LedgeFixture {
     const crouch = new Crouch();
     const ledge = new LedgeHang();
     entity.size.set(14, 16);
+    physics.verticalCollisionWidth = 10;
     entity.pos.set(side > 0 ? 50 : 64, 61);
     entity.vel.set(side * 60, 60);
     go.dir = side;
@@ -161,13 +162,25 @@ assertEqual(
     'Approach momentum grabs the corner without held horizontal input',
 );
 
-const inputWithoutApproach = createFixture();
-inputWithoutApproach.entity.vel.x = 0;
-grab(inputWithoutApproach, createLevel().level);
+const neutralAdjacent = createFixture();
+neutralAdjacent.entity.vel.x = 0;
+neutralAdjacent.go.dir = 0;
+grab(neutralAdjacent, createLevel().level);
 assertEqual(
-    inputWithoutApproach.ledge.phase,
+    [neutralAdjacent.ledge.phase, neutralAdjacent.ledge.side],
+    ['hanging', 1],
+    'A neutral fall directly beside the corner grabs without horizontal motion',
+);
+
+const neutralFacingAway = createFixture();
+neutralFacingAway.entity.vel.x = 0;
+neutralFacingAway.go.dir = 0;
+neutralFacingAway.go.heading = -1;
+grab(neutralFacingAway, createLevel().level);
+assertEqual(
+    neutralFacingAway.ledge.phase,
     'airborne',
-    'Directional input without approach motion cannot grab a corner',
+    'A neutral fall does not grab an adjacent ledge behind the player',
 );
 
 const resolvedContact = createFixture();
@@ -191,6 +204,139 @@ assertEqual(
     'hanging',
     'Wall contact preserves the approach side after collision resolution',
 );
+
+for (const direction of [-1, 1] as const) {
+    const neutralJump = createFixture(direction);
+    const neutralJumpLevel = createLevel(direction);
+    neutralJump.entity.pos.set(direction > 0 ? 50 : 64, 80);
+    neutralJump.entity.vel.set(0, 0);
+    neutralJump.go.dir = 0;
+    neutralJump.jump.start();
+    neutralJump.jump.launch(neutralJump.entity, DELTA_TIME);
+    for (let frame = 0;
+        frame < 60 && neutralJump.ledge.phase === 'airborne';
+        frame++) {
+        updatePlayer(neutralJump, neutralJumpLevel.level);
+    }
+    assertEqual(
+        [
+            neutralJump.ledge.phase,
+            neutralJump.ledge.side,
+            neutralJump.entity.bounds.top,
+            direction > 0
+                ? neutralJump.entity.bounds.right
+                : neutralJump.entity.bounds.left,
+        ],
+        ['hanging', direction, 64 + SPELUNKY_LEDGE_HANG_VERTICAL_OFFSET, 64],
+        `${direction < 0 ? 'Left' : 'Right'} neutral jump catches a two-tile-height ledge`,
+    );
+
+    const adjacent = createFixture(direction);
+    const adjacentLevel = createLevel(direction);
+    adjacent.entity.pos.x = direction > 0 ? 50 : 64;
+    adjacent.entity.vel.set(0, 60);
+    adjacent.go.dir = 0;
+    updatePlayer(adjacent, adjacentLevel.level);
+    assertEqual(
+        [
+            adjacent.ledge.phase,
+            adjacent.ledge.side,
+            adjacent.entity.bounds.top,
+            direction > 0
+                ? adjacent.entity.bounds.right
+                : adjacent.entity.bounds.left,
+        ],
+        ['hanging', direction, 64 + SPELUNKY_LEDGE_HANG_VERTICAL_OFFSET, 64],
+        `${direction < 0 ? 'Left' : 'Right'} exact-adjacent fall catches the cliff`,
+    );
+
+    const nearAdjacent = createFixture(direction);
+    const nearAdjacentLevel = createLevel(direction);
+    nearAdjacent.entity.pos.x = direction > 0 ? 49.75 : 64.25;
+    nearAdjacent.entity.vel.set(0, 60);
+    nearAdjacent.go.dir = 0;
+    updatePlayer(nearAdjacent, nearAdjacentLevel.level);
+    assertEqual(
+        [nearAdjacent.ledge.phase, nearAdjacent.ledge.side],
+        ['hanging', direction],
+        `${direction < 0 ? 'Left' : 'Right'} near-adjacent fall retains the ordinary catch tolerance`,
+    );
+
+    const separated = createFixture(direction);
+    const separatedLevel = createLevel(direction);
+    separated.entity.pos.x = direction > 0 ? 49.49 : 64.51;
+    separated.entity.vel.set(0, 60);
+    separated.go.dir = 0;
+    updatePlayer(separated, separatedLevel.level);
+    assertEqual(
+        separated.ledge.phase,
+        'airborne',
+        `${direction < 0 ? 'Left' : 'Right'} position beyond the probe cannot catch`,
+    );
+}
+
+for (const shoulderCase of [
+    {
+        label: 'Reported left cliff at (46,96)',
+        cliffSide: -1 as const,
+        playerX: 46,
+        cliffColumn: 2,
+        floorColumns: [2, 3] as const,
+    },
+    {
+        label: 'Mirrored right cliff',
+        cliffSide: 1 as const,
+        playerX: 52,
+        cliffColumn: 4,
+        floorColumns: [3, 4] as const,
+    },
+]) {
+    const facingAwayJump = createFixture(shoulderCase.cliffSide);
+    facingAwayJump.entity.pos.set(shoulderCase.playerX, 96);
+    facingAwayJump.entity.vel.set(0, 0);
+    facingAwayJump.physics.grounded = true;
+    facingAwayJump.go.dir = 0;
+    facingAwayJump.go.heading = -shoulderCase.cliffSide;
+    facingAwayJump.jump.phase = 'grounded';
+    facingAwayJump.jump.ready = 1;
+    const facingAwayLevel = new Level();
+    const facingAwayTiles = new Matrix<CollisionTile>();
+    facingAwayTiles.set(shoulderCase.cliffColumn, 5, {type: 'ground'});
+    facingAwayTiles.set(shoulderCase.cliffColumn, 6, {type: 'ground'});
+    for (const floorColumn of shoulderCase.floorColumns) {
+        facingAwayTiles.set(floorColumn, 7, {type: 'ground'});
+    }
+    facingAwayLevel.tileCollider.addGrid(facingAwayTiles);
+    facingAwayJump.jump.start();
+    let facingAwayMinimumTop = facingAwayJump.entity.bounds.top;
+    let facingAwayLandedOnUpperLedge = false;
+    for (let frame = 0; frame < 60; frame++) {
+        updatePlayer(facingAwayJump, facingAwayLevel);
+        facingAwayMinimumTop = Math.min(
+            facingAwayMinimumTop,
+            facingAwayJump.entity.bounds.top,
+        );
+        if (facingAwayJump.physics.grounded
+            && facingAwayJump.entity.bounds.top === 64) {
+            facingAwayLandedOnUpperLedge = true;
+        }
+        if (facingAwayMinimumTop < 96 && facingAwayJump.physics.grounded) {
+            break;
+        }
+    }
+    assertEqual(
+        [
+            facingAwayMinimumTop < 80,
+            facingAwayJump.ledge.phase,
+            facingAwayJump.physics.grounded,
+            facingAwayJump.entity.bounds.top,
+            facingAwayJump.go.heading,
+            facingAwayLandedOnUpperLedge,
+        ],
+        [true, 'airborne', true, 96, -shoulderCase.cliffSide, false],
+        `${shoulderCase.label} jump returns below instead of transcending the ledge`,
+    );
+}
 
 const movingAway = createFixture();
 movingAway.entity.vel.x = -1;

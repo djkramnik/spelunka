@@ -29,29 +29,41 @@ the ticket's jump-away requirement has a clear, testable result.
 
 ## Logical geometry
 
-`LedgeHang` runs after movement traits. A falling player moving toward a wall
-probes three logical pixels below the collider top. It derives the side from
-horizontal velocity, or from the wall contact recorded before `Solid` resolves
-that velocity to zero. The contacted tile must have empty space directly above
-it, the player must not already be below the corner beyond a four-pixel
-fixed-step tolerance, and all four inset corners of the aligned 14x16 collider
-must remain outside solid terrain.
+`LedgeHang` runs after movement traits. A falling player probes three logical
+pixels below the collider top. It derives the side from horizontal velocity,
+or from the wall contact recorded before `Solid` resolves that velocity to
+zero. When both are absent during a neutral vertical jump, it probes the side
+the player is facing and uses the exposed cliff geometry itself. A
+ledge behind the player is not eligible during a neutral jump. The contacted
+tile must have empty space directly above it, the player must not already be
+below the corner beyond a four-pixel fixed-step tolerance, and all four inset
+corners of the aligned 14x16 collider must remain outside solid terrain.
+
+Tile collision treats the trailing cross-axis edge as exclusive. A player
+whose right edge exactly touches a cliff face therefore remains airborne while
+falling beside it instead of treating the wall tile as floor support. Real
+horizontal overlap still lands normally. This half-open boundary is mirrored
+for horizontal collision so exact contact with the top of a floor does not
+become a side obstruction.
 
 On a right grab, the collider's right edge aligns to the tile's left edge. A
 left grab mirrors that relationship. Its top aligns with the tile top. Physics
 is disabled and velocity is reset every update while hanging or climbing, so
 air control and gravity cannot accumulate hidden drift.
 
-The player cannot enter a hang while rising, grounded, dead, stationary on the
-horizontal axis, or moving away from the wall. A carried item remains attached
-and continues to follow the player through the snap, suspended hang, and climb
-or release. While attached, both the player pose and carried-item side stay
-oriented toward the supporting ledge; Left and Right do not turn either one.
-Damage, death, removal of the supporting tile, or newly occupied
-corner space releases the player rather than embedding the collider. Starting
-a new pickup or throw remains unavailable during a hang or climb. D while
-already hanging is the carried-item exception: it drops the item with no throw
-impulse while leaving the player attached to the ledge.
+The player cannot enter a hang while rising, grounded, dead, or moving away
+from the wall. Zero horizontal velocity is eligible only when the adjacent
+probe finds the exposed cliff, which lets a held neutral jump catch a
+two-tile-height ledge on the way down without attracting the player across
+open space. A carried item remains attached and continues to follow the player
+through the snap, suspended hang, and climb or release. While attached, both
+the player pose and carried-item side stay oriented toward the supporting
+ledge; Left and Right do not turn either one. Damage, death, removal of the
+supporting tile, or newly occupied corner space releases the player rather
+than embedding the collider. Starting a new pickup or throw remains
+unavailable during a hang or climb. D while already hanging is the
+carried-item exception: it drops the item with no throw impulse while leaving
+the player attached to the ledge.
 
 ## Controls and exits
 

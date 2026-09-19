@@ -371,9 +371,15 @@ the edge: slightly earlier than the original behavior without releasing at the
 center or leading toe and letting most of the body descend through the wall.
 The same probe remains authoritative during that departure so the full-width
 landing check cannot snap the player back to the ledge every other frame.
-Other airborne downward collisions still use the full collider width,
-retaining the existing forgiving landing area. This spatial support rule is
-independent of the post-walk-off jump grace described below.
+The centered 10-pixel span is also the player's general vertical collision
+footprint while airborne. After it releases at a cliff edge, the 14-pixel
+visual collider can overlap the cliff shoulder by two pixels while falling to
+the floor below. Applying one vertical footprint to both ceilings and floors
+prevents that harmless side overlap from either cancelling a later jump or
+snapping the player onto the ledge top during descent. Other physics entities
+retain full-width vertical collision unless they explicitly configure a
+narrower footprint. This spatial rule is independent of the post-walk-off jump
+grace described below.
 
 ### Mario's jump
 

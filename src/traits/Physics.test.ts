@@ -132,4 +132,95 @@ assertEqual(
     'Airborne landing continues to use the full-width collision probe',
 );
 
+const adjacentFall = createSolidEntity(50, 61);
+adjacentFall.entity.vel.y = 60;
+adjacentFall.physics.update(adjacentFall.entity, gameContext, edgeLevel);
+assertEqual(
+    [
+        adjacentFall.entity.pos.y,
+        adjacentFall.entity.vel.y,
+        adjacentFall.physics.grounded,
+    ],
+    [62, 75, false],
+    'Exact side contact with a cliff is not misclassified as floor support',
+);
+
+const overlappingFall = createSolidEntity(50.001, 61);
+overlappingFall.entity.vel.y = 60;
+overlappingFall.physics.update(overlappingFall.entity, gameContext, edgeLevel);
+assertEqual(
+    [
+        overlappingFall.entity.pos.y,
+        overlappingFall.entity.vel.y,
+        overlappingFall.physics.grounded,
+    ],
+    [48, 0, true],
+    'A real horizontal overlap still lands on the floor tile',
+);
+
+const adjacentRun = createSolidEntity(50, 48);
+adjacentRun.entity.vel.x = 60;
+adjacentRun.physics.update(adjacentRun.entity, gameContext, edgeLevel);
+assertEqual(
+    [adjacentRun.entity.pos.x, adjacentRun.entity.vel.x],
+    [51, 60],
+    'Exact top contact with a floor does not become a side obstruction',
+);
+
+const shoulderLevel = new Level();
+shoulderLevel.gravity = 0;
+const shoulder = new Matrix<CollisionTile>();
+shoulder.set(2, 5, {type: 'ground'});
+shoulderLevel.tileCollider.addGrid(shoulder);
+
+const insetShoulderJump = createSolidEntity(46, 96);
+insetShoulderJump.physics.verticalCollisionWidth = 10;
+insetShoulderJump.entity.vel.y = -60;
+insetShoulderJump.physics.update(
+    insetShoulderJump.entity,
+    gameContext,
+    shoulderLevel,
+);
+assertEqual(
+    [insetShoulderJump.entity.pos.y, insetShoulderJump.entity.vel.y],
+    [95, -60],
+    'Centered ceiling probe clears the two-pixel walk-off shoulder overlap',
+);
+
+const fullWidthCeiling = createSolidEntity(46, 96);
+fullWidthCeiling.entity.vel.y = -60;
+fullWidthCeiling.physics.update(fullWidthCeiling.entity, gameContext, shoulderLevel);
+assertEqual(
+    [fullWidthCeiling.entity.pos.y, fullWidthCeiling.entity.vel.y],
+    [96, 0],
+    'Entities without a ceiling inset retain full-width obstruction',
+);
+
+const insetShoulderFall = createSolidEntity(46, 64);
+insetShoulderFall.physics.verticalCollisionWidth = 10;
+insetShoulderFall.entity.vel.y = 60;
+insetShoulderFall.physics.update(
+    insetShoulderFall.entity,
+    gameContext,
+    shoulderLevel,
+);
+assertEqual(
+    [insetShoulderFall.entity.pos.y, insetShoulderFall.entity.vel.y],
+    [65, 60],
+    'Centered vertical probe does not land on a two-pixel side overlap',
+);
+
+const fullWidthShoulderFall = createSolidEntity(46, 64);
+fullWidthShoulderFall.entity.vel.y = 60;
+fullWidthShoulderFall.physics.update(
+    fullWidthShoulderFall.entity,
+    gameContext,
+    shoulderLevel,
+);
+assertEqual(
+    [fullWidthShoulderFall.entity.pos.y, fullWidthShoulderFall.entity.vel.y],
+    [64, 0],
+    'Entities without a vertical inset retain full-width landing',
+);
+
 console.log('Physics collision regressions passed');

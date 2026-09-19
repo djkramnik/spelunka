@@ -14,6 +14,7 @@ export default class Physics extends Trait {
     enabled = true;
     grounded = false;
     groundSupportWidth: number | null = null;
+    verticalCollisionWidth: number | null = null;
     private groundDepartureActive = false;
 
     override update(entity: Entity, gameContext: GameContext, level: Level): void {
@@ -50,10 +51,12 @@ export default class Physics extends Trait {
             || this.groundDepartureActive)
             && this.groundSupportWidth !== null
             && entity.vel.y > 0;
-        const groundSupportInset = useGroundSupportProbe
+        const verticalProbeWidth = this.verticalCollisionWidth
+            ?? (useGroundSupportProbe ? this.groundSupportWidth : null);
+        const verticalCollisionInset = verticalProbeWidth !== null
             ? Math.max(
                 0,
-                (entity.size.x - (this.groundSupportWidth ?? entity.size.x)) / 2,
+                (entity.size.x - verticalProbeWidth) / 2,
             )
             : 0;
         for (let step = 0; step < ySteps; ++step) {
@@ -64,7 +67,7 @@ export default class Physics extends Trait {
                 gameContext,
                 level,
                 previousBottom,
-                groundSupportInset,
+                verticalCollisionInset,
             );
             if (entity.vel.y !== initialYVelocity) {
                 break;

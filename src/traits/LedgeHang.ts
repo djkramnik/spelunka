@@ -85,12 +85,25 @@ export default class LedgeHang extends Trait {
         }
     }
 
-    private approachSide(entity: Entity): -1 | 0 | 1 {
+    private approachSide(entity: Entity): -1 | 1 {
         if (this.wallContactSide !== 0) {
             return this.wallContactSide;
         }
 
-        return entity.vel.x < 0 ? -1 : entity.vel.x > 0 ? 1 : 0;
+        if (entity.vel.x < 0) {
+            return -1;
+        }
+        if (entity.vel.x > 0) {
+            return 1;
+        }
+
+        return entity.traits.get(Go).heading < 0 ? -1 : 1;
+    }
+
+    private wallProbeX(entity: Entity, side: -1 | 1): number {
+        return side > 0
+            ? entity.bounds.right + SUPPORT_PROBE_OFFSET
+            : entity.bounds.left - SUPPORT_PROBE_OFFSET;
     }
 
     private supportX(entity: Entity): number {
@@ -284,20 +297,17 @@ export default class LedgeHang extends Trait {
         if (this.tryCrouchEntry(entity, level, physics, jump)) {
             return;
         }
-        const side = this.approachSide(entity);
         if (this.cooldown > 0
             || physics.grounded
             || jump.phase !== 'falling'
             || entity.vel.y <= 0
-            || side === 0
             || this.isUnavailable(entity)) {
             return;
         }
 
         const currentTop = entity.bounds.top;
-        const wallX = side > 0
-            ? entity.bounds.right + SUPPORT_PROBE_OFFSET
-            : entity.bounds.left - SUPPORT_PROBE_OFFSET;
+        const side = this.approachSide(entity);
+        const wallX = this.wallProbeX(entity, side);
         const match = level.tileCollider.getSolidAt(
             wallX,
             currentTop + GRAB_PROBE_DEPTH,

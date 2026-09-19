@@ -41,6 +41,11 @@ const handlers: Record<string, readonly TileHandler[]> = {
 
 const solidTileTypes = new Set(['brick', 'ground']);
 const supportTileTypes = new Set(['brick', 'ground', 'platform']);
+const RANGE_END_EPSILON = 1e-6;
+
+function exclusiveRangeEnd(start: number, end: number): number {
+    return end > start ? Math.max(start, end - RANGE_END_EPSILON) : end;
+}
 
 export default class TileCollider {
     readonly resolvers: Array<TileResolver<CollisionTile>> = [];
@@ -90,7 +95,7 @@ export default class TileCollider {
                 x,
                 x,
                 entity.bounds.top,
-                entity.bounds.bottom,
+                exclusiveRangeEnd(entity.bounds.top, entity.bounds.bottom),
             );
             gameContext.performanceMetrics.recordTileCandidates(candidateCount);
 
@@ -126,9 +131,11 @@ export default class TileCollider {
             maximumInset,
         );
         for (const resolver of this.resolvers) {
+            const rangeLeft = entity.bounds.left + clampedInset;
+            const rangeRight = entity.bounds.right - clampedInset;
             const {matches, candidateCount} = resolver.searchByRange(
-                entity.bounds.left + clampedInset,
-                entity.bounds.right - clampedInset,
+                rangeLeft,
+                exclusiveRangeEnd(rangeLeft, rangeRight),
                 y,
                 y,
             );

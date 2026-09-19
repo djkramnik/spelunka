@@ -431,6 +431,7 @@ export function createMarioFactory(
 
             const physics = new Physics();
             physics.groundSupportWidth = 10;
+            physics.verticalCollisionWidth = 10;
             this.addTrait(physics);
             this.addTrait(new Solid());
             this.addTrait(new Crouch());
